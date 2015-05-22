@@ -20,6 +20,7 @@
       (if is-collapsed? "\u00BB" "\u00AB")]
      (into [:div.hud-contents] children)]))
 
+
 (defn hud-right [& children]
   (let [is-collapsed? (:right-hud-collapsed? @app-state)]
     [:div.hud-container.hud-right
@@ -28,6 +29,58 @@
                        :on-click #(swap! app-state update-in [:right-hud-collapsed?] not)}
       (if is-collapsed? "\u00AB" "\u00BB")]
      (into [:div.hud-contents] children)]))
+
+
+(defn project-to-xz [pnt]
+  [(aget pnt 0) 0 (aget pnt 2)])
+
+(defn make-vec [start end]
+  (mapv - end start))
+
+(defn normalize [v]
+  (let [m (->> (map * v v)
+               (apply +)
+               js/Math.sqrt)]
+    (mapv #(/ % m) v)))
+
+(defn angle-between [a b]
+  (let [dot (apply + (map * a b))
+        rads (js/Math.acos dot)]
+    (println "rads" rads)
+    (* 180 (/ rads 3.141592654))))
+
+
+(defn compass []
+  (let [angle (atom 0)
+        zvec  [0, 0, 1]]
+    (reagent/create-class
+     {:component-did-mount
+      (fn []
+        (if-let [renderer (get-in @app-state [:comps :renderer])]
+          (.addPropertyListener renderer (array "view")
+                                (fn [view]
+                                  (when view
+                                    (let [eye (.-eye view)
+                                          target (.-target view)]
+                                      ;; such calculations, mostly project vectors to xz plane and
+                                      ;; compute the angle between the two vectors
+                                      (when (and eye target)
+                                        (let [peye (project-to-xz eye)
+                                              ptarget (project-to-xz target)
+                                              v (normalize (make-vec peye ptarget))
+                                              theta (angle-between zvec v)]
+                                          (reset! angle
+                                                  (if (> (v 0) 0)
+                                                    theta
+                                                    (- 360 theta)))))))))
+          (throw (js/Error. "Renderer is not intialized, cannot have compass if renderer is not available"))))
+      :reagent-render
+      (fn []
+        (println @angle)
+        [:div.compass {:style {:transform (str "rotateX(" @angle "deg)")}}
+         [:div.arrow {:style {:transform (str "rotateZ(" @angle "deg)")}}
+          [:i.fa.fa-angle-up]]
+         [:div.circle]])})))
 
 (declare initialize-for-pipeline)
 
@@ -92,7 +145,19 @@
        [w/slider 50 10 70
         (fn [val]
           (when-let [policy (get-in @app-state [:comps :policy])]
-            (.setDistanceHint policy val)))]]])
+            (.setDistanceHint policy val)))]]
+
+      [w/panel-section
+       [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
+       [w/slider 5 0 5
+        (fn [val]
+          (when-let [policy (get-in @app-state [:comps :policy])]
+            (let [val (js/Math.floor (- 5 val))]
+              (.setMaxDepthReductionHint  policy val))))]]
+
+      ])
+
+   [compass]
 
 
    #_(hud-right

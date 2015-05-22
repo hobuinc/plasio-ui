@@ -3,6 +3,8 @@
 CWD=`pwd`
 TARGET_DIR="$CWD/resources/public"
 
+cp ../plasio.js/renderer/plasio-renderer.js "$TARGET_DIR/js"
+
 if [ ! -d "$TARGET_DIR/lib/dist" ] ; then
     mkdir -p "$TARGET_DIR/lib/dist"
 fi

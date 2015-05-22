@@ -175,3 +175,33 @@ a:hover {
     top: 5px;
     left: 10px;
 }
+
+.compass {
+    width: 96px;
+    height: 96px;
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    font: monospace;
+}
+
+.compass .circle {
+    position: absolute;
+    box-sizing: border-box;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 4px solid RGBA(235, 240, 242, 0.4);
+}
+
+.compass .arrow {
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    font-size: 2em;
+    line-height: 1em;
+    color: RGBA(235, 127, 0, 1);
+    z-index: 100;
+}
