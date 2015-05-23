@@ -22,7 +22,7 @@ echo ":: performing a release build..."
 lein cljsbuild once min
 
 echo ":: staging resources..."
-cp -r "$CWD/resources/public/" $DEPLOY_DIR
+cp -R "$CWD/resources/public/." $DEPLOY_DIR/
 
 echo ":: done."
 
