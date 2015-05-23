@@ -2206,13 +2206,15 @@
 	    this.distance = propOrDefault("distance", this.maxDistance);
 	    this.target = propOrDefault("target", [0, 0, 0]);    // the intial target
 	    this.elevation = propOrDefault("elevation", 40);        // the elevation from Y plane
-	    this.azimuth = propOrDefault("azimuth", 180);         // the angle of rotation around Y axis
+	    this.azimuth = propOrDefault("azimuth", 0);         // the angle of rotation around Y axis
 
 	    this.minDistance = 1.0;
 
 	    this._bindHandlers();
 
 	    this.animFrameId = null;
+		this.headingAnimFrameId = null;
+		
 	    this.nextUpdateOverrides = null;
 	    this.isWaitingUpdate = false;
 
@@ -2327,7 +2329,7 @@
 
 	        // figure out the quat rotations for the 
 	        quat.setAxisAngle(qe, right, torad(elevation));
-	        quat.setAxisAngle(qa, up, torad(azimuth));
+	        quat.setAxisAngle(qa, up, torad(azimuth + 180));
 
 	        quat.multiply(qr, qa, qe);
 
@@ -2341,6 +2343,8 @@
 
 
 	OrbitalCamera.prototype._emitCameraProps = function(overrides) {
+		console.log("emitting!");
+		
 	    this.nextUpdateOverrides = overrides;
 	    if (!this.isWaitingUpdate) {
 	        this.isWaitingUpdate = true;
@@ -2353,14 +2357,14 @@
 	    }
 	};
 
+	var easef = function (t) { return t<0.5 ? 2*t*t : -1+(4-2*t)*t; };
+
 	OrbitalCamera.prototype._transitionTargetTo = function(newTarget, delay) {
 	    // cancel any animations which may be going on right now
 	    if (this.animFrameId !== null) {
-	        cancelAnimationFrame(o.animFrameId);
-	        o.animFrameId = null;
+	        cancelAnimationFrame(this.animFrameId);
+	        this.animFrameId = null;
 	    }
-
-	    var easef = function (t) { return t<0.5 ? 2*t*t : -1+(4-2*t)*t; };
 
 	    delay = delay || 500;
 	   
@@ -2390,6 +2394,49 @@
 	            o._emitCameraProps({target: [x, y, z]});
 
 	            o.animFrameId = requestAnimationFrame(af);
+	        }
+	    };
+
+	    af();
+	};
+
+	OrbitalCamera.prototype.setHeading = function(newHeading, delay) {
+	    if (this.headingAnimFrameId !== null) {
+		    cancelAnimationFrame(this.headingAnimFrameId);
+	        this.headingAnimFrameId = null;
+	    }
+
+	    delay = delay || 500;
+
+
+		var st = this.azimuth;
+		var et = newHeading;
+
+	    var stime = ms();
+
+	    var o = this;
+
+	    var af = function() {
+	        var ttime = ms();
+	        if (ttime >= stime + delay) {
+		        o.azimuth = newHeading;
+
+		        while (o.azimuth > 360) o.azimuth -= 360;
+		        while (o.azimuth < 0) o.azimuth += 360;
+		        
+	            o.headingAnimFrameId = null;
+
+	            // send properties of the newly set stuff
+	            o._emitCameraProps();
+	        } else {
+	            var ff = (ttime - stime) / delay;
+
+	            ff = easef(ff);
+
+	            var v = st + (et - st) * ff;
+
+	            o._emitCameraProps({azimuth: v});
+	            o.headingAnimFrameId = requestAnimationFrame(af);
 	        }
 	    };
 
@@ -2563,6 +2610,10 @@
 	        return navigator.platform.indexOf("Win") === 0;
 	    };
 
+		var isLinux = function() {
+	        return navigator.platform.indexOf("Linux") === 0;
+		};
+
 	    var isChrome = function() {
 	        var isChromium = window.chrome,
 	            vendorName = window.navigator.vendor;
@@ -2570,39 +2621,45 @@
 	    };
 
 	    var onmousewheel = function(e) {
+		    console.log("wheel!")
 	        e.preventDefault();
 	        var m = e.wheelDelta || (-120 * e.detail);
 		    var r = o._range() / 100;
 
+
 	        var amp = 1.0; // no amplification by default
 
 	        // not sure why but sensitivity on windows in chrome is pretty terrible
-	        if (isWindows() && isChrome()) {
+		    if ((isLinux() || isWindows()) && isChrome()) {
 	            amp = 5.0;
 	        }
+
+		    console.log(m, r, amp, o.distance, o.maxDistance);
 
 	        var d = 0.01 * amp * m * r * (o.distance / o.maxDistance);
 	        o.distance -= d;
 
 	        o.distance = Math.min(Math.max(o.minDistance, o.distance), o.maxDistance);
 
-	        if (o.animFrameId === null)
+		    if (o.animFrameId === null && o.headingAnimFrameId === null)
 	            o._emitCameraProps();
 	    };
 
-	    this.elem.addEventListener("dblclick", ondblclick);
-	    this.elem.addEventListener("contextmenu", oncontextmenu);
-	    this.elem.addEventListener("mousedown", onmousedown);
-	    this.elem.addEventListener("mousewheel", onmousewheel);
-	    this.elem.addEventListener("DOMMouseScroll", onmousewheel);
+		var te = this.elem;
+
+	    te.addEventListener("dblclick", ondblclick);
+	    te.addEventListener("contextmenu", oncontextmenu);
+	    te.addEventListener("mousedown", onmousedown);
+	    te.addEventListener("mousewheel", onmousewheel);
+	    te.addEventListener("DOMMouseScroll", onmousewheel);
 
 	    var o = this;
 	    this._unbind = function() {
-	        o.elem.removeEventListener("dblclick", ondblclick);
-	        o.elem.removeEventListener("contextmenu", oncontextmenu);
-	        o.elem.removeEventListener("mousedown", onmousedown);
-	        o.elem.removeEventListener("mousewheel", onmousewheel);
-	        o.elem.removeEventListener("DOMMouseScroll", onmousewheel);
+	        te.removeEventListener("dblclick", ondblclick);
+	        te.removeEventListener("contextmenu", oncontextmenu);
+	        te.removeEventListener("mousedown", onmousedown);
+	        te.removeEventListener("mousewheel", onmousewheel);
+	        te.removeEventListener("DOMMouseScroll", onmousewheel);
 	    };
 	};
 
@@ -23938,7 +23995,7 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(54)
+	var base64 = __webpack_require__(55)
 	var ieee754 = __webpack_require__(48)
 	var isArray = __webpack_require__(49)
 
@@ -24995,7 +25052,7 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(55)
+	var base64 = __webpack_require__(54)
 	var ieee754 = __webpack_require__(50)
 	var isArray = __webpack_require__(51)
 
@@ -34944,12 +35001,16 @@
 		var NUMBER = '0'.charCodeAt(0)
 		var LOWER  = 'a'.charCodeAt(0)
 		var UPPER  = 'A'.charCodeAt(0)
+		var PLUS_URL_SAFE = '-'.charCodeAt(0)
+		var SLASH_URL_SAFE = '_'.charCodeAt(0)
 
 		function decode (elt) {
 			var code = elt.charCodeAt(0)
-			if (code === PLUS)
+			if (code === PLUS ||
+			    code === PLUS_URL_SAFE)
 				return 62 // '+'
-			if (code === SLASH)
+			if (code === SLASH ||
+			    code === SLASH_URL_SAFE)
 				return 63 // '/'
 			if (code < NUMBER)
 				return -1 //no match
@@ -35070,16 +35131,12 @@
 		var NUMBER = '0'.charCodeAt(0)
 		var LOWER  = 'a'.charCodeAt(0)
 		var UPPER  = 'A'.charCodeAt(0)
-		var PLUS_URL_SAFE = '-'.charCodeAt(0)
-		var SLASH_URL_SAFE = '_'.charCodeAt(0)
 
 		function decode (elt) {
 			var code = elt.charCodeAt(0)
-			if (code === PLUS ||
-			    code === PLUS_URL_SAFE)
+			if (code === PLUS)
 				return 62 // '+'
-			if (code === SLASH ||
-			    code === SLASH_URL_SAFE)
+			if (code === SLASH)
 				return 63 // '/'
 			if (code < NUMBER)
 				return -1 //no match
