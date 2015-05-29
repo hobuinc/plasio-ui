@@ -82,7 +82,8 @@
                        :on-click #(do (when camera
                                         (.setHeading camera 0)))}
            [:div.arrow {:style {:transform (str "rotateZ(" heading "deg)")}}
-            [:i.fa.fa-angle-up]]
+            [:div.n]
+            [:div.s]]
            [:div.circle]]))})))
 
 (declare initialize-for-pipeline)

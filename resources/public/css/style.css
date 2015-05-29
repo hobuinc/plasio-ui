@@ -205,3 +205,21 @@ a:hover {
     color: RGBA(235, 127, 0, 1);
     z-index: 100;
 }
+
+.compass .arrow .n {
+    position:absolute;
+    left: 38px;
+    bottom: 48px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 40px solid red;
+}
+
+.compass .arrow .s {
+    position:absolute;
+    left: 38px;
+    top: 48px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 40px solid white;
+}
