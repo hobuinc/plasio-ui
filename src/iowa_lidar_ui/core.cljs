@@ -1,6 +1,7 @@
 (ns ^:figwheel-always iowa-lidar-ui.core
     (:require [iowa-lidar-ui.widgets :as w]
               [iowa-lidar-ui.math :as math]
+              [iowa-lidar-ui.history :as history]
               [reagent.core :as reagent :refer [atom]]
               cljsjs.gl-matrix))
 
@@ -88,6 +89,31 @@
 
 (declare initialize-for-pipeline)
 
+(defn- apply-state!
+  [{:keys [cd cmd ct ce ca] :as params}]
+  ;; apply camera state if any
+  (when (and ca ct ce cd cmd)
+    (let [camera (get-in @app-state [:comps :camera])]
+      (.applyState camera
+                   (js-obj "distance" cd
+                           "maxDistance" cmd
+                           "target" (apply array ct)
+                           "elevation" ce
+                           "azimuth" ca)))))
+
+(defn- current-state []
+  (let [camera (get-in @app-state [:comps :camera])
+        props (.serialize camera)]
+    {:ca (.. props -azimuth)
+     :cd (.. props -distance)
+     :cmd (.. props -maxDistance)
+     :ct (into [] (.. props -target))
+     :ce (.. props -elevation)}))
+
+(defn- save-current-snapshot! []
+  (let [cst (current-state)]
+    (history/push-state cst)))
+
 (defn render-target []
   (let [this (reagent/current-component)]
     (reagent/create-class
@@ -101,7 +127,17 @@
                                                :bbox      [-10796577.371225, 4902908.135781, 0,
                                                            -10015953.953824, 5375808.896799, 1000]
                                                :imagery?  true})]
-           (swap! app-state assoc :comps comps)))
+           (swap! app-state assoc :comps comps))
+
+         ;; make sure history stuff is taken care of, if there is a state in the URL
+         ;; apply it, and be sure to apply states on navigation changes
+         ;;
+         (let [st (history/current-state-from-query-string)]
+           (when (seq st)
+             (apply-state! st)))
+
+         (history/listen (fn [st]
+                          (apply-state! st))))
 
        :reagent-render
        (fn []
@@ -217,6 +253,7 @@
 
       (.on "view-changed"
            (fn []
+             (save-current-snapshot!)
              (println "view-changed!"))))
 
     ;; set some default render state
