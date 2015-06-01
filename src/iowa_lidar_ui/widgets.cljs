@@ -26,7 +26,7 @@
       {:component-did-mount
        (fn []
          (let [slider (js/jQuery (.getDOMNode this))
-               emit #(f (.val slider))]
+               emit #(f (js/parseFloat (.val slider)))]
            (doto slider
              (.on "slide" emit)
              (.on "set" emit))

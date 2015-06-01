@@ -3,14 +3,25 @@
               [iowa-lidar-ui.math :as math]
               [iowa-lidar-ui.history :as history]
               [reagent.core :as reagent :refer [atom]]
-              cljsjs.gl-matrix))
+              [cljs.core.async :as async]
+              cljsjs.gl-matrix)
+    (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
 
 ;; define your app data so that it doesn't get over-written on reload
 
 (defonce app-state (atom {:left-hud-collapsed? false
-                          :right-hud-collapsed? false}))
+                          :right-hud-collapsed? false
+                          :ro {:point-size 2
+                               :point-size-attenuation 1}
+                          :po {:distance-hint 50
+                               :max-depth-reduction-hint 5}}))
+
+;; when this value is true, everytime the app-state atom updates, a snapshot is requested (history)
+;; when this is set to false, you may update the app-state without causing a snapshot however the UI
+;; state will still update
+(def ^:dynamic ^:private *save-snapshot-on-ui-update* true)
 
 ;; Much code duplication here, but I don't want to over engineer this
 ;;
@@ -89,53 +100,109 @@
 
 (declare initialize-for-pipeline)
 
+(defn- url-state->camera-props
+  "A utility function to convert things fetched from the URL into something that our camera can understand"
+  [{:keys [ca cd cmd ct ce]}]
+  (js-obj "distance" cd
+          "maxDistance" cmd
+          "target" (apply array ct)
+          "elevation" ce
+          "azimuth" ca))
+
+(defn- camera-props->url-state
+  "Helps with creating snapshots, take current camera props and make something that we can store in history"
+  [props]
+  {:ca (.. props -azimuth)
+   :cd (.. props -distance)
+   :cmd (.. props -maxDistance)
+   :ct (into [] (.. props -target))
+   :ce (.. props -elevation)})
+
+(defn- ui->url-state [n]
+  (let [ro (:ro n)
+        po (:po n)]
+    {:ps (:point-size ro)
+     :pa (:point-size-attenuation ro)
+     :pdh (:distance-hint po)
+     :pmdr (:max-depth-reduction-hint po)}))
+
+(defn- url-state->ui! [{:keys [ps pa pdh pmdr]}]
+  (binding [*save-snapshot-on-ui-update* false]
+    (swap! app-state #(-> %
+                          (assoc-in [:ro :point-size] ps)
+                          (assoc-in [:ro :point-size-attenuation] pa)
+                          (assoc-in [:po :distance-hint] pdh)
+                          (assoc-in [:po :max-depth-reduction-hint] pmdr)))))
+
 (defn- apply-state!
-  [{:keys [cd cmd ct ce ca] :as params}]
+  "Given a state snapshot, apply it"
+  [{:keys [cd cmd ct ce ca ps pa pdh pmdr] :as params}]
   ;; apply camera state if any
   (when (and ca ct ce cd cmd)
     (let [camera (get-in @app-state [:comps :camera])]
       (.applyState camera
-                   (js-obj "distance" cd
-                           "maxDistance" cmd
-                           "target" (apply array ct)
-                           "elevation" ce
-                           "azimuth" ca)))))
+                   (url-state->camera-props params))))
 
-(defn- current-state []
-  (let [camera (get-in @app-state [:comps :camera])
-        props (.serialize camera)]
-    {:ca (.. props -azimuth)
-     :cd (.. props -distance)
-     :cmd (.. props -maxDistance)
-     :ct (into [] (.. props -target))
-     :ce (.. props -elevation)}))
+  (when (and ps pa pdh pmdr)
+    ;; when we have UI state vars, apply, make sure we don't create a new snapshot
+    (url-state->ui! params)))
 
-(defn- save-current-snapshot! []
-  (let [cst (current-state)]
-    (history/push-state cst)))
+(defn- save-current-snapshot!
+  "Take a snapshot from the camera and save it"
+  []
+  (if-let [camera (get-in @app-state [:comps :camera])]
+    (history/push-state
+     (merge 
+      (camera-props->url-state (.serialize camera))
+      (ui->url-state @app-state)))))
+
+
+(let [current-index (atom 0)]
+  (defn do-save-current-snapshot []
+    (go
+      (let [index (swap! current-index inc)]
+        (async/<! (async/timeout 500))
+        (when (= index @current-index)
+          ;; the index hasn't changed since we were queued for save
+          (save-current-snapshot!))))))
+
+(defn apply-ui-state!
+  ([n]
+   (let [r (get-in n [:comps :renderer])
+         p (get-in n [:comps :policy])]
+     (.setRenderOptions r (js-obj
+                           "pointSize" (get-in n [:ro :point-size])
+                           "pointSizeAttenuation" (array 1 (get-in n [:ro :point-size-attenuation]))))
+
+     (doto p
+       (.setDistanceHint (get-in n [:po :distance-hint]))
+       (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])
+                                       (- 5)
+                                       js/Math.floor))))))
+
 
 (defn render-target []
   (let [this (reagent/current-component)]
     (reagent/create-class
       {:component-did-mount
        (fn []
-         (let [comps (initialize-for-pipeline (reagent/dom-node this)
-                                              {:server    "http://data.iowalidar.com"
-                                               :pipeline  "ia-nineteen"
-                                               :max-depth 19
-                                               :compress? true
-                                               :bbox      [-10796577.371225, 4902908.135781, 0,
-                                                           -10015953.953824, 5375808.896799, 1000]
-                                               :imagery?  true})]
-           (swap! app-state assoc :comps comps))
+         (let [init-state (history/current-state-from-query-string)]
+           ;; make sure the UI reflects the correct stuff
+           (when init-state
+             (url-state->ui! init-state))
 
-         ;; make sure history stuff is taken care of, if there is a state in the URL
-         ;; apply it, and be sure to apply states on navigation changes
-         ;;
-         (let [st (history/current-state-from-query-string)]
-           (when (seq st)
-             (apply-state! st)))
+           (let [comps (initialize-for-pipeline (reagent/dom-node this)
+                                                {:server    "http://data.iowalidar.com"
+                                                 :pipeline  "ia-nineteen"
+                                                 :max-depth 19
+                                                 :compress? true
+                                                 :bbox      [-10796577.371225, 4902908.135781, 0,
+                                                             -10015953.953824, 5375808.896799, 1000]
+                                                 :imagery?  true
+                                                 :init-params init-state})]
+             (swap! app-state assoc :comps comps)))
 
+         ;; listen to changes to history
          (history/listen (fn [st]
                           (apply-state! st))))
 
@@ -143,69 +210,75 @@
        (fn []
          [:div#render-target])})))
 
+
+
 (defn hud []
-  ;; get the left and right hud's up
-  ;; we need these to place our controls and other fancy things
-  ;;
-  [:div.container
-   ;; This is going to be where we render stuff
-   [render-target]
+  (reagent/create-class
+   {:component-did-mount
+    (fn []
+      ;; subscribe to state changes, so that we can trigger approprate render options
+      ;;
+      (add-watch app-state "__render-applicator"
+                 (fn [_ _ o n]
+                   (apply-ui-state! n)
+                   (when *save-snapshot-on-ui-update*
+                     (do-save-current-snapshot)))))
+    
+    :reagent-render 
+    (fn []
+      ;; get the left and right hud's up
+      ;; we need these to place our controls and other fancy things
+      ;;
+      [:div.container
+       ;; This is going to be where we render stuff
+       [render-target]
 
-   ;; hud elements
-   (hud-left
-     ;; show app brand
-     [:div#brand "Iowa-Lidar"
-      [:div#sub-brand "Statewide Point Cloud Renderer"]]
+       ;; hud elements
+       (hud-left
+        ;; show app brand
+        [:div#brand "Iowa-Lidar"
+         [:div#sub-brand "Statewide Point Cloud Renderer"]]
 
-     ;; Point size
-     [w/panel "Point Rendering"
+        ;; Point size
+        [w/panel "Point Rendering"
 
-      ;; base point size
-      [w/panel-section
-       [w/desc "Base point size"]
-       [w/slider 2 1 10
-        (fn [val]
-          (when-let [r (get-in @app-state [:comps :renderer])]
-            (.setRenderOptions r (js-obj "pointSize" val))))]]
+         ;; base point size
+         [w/panel-section
+          [w/desc "Base point size"]
+          [w/slider (get-in @app-state [:ro :point-size]) 1 10
+           #(swap! app-state assoc-in [:ro :point-size] %)]]
 
-      ;; point attenuation factor
-      [w/panel-section
-       [w/desc "Attenuation factor, points closer to you are bloated more"]
-       [w/slider 1 0 5
-        (fn [val]
-          (when-let [r (get-in @app-state [:comps :renderer])]
-            (.setRenderOptions r (js-obj "pointSizeAttenuation" (array 1 val)))))]]]
+         ;; point attenuation factor
+         [w/panel-section
+          [w/desc "Attenuation factor, points closer to you are bloated more"]
+          [w/slider (get-in @app-state [:ro :point-size-attenuation]) 0 5
+           #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]]
 
-     ;; split plane distance
-     [w/panel "Point Loading"
+        ;; split plane distance
+        [w/panel "Point Loading"
 
-      ;; How close the first splitting plane is
-      [w/panel-section
-       [w/desc "Distance for highest resolution data.  Farther it is, more points get loaded."]
-       [w/slider 50 10 70
-        (fn [val]
-          (when-let [policy (get-in @app-state [:comps :policy])]
-            (.setDistanceHint policy val)))]]
+         ;; How close the first splitting plane is
+         [w/panel-section
+          [w/desc "Distance for highest resolution data.  Farther it is, more points get loaded."]
+          [w/slider (get-in @app-state [:po :distance-hint]) 10 70
+           #(swap! app-state assoc-in [:po :distance-hint] %)]]
 
-      [w/panel-section
-       [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
-       [w/slider 5 0 5
-        (fn [val]
-          (when-let [policy (get-in @app-state [:comps :policy])]
-            (let [val (js/Math.floor (- 5 val))]
-              (js/console.log policy)
-              (.setMaxDepthReductionHint policy val))))]]])
+         [w/panel-section
+          [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
+          [w/slider (get-in @app-state [:po :max-depth-reduction-hint]) 0 5
+           #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]])
 
-   [compass]
+       [compass]
 
 
-   #_(hud-right
-     (w/panel "Many Descriptions"
-              [:div "Hi"]))])
+       #_(hud-right
+          (w/panel "Many Descriptions"
+                   [:div "Hi"]))])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox
-                                         imagery?]}]
+                                         imagery?
+                                         init-params]}]
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
         loaders (merge
@@ -215,10 +288,22 @@
                     {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
         policy (js/PlasioLib.FrustumLODNodePolicy. (clj->js loaders) renderer (apply js/Array bbox))
         camera (js/PlasioLib.Cameras.Orbital. e renderer
-                                              (fn [eye target]
+                                              (fn [eye target final? applying-state?]
+                                                ;; when the state is final and we're not applying a state, make a history
+                                                ;; record of this
+                                                ;;
+                                                (when (and final?
+                                                           (not applying-state?))
+                                                  (do-save-current-snapshot))
+
+                                                ;; go ahead and update the renderer
                                                 (doto renderer
                                                   (.setEyePosition eye)
-                                                  (.setTargetPosition target))))]
+                                                  (.setTargetPosition target)))
+                                              ;; if there are any init-params to the camera, specify them here
+                                              ;;
+                                              (when (seq init-params)
+                                                (url-state->camera-props init-params)))]
 
     ;; add loaders to our renderer, the loader wants the actual classes and not the instances, so we use
     ;; Class.constructor here to add loaders, more like static functions in C++ classes, we want these functions
@@ -232,7 +317,6 @@
     (let [handle-resize (fn []
                           (let [w (.. js/window -innerWidth)
                                 h (.. js/window -innerHeight)]
-                            (println "resizing to:" w h)
                             (.setRenderViewSize renderer w h)))]
       (set! (. js/window -onresize) handle-resize)
       (handle-resize))
@@ -247,33 +331,49 @@
                    y  (- (aget bx 1) (aget bn 1))
                    z  (- (aget bx 2) (aget bn 2))
                    far-dist (* 2 (js/Math.sqrt (* x x) (* y y)))]
-               (print "setting hint:" x y z)
-               (.setHint camera (js/Array x y z))
-               (.updateCamera renderer 0 (js-obj "far" far-dist)))))
 
-      (.on "view-changed"
-           (fn []
-             (save-current-snapshot!)
-             (println "view-changed!"))))
+               ;; only set hints for distance etc. when no camera init parameters were specified
+               (when-not (seq init-params)
+                 (print "setting hint:" x y z)
+                 (.setHint camera (js/Array x y z)))
+
+               (.updateCamera renderer 0 (js-obj "far" far-dist))))))
 
     ;; set some default render state
     ;;
+    (println init-params)
     (.setRenderOptions renderer
                      (js-obj "pointSize" 1
                              "circularPoints" 1
-                             "overlay_f" 1))
+                             "overlay_f" 1
+                             "pointSize" (get init-params :ps 2)
+                             "pointSizeAttenuation" (array 1 (get init-params :pa  1))))
     (.setClearColor renderer 0.1 0 0)
 
     (.start policy)
 
+    (when-let [dh (get init-params :pdh 50)]
+      (.setDistanceHint policy dh))
+
+    (when-let [pmdr (get init-params :pmdr 5)]
+      (.setMaxDepthReductionHint policy (js/Math.floor (- 5 pmdr))))
+
+    ;; also make sure that initial state is applied
+    ;;
     {:renderer renderer
      :target-element e
      :camera camera
      :policy policy}))
 
-(reagent/render-component [hud]
-                          (. js/document (getElementById "app")))
+(defn startup []
+  (when-let [init-state (history/current-state-from-query-string)]
+    (url-state->ui! init-state))
 
+  (reagent/render-component [hud]
+                            (. js/document (getElementById "app"))))
+
+
+(startup)
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
