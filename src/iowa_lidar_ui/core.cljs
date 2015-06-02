@@ -100,52 +100,34 @@
 
 (declare initialize-for-pipeline)
 
-(defn- url-state->camera-props
-  "A utility function to convert things fetched from the URL into something that our camera can understand"
-  [{:keys [ca cd cmd ct ce]}]
-  (js-obj "distance" cd
-          "maxDistance" cmd
-          "target" (apply array ct)
-          "elevation" ce
-          "azimuth" ca))
+(defn- camera-state [cam]
+  {:azimuth (.. cam -azimuth)
+   :distance (.. cam -distance)
+   :max-distance (.. cam -maxDistance)
+   :target (into [] (.. cam -target))
+   :elevation (.. cam -elevation)})
 
-(defn- camera-props->url-state
-  "Helps with creating snapshots, take current camera props and make something that we can store in history"
-  [props]
-  {:ca (.. props -azimuth)
-   :cd (.. props -distance)
-   :cmd (.. props -maxDistance)
-   :ct (into [] (.. props -target))
-   :ce (.. props -elevation)})
+(defn- js-camera-props [{:keys [azimuth distance max-distance target elevation]}]
+  (js-obj
+   "azimuth" azimuth
+   "distance" distance
+   "maxDistance" max-distance
+   "target" (apply array target)
+   "elevation" elevation))
 
-(defn- ui->url-state [n]
-  (let [ro (:ro n)
-        po (:po n)]
-    {:ps (:point-size ro)
-     :pa (:point-size-attenuation ro)
-     :pdh (:distance-hint po)
-     :pmdr (:max-depth-reduction-hint po)}))
-
-(defn- url-state->ui! [{:keys [ps pa pdh pmdr]}]
-  (binding [*save-snapshot-on-ui-update* false]
-    (swap! app-state #(-> %
-                          (assoc-in [:ro :point-size] ps)
-                          (assoc-in [:ro :point-size-attenuation] pa)
-                          (assoc-in [:po :distance-hint] pdh)
-                          (assoc-in [:po :max-depth-reduction-hint] pmdr)))))
+(defn- ui-state [st]
+  (select-keys st [:ro :po]))
 
 (defn- apply-state!
   "Given a state snapshot, apply it"
-  [{:keys [cd cmd ct ce ca ps pa pdh pmdr] :as params}]
+  [params]
   ;; apply camera state if any
-  (when (and ca ct ce cd cmd)
+  (when-let [cp (:camera params)]
     (let [camera (get-in @app-state [:comps :camera])]
-      (.applyState camera
-                   (url-state->camera-props params))))
+      (.applyState camera (js-camera-props cp))))
 
-  (when (and ps pa pdh pmdr)
-    ;; when we have UI state vars, apply, make sure we don't create a new snapshot
-    (url-state->ui! params)))
+  ;; apply UI state if any
+  (swap! app-state merge (select-keys params [:ro :po])))
 
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
@@ -153,10 +135,12 @@
   (if-let [camera (get-in @app-state [:comps :camera])]
     (history/push-state
      (merge 
-      (camera-props->url-state (.serialize camera))
-      (ui->url-state @app-state)))))
+      {:camera (camera-state camera)}
+      (ui-state @app-state)))))
 
-
+;; A simple way to throttle down changes to history, waits for 500ms
+;; before applying a state, gives UI a chance to "settle down"
+;;
 (let [current-index (atom 0)]
   (defn do-save-current-snapshot []
     (go
@@ -165,6 +149,7 @@
         (when (= index @current-index)
           ;; the index hasn't changed since we were queued for save
           (save-current-snapshot!))))))
+
 
 (defn apply-ui-state!
   ([n]
@@ -186,21 +171,17 @@
     (reagent/create-class
       {:component-did-mount
        (fn []
-         (let [init-state (history/current-state-from-query-string)]
-           ;; make sure the UI reflects the correct stuff
-           (when init-state
-             (url-state->ui! init-state))
-
-           (let [comps (initialize-for-pipeline (reagent/dom-node this)
-                                                {:server    "http://data.iowalidar.com"
-                                                 :pipeline  "ia-nineteen"
-                                                 :max-depth 19
-                                                 :compress? true
-                                                 :bbox      [-10796577.371225, 4902908.135781, 0,
-                                                             -10015953.953824, 5375808.896799, 1000]
-                                                 :imagery?  true
-                                                 :init-params init-state})]
-             (swap! app-state assoc :comps comps)))
+         (let [init-state (history/current-state-from-query-string)
+               comps (initialize-for-pipeline (reagent/dom-node this)
+                                              {:server    "http://data.iowalidar.com"
+                                               :pipeline  "ia-nineteen"
+                                               :max-depth 19
+                                               :compress? true
+                                               :bbox      [-10796577.371225, 4902908.135781, 0,
+                                                           -10015953.953824, 5375808.896799, 1000]
+                                               :imagery?  true
+                                               :init-params init-state})]
+           (swap! app-state assoc :comps comps))
 
          ;; listen to changes to history
          (history/listen (fn [st]
@@ -282,28 +263,30 @@
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
         loaders (merge
-                  {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader. server pipeline max-depth compress? color? intensity?)
-                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
-                  (when imagery?
-                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
+                 {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader. server pipeline max-depth compress? color? intensity?)
+                  :transform (js/PlasioLib.Loaders.TransformLoader.)}
+                 (when imagery?
+                   {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
         policy (js/PlasioLib.FrustumLODNodePolicy. (clj->js loaders) renderer (apply js/Array bbox))
-        camera (js/PlasioLib.Cameras.Orbital. e renderer
-                                              (fn [eye target final? applying-state?]
-                                                ;; when the state is final and we're not applying a state, make a history
-                                                ;; record of this
-                                                ;;
-                                                (when (and final?
-                                                           (not applying-state?))
-                                                  (do-save-current-snapshot))
+        camera (js/PlasioLib.Cameras.Orbital.
+                e renderer
+                (fn [eye target final? applying-state?]
+                  ;; when the state is final and we're not applying a state, make a history
+                  ;; record of this
+                  ;;
+                  (when (and final?
+                             (not applying-state?))
+                    (do-save-current-snapshot))
 
-                                                ;; go ahead and update the renderer
-                                                (doto renderer
-                                                  (.setEyePosition eye)
-                                                  (.setTargetPosition target)))
-                                              ;; if there are any init-params to the camera, specify them here
-                                              ;;
-                                              (when (seq init-params)
-                                                (url-state->camera-props init-params)))]
+                  ;; go ahead and update the renderer
+                  (doto renderer
+                    (.setEyePosition eye)
+                    (.setTargetPosition target)))
+                ;; if there are any init-params to the camera, specify them here
+                ;;
+                (when (-> init-params :camera seq)
+                  (println (:camera init-params))
+                  (js-camera-props (:camera init-params))))]
 
     ;; add loaders to our renderer, the loader wants the actual classes and not the instances, so we use
     ;; Class.constructor here to add loaders, more like static functions in C++ classes, we want these functions
@@ -333,29 +316,27 @@
                    far-dist (* 2 (js/Math.sqrt (* x x) (* y y)))]
 
                ;; only set hints for distance etc. when no camera init parameters were specified
-               (when-not (seq init-params)
-                 (print "setting hint:" x y z)
+               (when-not (:camera init-params)
                  (.setHint camera (js/Array x y z)))
 
                (.updateCamera renderer 0 (js-obj "far" far-dist))))))
 
     ;; set some default render state
     ;;
-    (println init-params)
     (.setRenderOptions renderer
-                     (js-obj "pointSize" 1
-                             "circularPoints" 1
-                             "overlay_f" 1
-                             "pointSize" (get init-params :ps 2)
-                             "pointSizeAttenuation" (array 1 (get init-params :pa  1))))
+                       (js-obj "pointSize" 1
+                               "circularPoints" 1
+                               "overlay_f" 1
+                               "pointSize" (get-in init-params [:ro :point-size] 2)
+                               "pointSizeAttenuation" (array 1 (get-in init-params [:ro :point-size-attenuation] 2))))
     (.setClearColor renderer 0.1 0 0)
 
     (.start policy)
 
-    (when-let [dh (get init-params :pdh 50)]
+    (when-let [dh (get-in init-params [:po :distance-hint])]
       (.setDistanceHint policy dh))
 
-    (when-let [pmdr (get init-params :pmdr 5)]
+    (when-let [pmdr (get-in init-params [:po :max-depth-reduction-hint])]
       (.setMaxDepthReductionHint policy (js/Math.floor (- 5 pmdr))))
 
     ;; also make sure that initial state is applied
@@ -367,7 +348,11 @@
 
 (defn startup []
   (when-let [init-state (history/current-state-from-query-string)]
-    (url-state->ui! init-state))
+    ;; just apply the UI state here, the camera state will be passed down as params to the
+    ;; renderer initializer
+    ;;
+    (println init-state)
+    (swap! app-state merge (select-keys init-state [:ro :po])))
 
   (reagent/render-component [hud]
                             (. js/document (getElementById "app"))))
