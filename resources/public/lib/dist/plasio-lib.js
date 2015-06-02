@@ -2218,7 +2218,8 @@
 
 		var o = this;
 		var s = function(prop) {
-			return state[prop] ? state[prop] : o[prop];
+			return (state[prop] == null || state[prop] == undefined) ?
+				o[prop] : state[prop];
 		};
 		
 		this.distance = s('distance');
@@ -3154,7 +3155,7 @@
 	    TriggeredDispatch: TriggeredDispatch
 	};
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(28)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(22)))
 
 /***/ },
 /* 14 */
@@ -3471,7 +3472,7 @@
 	// Entry point for node module
 	//
 
-	module.exports = __webpack_require__(22);
+	module.exports = __webpack_require__(23);
 
 
 /***/ },
@@ -4065,7 +4066,7 @@
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(28)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(22)))
 
 /***/ },
 /* 17 */
@@ -4078,11 +4079,11 @@
 	}
 
 
-	exports.sha1 = __webpack_require__(23)
-	exports.sha224 = __webpack_require__(24)
-	exports.sha256 = __webpack_require__(25)
-	exports.sha384 = __webpack_require__(26)
-	exports.sha512 = __webpack_require__(27)
+	exports.sha1 = __webpack_require__(24)
+	exports.sha224 = __webpack_require__(25)
+	exports.sha256 = __webpack_require__(26)
+	exports.sha384 = __webpack_require__(27)
+	exports.sha512 = __webpack_require__(28)
 
 
 /***/ },
@@ -20079,6 +20080,98 @@
 /* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
+	// shim for using process in browser
+
+	var process = module.exports = {};
+
+	process.nextTick = (function () {
+	    var canSetImmediate = typeof window !== 'undefined'
+	    && window.setImmediate;
+	    var canMutationObserver = typeof window !== 'undefined'
+	    && window.MutationObserver;
+	    var canPost = typeof window !== 'undefined'
+	    && window.postMessage && window.addEventListener
+	    ;
+
+	    if (canSetImmediate) {
+	        return function (f) { return window.setImmediate(f) };
+	    }
+
+	    var queue = [];
+
+	    if (canMutationObserver) {
+	        var hiddenDiv = document.createElement("div");
+	        var observer = new MutationObserver(function () {
+	            var queueList = queue.slice();
+	            queue.length = 0;
+	            queueList.forEach(function (fn) {
+	                fn();
+	            });
+	        });
+
+	        observer.observe(hiddenDiv, { attributes: true });
+
+	        return function nextTick(fn) {
+	            if (!queue.length) {
+	                hiddenDiv.setAttribute('yes', 'no');
+	            }
+	            queue.push(fn);
+	        };
+	    }
+
+	    if (canPost) {
+	        window.addEventListener('message', function (ev) {
+	            var source = ev.source;
+	            if ((source === window || source === null) && ev.data === 'process-tick') {
+	                ev.stopPropagation();
+	                if (queue.length > 0) {
+	                    var fn = queue.shift();
+	                    fn();
+	                }
+	            }
+	        }, true);
+
+	        return function nextTick(fn) {
+	            queue.push(fn);
+	            window.postMessage('process-tick', '*');
+	        };
+	    }
+
+	    return function nextTick(fn) {
+	        setTimeout(fn, 0);
+	    };
+	})();
+
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	// TODO(shtylman)
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/**
 	 * @fileOverview
 	 * @name Greyhound Reader
@@ -20802,7 +20895,7 @@
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
@@ -20905,7 +20998,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -20917,7 +21010,7 @@
 	 */
 
 	var inherits = __webpack_require__(43)
-	var SHA256 = __webpack_require__(25)
+	var SHA256 = __webpack_require__(26)
 	var Hash = __webpack_require__(36)
 
 	var W = new Array(64)
@@ -20964,7 +21057,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -21120,11 +21213,11 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(43)
-	var SHA512 = __webpack_require__(27);
+	var SHA512 = __webpack_require__(28);
 	var Hash = __webpack_require__(36)
 
 	var W = new Array(160)
@@ -21183,7 +21276,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(43)
@@ -21433,98 +21526,6 @@
 	module.exports = Sha512
 	
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
-
-/***/ },
-/* 28 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// shim for using process in browser
-
-	var process = module.exports = {};
-
-	process.nextTick = (function () {
-	    var canSetImmediate = typeof window !== 'undefined'
-	    && window.setImmediate;
-	    var canMutationObserver = typeof window !== 'undefined'
-	    && window.MutationObserver;
-	    var canPost = typeof window !== 'undefined'
-	    && window.postMessage && window.addEventListener
-	    ;
-
-	    if (canSetImmediate) {
-	        return function (f) { return window.setImmediate(f) };
-	    }
-
-	    var queue = [];
-
-	    if (canMutationObserver) {
-	        var hiddenDiv = document.createElement("div");
-	        var observer = new MutationObserver(function () {
-	            var queueList = queue.slice();
-	            queue.length = 0;
-	            queueList.forEach(function (fn) {
-	                fn();
-	            });
-	        });
-
-	        observer.observe(hiddenDiv, { attributes: true });
-
-	        return function nextTick(fn) {
-	            if (!queue.length) {
-	                hiddenDiv.setAttribute('yes', 'no');
-	            }
-	            queue.push(fn);
-	        };
-	    }
-
-	    if (canPost) {
-	        window.addEventListener('message', function (ev) {
-	            var source = ev.source;
-	            if ((source === window || source === null) && ev.data === 'process-tick') {
-	                ev.stopPropagation();
-	                if (queue.length > 0) {
-	                    var fn = queue.shift();
-	                    fn();
-	                }
-	            }
-	        }, true);
-
-	        return function nextTick(fn) {
-	            queue.push(fn);
-	            window.postMessage('process-tick', '*');
-	        };
-	    }
-
-	    return function nextTick(fn) {
-	        setTimeout(fn, 0);
-	    };
-	})();
-
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	// TODO(shtylman)
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-
 
 /***/ },
 /* 29 */
@@ -22818,7 +22819,7 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(49)
+	var base64 = __webpack_require__(50)
 	var ieee754 = __webpack_require__(46)
 	var isArray = __webpack_require__(47)
 
@@ -31437,8 +31438,8 @@
 /* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BufferBuilder = __webpack_require__(48).BufferBuilder;
-	var binaryFeatures = __webpack_require__(48).binaryFeatures;
+	var BufferBuilder = __webpack_require__(49).BufferBuilder;
+	var binaryFeatures = __webpack_require__(49).binaryFeatures;
 
 	var BinaryPack = {
 	  unpack: function(data){
@@ -31962,7 +31963,7 @@
 /* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(50);
+	var util = __webpack_require__(48);
 
 	/**
 	 * Reliable transfer for Chrome Canary DataChannel impl.
@@ -32415,6 +32416,107 @@
 /* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var BinaryPack = __webpack_require__(44);
+
+	var util = {
+	  debug: false,
+	  
+	  inherits: function(ctor, superCtor) {
+	    ctor.super_ = superCtor;
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  },
+	  extend: function(dest, source) {
+	    for(var key in source) {
+	      if(source.hasOwnProperty(key)) {
+	        dest[key] = source[key];
+	      }
+	    }
+	    return dest;
+	  },
+	  pack: BinaryPack.pack,
+	  unpack: BinaryPack.unpack,
+	  
+	  log: function () {
+	    if (util.debug) {
+	      var copy = [];
+	      for (var i = 0; i < arguments.length; i++) {
+	        copy[i] = arguments[i];
+	      }
+	      copy.unshift('Reliable: ');
+	      console.log.apply(console, copy);
+	    }
+	  },
+
+	  setZeroTimeout: (function(global) {
+	    var timeouts = [];
+	    var messageName = 'zero-timeout-message';
+
+	    // Like setTimeout, but only takes a function argument.	 There's
+	    // no time argument (always zero) and no arguments (you have to
+	    // use a closure).
+	    function setZeroTimeoutPostMessage(fn) {
+	      timeouts.push(fn);
+	      global.postMessage(messageName, '*');
+	    }		
+
+	    function handleMessage(event) {
+	      if (event.source == global && event.data == messageName) {
+	        if (event.stopPropagation) {
+	          event.stopPropagation();
+	        }
+	        if (timeouts.length) {
+	          timeouts.shift()();
+	        }
+	      }
+	    }
+	    if (global.addEventListener) {
+	      global.addEventListener('message', handleMessage, true);
+	    } else if (global.attachEvent) {
+	      global.attachEvent('onmessage', handleMessage);
+	    }
+	    return setZeroTimeoutPostMessage;
+	  }(this)),
+	  
+	  blobToArrayBuffer: function(blob, cb){
+	    var fr = new FileReader();
+	    fr.onload = function(evt) {
+	      cb(evt.target.result);
+	    };
+	    fr.readAsArrayBuffer(blob);
+	  },
+	  blobToBinaryString: function(blob, cb){
+	    var fr = new FileReader();
+	    fr.onload = function(evt) {
+	      cb(evt.target.result);
+	    };
+	    fr.readAsBinaryString(blob);
+	  },
+	  binaryStringToArrayBuffer: function(binary) {
+	    var byteArray = new Uint8Array(binary.length);
+	    for (var i = 0; i < binary.length; i++) {
+	      byteArray[i] = binary.charCodeAt(i) & 0xff;
+	    }
+	    return byteArray.buffer;
+	  },
+	  randomToken: function () {
+	    return Math.random().toString(36).substr(2);
+	  }
+	};
+
+	module.exports = util;
+
+
+/***/ },
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var binaryFeatures = {};
 	binaryFeatures.useBlobBuilder = (function(){
 	  try {
@@ -32482,7 +32584,7 @@
 
 
 /***/ },
-/* 49 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -32605,107 +32707,6 @@
 		exports.toByteArray = b64ToByteArray
 		exports.fromByteArray = uint8ToBase64
 	}(false ? (this.base64js = {}) : exports))
-
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var BinaryPack = __webpack_require__(44);
-
-	var util = {
-	  debug: false,
-	  
-	  inherits: function(ctor, superCtor) {
-	    ctor.super_ = superCtor;
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  },
-	  extend: function(dest, source) {
-	    for(var key in source) {
-	      if(source.hasOwnProperty(key)) {
-	        dest[key] = source[key];
-	      }
-	    }
-	    return dest;
-	  },
-	  pack: BinaryPack.pack,
-	  unpack: BinaryPack.unpack,
-	  
-	  log: function () {
-	    if (util.debug) {
-	      var copy = [];
-	      for (var i = 0; i < arguments.length; i++) {
-	        copy[i] = arguments[i];
-	      }
-	      copy.unshift('Reliable: ');
-	      console.log.apply(console, copy);
-	    }
-	  },
-
-	  setZeroTimeout: (function(global) {
-	    var timeouts = [];
-	    var messageName = 'zero-timeout-message';
-
-	    // Like setTimeout, but only takes a function argument.	 There's
-	    // no time argument (always zero) and no arguments (you have to
-	    // use a closure).
-	    function setZeroTimeoutPostMessage(fn) {
-	      timeouts.push(fn);
-	      global.postMessage(messageName, '*');
-	    }		
-
-	    function handleMessage(event) {
-	      if (event.source == global && event.data == messageName) {
-	        if (event.stopPropagation) {
-	          event.stopPropagation();
-	        }
-	        if (timeouts.length) {
-	          timeouts.shift()();
-	        }
-	      }
-	    }
-	    if (global.addEventListener) {
-	      global.addEventListener('message', handleMessage, true);
-	    } else if (global.attachEvent) {
-	      global.attachEvent('onmessage', handleMessage);
-	    }
-	    return setZeroTimeoutPostMessage;
-	  }(this)),
-	  
-	  blobToArrayBuffer: function(blob, cb){
-	    var fr = new FileReader();
-	    fr.onload = function(evt) {
-	      cb(evt.target.result);
-	    };
-	    fr.readAsArrayBuffer(blob);
-	  },
-	  blobToBinaryString: function(blob, cb){
-	    var fr = new FileReader();
-	    fr.onload = function(evt) {
-	      cb(evt.target.result);
-	    };
-	    fr.readAsBinaryString(blob);
-	  },
-	  binaryStringToArrayBuffer: function(binary) {
-	    var byteArray = new Uint8Array(binary.length);
-	    for (var i = 0; i < binary.length; i++) {
-	      byteArray[i] = binary.charCodeAt(i) & 0xff;
-	    }
-	    return byteArray.buffer;
-	  },
-	  randomToken: function () {
-	    return Math.random().toString(36).substr(2);
-	  }
-	};
-
-	module.exports = util;
 
 
 /***/ }

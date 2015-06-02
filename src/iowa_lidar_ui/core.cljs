@@ -123,11 +123,14 @@
   [params]
   ;; apply camera state if any
   (when-let [cp (:camera params)]
-    (let [camera (get-in @app-state [:comps :camera])]
-      (.applyState camera (js-camera-props cp))))
+    (let [camera (get-in @app-state [:comps :camera])
+          cam-props (js-camera-props cp)]
+      (println cam-props)
+      (.applyState camera cam-props)))
 
   ;; apply UI state if any
-  (swap! app-state merge (select-keys params [:ro :po])))
+  (binding [*save-snapshot-on-ui-update* false]
+    (swap! app-state merge (select-keys params [:ro :po]))))
 
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
@@ -169,27 +172,28 @@
 (defn render-target []
   (let [this (reagent/current-component)]
     (reagent/create-class
-      {:component-did-mount
-       (fn []
-         (let [init-state (history/current-state-from-query-string)
-               comps (initialize-for-pipeline (reagent/dom-node this)
-                                              {:server    "http://data.iowalidar.com"
-                                               :pipeline  "ia-nineteen"
-                                               :max-depth 19
-                                               :compress? true
-                                               :bbox      [-10796577.371225, 4902908.135781, 0,
-                                                           -10015953.953824, 5375808.896799, 1000]
-                                               :imagery?  true
-                                               :init-params init-state})]
-           (swap! app-state assoc :comps comps))
+     {:component-did-mount
+      (fn []
+        (let [init-state (history/current-state-from-query-string)
+              comps (initialize-for-pipeline (reagent/dom-node this)
+                                             {:server    "http://data.iowalidar.com"
+                                              :pipeline  "ia-nineteen"
+                                              :max-depth 19
+                                              :compress? true
+                                              :bbox      [-10796577.371225, 4902908.135781, 0,
+                                                          -10015953.953824, 5375808.896799, 1000]
+                                              :imagery?  true
+                                              :init-params init-state})]
+          (swap! app-state assoc :comps comps))
 
-         ;; listen to changes to history
-         (history/listen (fn [st]
+        ;; listen to changes to history
+        (history/listen (fn [st]
+                          (println "apply" st)
                           (apply-state! st))))
 
-       :reagent-render
-       (fn []
-         [:div#render-target])})))
+      :reagent-render
+      (fn []
+        [:div#render-target])})))
 
 
 
@@ -351,7 +355,6 @@
     ;; just apply the UI state here, the camera state will be passed down as params to the
     ;; renderer initializer
     ;;
-    (println init-state)
     (swap! app-state merge (select-keys init-state [:ro :po])))
 
   (reagent/render-component [hud]
