@@ -4,6 +4,7 @@
               [iowa-lidar-ui.history :as history]
               [reagent.core :as reagent :refer [atom]]
               [cljs.core.async :as async]
+              [cljs-http.client :as http]
               cljsjs.gl-matrix)
     (:require-macros [cljs.core.async.macros :refer [go]]))
 
@@ -176,12 +177,11 @@
       (fn []
         (let [init-state (history/current-state-from-query-string)
               comps (initialize-for-pipeline (reagent/dom-node this)
-                                             {:server    "http://data.iowalidar.com"
-                                              :pipeline  "ia-nineteen"
-                                              :max-depth 19
+                                             {:server    (:server @app-state)
+                                              :pipeline  (:pipeline @app-state)
+                                              :max-depth (:max-depth @app-state)
                                               :compress? true
-                                              :bbox      [-10796577.371225, 4902908.135781, 0,
-                                                          -10015953.953824, 5375808.896799, 1000]
+                                              :bbox      (:bounds @app-state)
                                               :imagery?  true
                                               :init-params init-state})]
           (swap! app-state assoc :comps comps))
@@ -271,7 +271,7 @@
                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
                  (when imagery?
                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
-        policy (js/PlasioLib.FrustumLODNodePolicy. (clj->js loaders) renderer (apply js/Array bbox))
+        policy (js/PlasioLib.FrustumLODNodePolicy. (clj->js loaders) renderer (apply js/Array bbox) nil max-depth)
         camera (js/PlasioLib.Cameras.Orbital.
                 e renderer
                 (fn [eye target final? applying-state?]
@@ -350,15 +350,69 @@
      :camera camera
      :policy policy}))
 
-(defn startup []
-  (when-let [init-state (history/current-state-from-query-string)]
-    ;; just apply the UI state here, the camera state will be passed down as params to the
-    ;; renderer initializer
-    ;;
-    (swap! app-state merge (select-keys init-state [:ro :po])))
+(def ^:private default-pipeline-params
+  {:server "http://data.iowalidar.com"
+   :pipeline "ia-nineteen"})
 
-  (reagent/render-component [hud]
-                            (. js/document (getElementById "app"))))
+(defn- urlify [s]
+  (if (re-find #"https?://" s)
+    s
+    (str "http://" s)))
+
+
+(defn pipeline-params [url-state]
+  (go
+    (let [params (merge default-pipeline-params
+                        (select-keys url-state [:server :pipeline]))
+          {:keys [server pipeline]} params
+          base-url (-> (str server "/resource/" pipeline)
+                       urlify)
+          ;; get the bounds for the given pipeline
+          ;;
+          bounds (-> base-url
+                     (str "/bounds")
+                     (http/get {:with-credentials? false})
+                     <!
+                     :body)
+
+          ;; if bounds are 4 in count, that means that we don't have z stuff
+          ;; in which case we just give it a range
+          bounds (if (= 4 (count bounds))
+                   (apply conj (subvec bounds 0 2)
+                          0
+                          (conj (subvec bounds 2 4) 1000))
+                   bounds)
+
+          ;; get the total number of points
+          num-points (-> base-url
+                         (str "/numpoints")
+                         (http/get {:with-credentials? false})
+                         <!
+                         :body)]
+      {:server (urlify (:server params))
+       :pipeline (:pipeline params)
+       :bounds bounds
+       :num-points num-points
+       :max-depth (-> num-points
+                      js/Math.log
+                      (/ (js/Math.log 4))
+                      js/Math.ceil)})))
+
+(defn startup []
+  (let [init-state (or (history/current-state-from-query-string)
+                       {})]
+    ;; just apply the UI state here, the camera state will be passed
+    ;; down as params to the renderer initializer
+    ;;
+    (swap! app-state merge (select-keys init-state [:ro :po]))
+
+    (go
+      (let [params (async/<! (pipeline-params init-state))]
+        (println params)
+        (swap! app-state merge params))
+
+      (reagent/render-component [hud]
+                                (. js/document (getElementById "app"))))))
 
 
 (startup)

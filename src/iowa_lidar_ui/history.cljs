@@ -6,7 +6,9 @@
 ;; define all paths from to compressed name mappings, this will be used to construct URLs and to
 ;; decode information back from these URLs
 (def ^:private path-mappers
-  [[[:camera :azimuth] "ca"]
+  [[[:server] "s"]
+   [[:pipeline] "p"]
+   [[:camera :azimuth] "ca"]
    [[:camera :elevation] "ce"]
    [[:camera :target] "ct"]
    [[:camera :distance] "cd"]

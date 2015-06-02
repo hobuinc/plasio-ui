@@ -28,6 +28,11 @@ a:hover {
     color: #EB7F00;
 }
 
+.loader {
+    text-align: center;
+    margin-top: 3em;
+}
+
 .container {
     position: absolute;
     left: 0px; top: 0px; right: 0px; bottom: 0px;
