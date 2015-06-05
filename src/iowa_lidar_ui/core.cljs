@@ -17,7 +17,8 @@
                           :ro {:point-size 2
                                :point-size-attenuation 1}
                           :po {:distance-hint 50
-                               :max-depth-reduction-hint 5}}))
+                               :max-depth-reduction-hint 5}
+                          :pm {:z-exaggeration 1}}))
 
 ;; when this value is true, everytime the app-state atom updates, a snapshot is requested (history)
 ;; when this is set to false, you may update the app-state without causing a snapshot however the UI
@@ -138,7 +139,7 @@
   []
   (if-let [camera (get-in @app-state [:comps :camera])]
     (history/push-state
-     (merge 
+     (merge
       {:camera (camera-state camera)}
       (ui-state @app-state)))))
 
@@ -161,7 +162,8 @@
          p (get-in n [:comps :policy])]
      (.setRenderOptions r (js-obj
                            "pointSize" (get-in n [:ro :point-size])
-                           "pointSizeAttenuation" (array 1 (get-in n [:ro :point-size-attenuation]))))
+                           "pointSizeAttenuation" (array 1 (get-in n [:ro :point-size-attenuation]))
+                           "xyzScale" (array 1 1 (get-in n [:pm :z-exaggeration]))))
 
      (doto p
        (.setDistanceHint (get-in n [:po :distance-hint]))
@@ -208,8 +210,8 @@
                    (apply-ui-state! n)
                    (when *save-snapshot-on-ui-update*
                      (do-save-current-snapshot)))))
-    
-    :reagent-render 
+
+    :reagent-render
     (fn []
       ;; get the left and right hud's up
       ;; we need these to place our controls and other fancy things
@@ -251,7 +253,14 @@
          [w/panel-section
           [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
           [w/slider (get-in @app-state [:po :max-depth-reduction-hint]) 0 5
-           #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]])
+           #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]]
+
+        [w/panel "Point Manipulation"
+
+         [w/panel-section
+          [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
+          [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
+           #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]])
 
        [compass]
 
@@ -332,7 +341,8 @@
                                "circularPoints" 1
                                "overlay_f" 1
                                "pointSize" (get-in init-params [:ro :point-size] 2)
-                               "pointSizeAttenuation" (array 1 (get-in init-params [:ro :point-size-attenuation] 2))))
+                               "pointSizeAttenuation" (array 1 (get-in init-params [:ro :point-size-attenuation] 2))
+                               "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
     (.setClearColor renderer 0.1 0 0)
 
     (.start policy)
@@ -421,5 +431,5 @@
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
-) 
+)
 
