@@ -119,6 +119,9 @@
 (defn- ui-state [st]
   (select-keys st [:ro :po]))
 
+(defn- params-state [st]
+  (select-keys st [:server :pipeline]))
+
 (defn- apply-state!
   "Given a state snapshot, apply it"
   [params]
@@ -138,9 +141,10 @@
   []
   (if-let [camera (get-in @app-state [:comps :camera])]
     (history/push-state
-     (merge 
+     (merge
       {:camera (camera-state camera)}
-      (ui-state @app-state)))))
+      (ui-state @app-state)
+      (params-state @app-state)))))
 
 ;; A simple way to throttle down changes to history, waits for 500ms
 ;; before applying a state, gives UI a chance to "settle down"
@@ -208,8 +212,8 @@
                    (apply-ui-state! n)
                    (when *save-snapshot-on-ui-update*
                      (do-save-current-snapshot)))))
-    
-    :reagent-render 
+
+    :reagent-render
     (fn []
       ;; get the left and right hud's up
       ;; we need these to place our controls and other fancy things
@@ -221,8 +225,10 @@
        ;; hud elements
        (hud-left
         ;; show app brand
-        [:div#brand "Iowa-Lidar"
-         [:div#sub-brand "Statewide Point Cloud Renderer"]]
+        [:div#brand (or (:brand @app-state)
+                        "Plasio-UI")
+         [:div#sub-brand (or (:sub-brand @app-state)
+                             "Dynamic Point Cloud Renderer")]]
 
         ;; Point size
         [w/panel "Point Rendering"
@@ -350,21 +356,17 @@
      :camera camera
      :policy policy}))
 
-(def ^:private default-pipeline-params
-  {:server "http://data.iowalidar.com"
-   :pipeline "ia-nineteen"})
-
 (defn- urlify [s]
   (if (re-find #"https?://" s)
     s
     (str "http://" s)))
 
 
-(defn pipeline-params [url-state]
+(defn pipeline-params [init-state]
   (go
-    (let [params (merge default-pipeline-params
-                        (select-keys url-state [:server :pipeline]))
-          {:keys [server pipeline]} params
+    (let [server (:server init-state)
+          pipeline (:pipeline init-state)
+
           base-url (-> (str server "/resource/" pipeline)
                        urlify)
           ;; get the bounds for the given pipeline
@@ -389,8 +391,8 @@
                          (http/get {:with-credentials? false})
                          <!
                          :body)]
-      {:server (urlify (:server params))
-       :pipeline (:pipeline params)
+      {:server (urlify server)
+       :pipeline pipeline
        :bounds bounds
        :num-points num-points
        :max-depth (-> num-points
@@ -399,20 +401,17 @@
                       js/Math.ceil)})))
 
 (defn startup []
-  (let [init-state (or (history/current-state-from-query-string)
-                       {})]
-    ;; just apply the UI state here, the camera state will be passed
-    ;; down as params to the renderer initializer
-    ;;
-    (swap! app-state merge (select-keys init-state [:ro :po]))
-
-    (go
-      (let [params (async/<! (pipeline-params init-state))]
-        (println params)
-        (swap! app-state merge params))
-
-      (reagent/render-component [hud]
-                                (. js/document (getElementById "app"))))))
+  (go
+    (let [defaults (-> "config.json"
+                       (http/get {:with-credentials? false})
+                       <!
+                       :body)
+          override (or (history/current-state-from-query-string) {})
+          settings (merge defaults override)
+          resource-settings (<! (pipeline-params settings))]
+      (swap! app-state merge settings resource-settings))
+    (reagent/render-component [hud]
+                              (. js/document (getElementById "app")))))
 
 
 (startup)
@@ -421,5 +420,5 @@
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
-) 
+)
 
