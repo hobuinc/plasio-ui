@@ -1,5 +1,5 @@
 (ns plasio-ui.widgets
-  (:require [reagent.core :as reagent]
+  (:require [reagent.core :as reagent :refer [atom]]
             [clojure.string :as string]))
 
 (defn panel
@@ -48,3 +48,26 @@
        :reagent-render
        (fn [start min max f]
          [:div.slider])})))
+
+(defn icon [& parts]
+  [:i {:class (str "fa " (string/join " "
+                                      (map #(str "fa-" (name %)) parts)))}])
+
+
+(let [st (atom "")]
+  (defn toolbar
+    "A toolbar control"
+    [f & buttons]
+    [:div.toolbar
+     (into [:div.icons]
+           (map (fn [[id i title active?]]
+                  [:a.button {:class (when active? "active")
+                              :href "javascript:"
+                              :on-mouse-over #(reset! st title)
+                              :on-mouse-leave #(reset! st "")
+                              :on-click (fn [e]
+                                          (.preventDefault e)
+                                          (f id))}
+                   (icon i)])
+                buttons))
+     [:p.tip @st]]))

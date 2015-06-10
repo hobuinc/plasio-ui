@@ -281,9 +281,12 @@
        [compass]
 
 
-       #_(hud-right
-          (w/panel "Many Descriptions"
-                   [:div "Hi"]))])}))
+       (hud-right
+        (w/toolbar
+         (fn [e]
+           (println "button clicked!" e))
+         [:line-picking :map-marker "Line Picking" true]
+         [:height-map :area-chart "Heightmap Coloring" false]))])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
