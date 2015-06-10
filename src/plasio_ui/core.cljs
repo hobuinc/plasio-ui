@@ -1,7 +1,7 @@
-(ns ^:figwheel-always iowa-lidar-ui.core
-    (:require [iowa-lidar-ui.widgets :as w]
-              [iowa-lidar-ui.math :as math]
-              [iowa-lidar-ui.history :as history]
+(ns ^:figwheel-always plasio-ui.core
+    (:require [plasio-ui.widgets :as w]
+              [plasio-ui.math :as math]
+              [plasio-ui.history :as history]
               [reagent.core :as reagent :refer [atom]]
               [cljs.core.async :as async]
               [cljs-http.client :as http]

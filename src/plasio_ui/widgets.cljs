@@ -1,4 +1,4 @@
-(ns iowa-lidar-ui.widgets
+(ns plasio-ui.widgets
   (:require [reagent.core :as reagent]))
 
 (defn panel

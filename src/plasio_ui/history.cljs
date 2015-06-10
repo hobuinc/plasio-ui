@@ -1,4 +1,4 @@
-(ns iowa-lidar-ui.history
+(ns plasio-ui.history
   "URL and history stuff, most of the stuff here is HTML5 but will try not to fail"
   (:require [clojure.walk :as walk]
             [clojure.string :refer [join split]]))
