@@ -1,0 +1,7 @@
+{
+    "brand": "Iowa-Lidar",
+    "sub-brand": "Statewide Point Cloud Renderer",
+    "server": "data.iowalidar.com",
+    "pipeline": "ia-nineteen"
+}
+
