@@ -15,6 +15,8 @@
    [[:camera :max-distance] "cmd"]
    [[:ro :point-size] "ps"]
    [[:ro :point-size-attenuation] "pa"]
+   [[:ro :intensity-blend] "ib"]
+   [[:ro :intensity-clamps] "ic"]
    [[:po :distance-hint] "dh"]
    [[:po :max-depth-reduction-hint] "mdr"]])
 
