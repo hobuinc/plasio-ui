@@ -1,5 +1,6 @@
 (ns plasio-ui.widgets
-  (:require [reagent.core :as reagent]))
+  (:require [reagent.core :as reagent]
+            [clojure.string :as string]))
 
 (defn panel
   "A simple widget which shows a panel with title and children"
@@ -26,14 +27,21 @@
       {:component-did-mount
        (fn []
          (let [slider (js/jQuery (.getDOMNode this))
-               emit #(f (js/parseFloat (.val slider)))]
+               single? (number? start)
+               start (if single?
+                       start
+                       (apply array start))
+               emit #(f (let [value (.val slider)]
+                          (if single?
+                            (js/parseFloat value)
+                            (mapv js/parseFloat (string/split value #",")))))]
            (doto slider
              (.on "slide" emit)
              (.on "set" emit))
            (.noUiSlider slider
                         (js-obj
                           "start" start
-                          "connect" "lower"
+                          "connect" (if single? "lower" true)
                           "range" (js-obj "min" min
                                           "max" max)))))
 

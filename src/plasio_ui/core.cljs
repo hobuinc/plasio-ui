@@ -15,13 +15,15 @@
 (defonce app-state (atom {:left-hud-collapsed? false
                           :right-hud-collapsed? false
                           :ro {:point-size 2
-                               :point-size-attenuation 1}
+                               :point-size-attenuation 1
+                               :intensity-blend 0
+                               :intensity-clamps [0 255]}
                           :po {:distance-hint 50
                                :max-depth-reduction-hint 5}}))
 
-;; when this value is true, everytime the app-state atom updates, a snapshot is requested (history)
-;; when this is set to false, you may update the app-state without causing a snapshot however the UI
-;; state will still update
+;; when this value is true, everytime the app-state atom updates, a snapshot is
+;; requested (history) when this is set to false, you may update the app-state
+;; without causing a snapshot however the UI  state will still update
 (def ^:dynamic ^:private *save-snapshot-on-ui-update* true)
 
 ;; Much code duplication here, but I don't want to over engineer this
@@ -162,11 +164,15 @@
 (defn apply-ui-state!
   ([n]
    (let [r (get-in n [:comps :renderer])
+         ro (:ro n)
          p (get-in n [:comps :policy])]
      (.setRenderOptions r (js-obj
-                           "pointSize" (get-in n [:ro :point-size])
-                           "pointSizeAttenuation" (array 1 (get-in n [:ro :point-size-attenuation]))))
-
+                           "pointSize" (:point-size ro)
+                           "pointSizeAttenuation"
+                             (array 1 (:point-size-attenuation ro))
+                           "intensityBlend" (:intensity-blend ro)
+                           "clampLower" (nth (:intensity-clamps ro) 0)
+                           "clampHigher" (nth (:intensity-clamps ro) 1)))
      (doto p
        (.setDistanceHint (get-in n [:po :distance-hint]))
        (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])
@@ -181,12 +187,14 @@
       (fn []
         (let [init-state (history/current-state-from-query-string)
               comps (initialize-for-pipeline (reagent/dom-node this)
-                                             {:server    (:server @app-state)
-                                              :pipeline  (:pipeline @app-state)
-                                              :max-depth (:max-depth @app-state)
-                                              :compress? true
-                                              :bbox      (:bounds @app-state)
-                                              :imagery?  true
+                                             {:server     (:server @app-state)
+                                              :pipeline   (:pipeline @app-state)
+                                              :max-depth  (:max-depth @app-state)
+                                              :compress?  true
+                                              :bbox       (:bounds @app-state)
+                                              :color?     (:color? @app-state)
+                                              :intensity? (:intensity? @app-state)
+                                              :ro         (:ro @app-state)
                                               :init-params init-state})]
           (swap! app-state assoc :comps comps))
 
@@ -200,13 +208,12 @@
         [:div#render-target])})))
 
 
-
 (defn hud []
   (reagent/create-class
    {:component-did-mount
     (fn []
-      ;; subscribe to state changes, so that we can trigger approprate render options
-      ;;
+      ;; subscribe to state changes, so that we can trigger appropriate render
+      ;; options
       (add-watch app-state "__render-applicator"
                  (fn [_ _ o n]
                    (apply-ui-state! n)
@@ -230,7 +237,7 @@
          [:div#sub-brand (or (:sub-brand @app-state)
                              "Dynamic Point Cloud Renderer")]]
 
-        ;; Point size
+        ;; Point appearance
         [w/panel "Point Rendering"
 
          ;; base point size
@@ -243,7 +250,19 @@
          [w/panel-section
           [w/desc "Attenuation factor, points closer to you are bloated more"]
           [w/slider (get-in @app-state [:ro :point-size-attenuation]) 0 5
-           #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]]
+           #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]
+
+         ;; intensity blending factor
+         [w/panel-section
+          [w/desc "Intensity blending, how much of intensity to blend with color"]
+          [w/slider (get-in @app-state [:ro :intensity-blend]) 0 1
+           #(swap! app-state assoc-in [:ro :intensity-blend] %)]]
+
+         ;; intensity scaling clamp
+         [w/panel-section
+          [w/desc "Intensity scaling, narrow down range of intensity values"]
+          [w/slider (get-in @app-state [:ro :intensity-clamps]) 0 255
+           #(swap! app-state assoc-in [:ro :intensity-clamps] (vec (seq %)))]]]
 
         ;; split plane distance
         [w/panel "Point Loading"
@@ -267,15 +286,14 @@
                    [:div "Hi"]))])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
-                                         compress? color? intensity? bbox
-                                         imagery?
+                                         compress? color? intensity? bbox ro
                                          init-params]}]
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
         loaders (merge
                  {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader. server pipeline max-depth compress? color? intensity?)
                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
-                 (when imagery?
+                 (when (not color?)
                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
         policy (js/PlasioLib.FrustumLODNodePolicy. (clj->js loaders) renderer (apply js/Array bbox) nil max-depth)
         camera (js/PlasioLib.Cameras.Orbital.
@@ -314,7 +332,7 @@
       (set! (. js/window -onresize) handle-resize)
       (handle-resize))
 
-    ;; listen to some properties properties
+    ;; listen to some properties
     (doto policy
       (.on "bbox"
            (fn [bb]
@@ -334,11 +352,16 @@
     ;; set some default render state
     ;;
     (.setRenderOptions renderer
-                       (js-obj "pointSize" 1
-                               "circularPoints" 1
-                               "overlay_f" 1
-                               "pointSize" (get-in init-params [:ro :point-size] 2)
-                               "pointSizeAttenuation" (array 1 (get-in init-params [:ro :point-size-attenuation] 2))))
+                       (js-obj "circularPoints" 1
+                               "overlay_f" (if color? 0 1)
+                               "rgb_f" (if color? 1 0)
+                               "intensity_f" 1
+                               "clampLower" (nth (:intensity-clamps ro) 0)
+                               "clampHigher" (nth (:intensity-clamps ro) 1)
+                               "maxColorComponent" 255
+                               "pointSize" (:point-size ro)
+                               "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
+                               "intensityBlend" (:intensity-blend ro)))
     (.setClearColor renderer 0.1 0 0)
 
     (.start policy)
@@ -390,11 +413,24 @@
                          (str "/numpoints")
                          (http/get {:with-credentials? false})
                          <!
-                         :body)]
+                         :body)
+
+          ;; fetch the native resource schema to figure out what dimensions we
+          ;; are working with
+          schema (-> base-url
+                     (str "/schema")
+                     (http/get {:with-credentials? false})
+                     <!
+                     :body)
+
+          dim-names (set (mapv :name schema))
+          colors '("Red" "Green" "Blue")]
       {:server (urlify server)
        :pipeline pipeline
        :bounds bounds
        :num-points num-points
+       :intensity? (contains? dim-names "Intensity")
+       :color? (every? true? (map #(contains? dim-names %) colors))
        :max-depth (-> num-points
                       js/Math.log
                       (/ (js/Math.log 4))
@@ -407,9 +443,29 @@
                        <!
                        :body)
           override (or (history/current-state-from-query-string) {})
-          settings (merge defaults override)
-          resource-settings (<! (pipeline-params settings))]
-      (swap! app-state merge settings resource-settings))
+
+          local-settings (merge defaults override)
+          remote-settings (<! (pipeline-params local-settings))
+
+          settings (merge local-settings remote-settings)
+
+          hard-blend? (get-in settings [:ro :intensity-blend])
+          color? (:color? settings)
+          intensity? (:intensity? settings)]
+
+      (println "color? " color?)
+      (println "intensity? " intensity?)
+
+      (swap! app-state merge settings)
+
+      ;; if we don't yet have an intensity blend setting from the URL or
+      ;; elsewhere, assign one based on whether we have color/intensity.
+      (when (not hard-blend?)
+        (swap! app-state assoc-in [:ro :intensity-blend]
+               (if intensity? 0.2 0)))
+
+      (println "Startup state: " @app-state))
+
     (reagent/render-component [hud]
                               (. js/document (getElementById "app")))))
 
