@@ -14,6 +14,8 @@
 
 (defonce app-state (atom {:left-hud-collapsed? false
                           :right-hud-collapsed? false
+                          :secondary-mode-enabled? false
+                          :active-secondary-mode nil
                           :ro {:point-size 2
                                :point-size-attenuation 1
                                :intensity-blend 0
@@ -39,9 +41,12 @@
 
 
 (defn hud-right [& children]
-  (let [is-collapsed? (:right-hud-collapsed? @app-state)]
+  (let [is-collapsed? (:right-hud-collapsed? @app-state)
+        secondary? (:secondary-mode-enabled? @app-state)]
     [:div.hud-container.hud-right
-     {:class (when is-collapsed? " hud-collapsed")}
+     {:class (cond->> ""
+               is-collapsed? (str "hud-collapsed ")
+               secondary? (str "active "))}
      [:a.hud-collapse {:href     "javascript:"
                        :on-click #(swap! app-state update-in [:right-hud-collapsed?] not)}
       (if is-collapsed? "\u00AB" "\u00BB")]
@@ -179,6 +184,11 @@
                                        (- 5)
                                        js/Math.floor))))))
 
+(defn initialize-modes
+  "Instantiate all modes that we know of, we should be doing lazy instantiate here,
+  but screw that"
+  [{:keys [target-element renderer]}]
+  {:line-picker (js/PlasioLib.Modes.LinePicker. target-element renderer)})
 
 (defn render-target []
   (let [this (reagent/current-component)]
@@ -195,8 +205,12 @@
                                               :color?     (:color? @app-state)
                                               :intensity? (:intensity? @app-state)
                                               :ro         (:ro @app-state)
-                                              :init-params init-state})]
-          (swap! app-state assoc :comps comps))
+                                              :init-params init-state})
+              modes (initialize-modes comps)]
+          (swap! app-state assoc
+                 :comps comps
+                 :modes modes
+                 :active-secondary-mode :line-picker))
 
         ;; listen to changes to history
         (history/listen (fn [st]
@@ -282,11 +296,14 @@
 
 
        (hud-right
-        (w/toolbar
-         (fn [e]
-           (println "button clicked!" e))
-         [:line-picking :map-marker "Line Picking" true]
-         [:height-map :area-chart "Heightmap Coloring" false]))])}))
+        ;; display action buttons on the top
+        (let [current-mode (:active-secondary-mode @app-state)]
+          (w/toolbar
+           (fn [kind]
+             (println "swtiching mode to:" kind)
+             (swap! app-state assoc :active-secondary-mode kind))
+           [:line-picker :map-marker "Line Picking" (= current-mode :line-picker)]
+           [:height-map :area-chart "Heightmap Coloring" (= current-mode :height-map)])))])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
@@ -294,7 +311,8 @@
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
         loaders (merge
-                 {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader. server pipeline max-depth compress? color? intensity?)
+                 {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
+                              server pipeline max-depth compress? color? intensity?)
                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
                  (when (not color?)
                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
@@ -375,8 +393,7 @@
     (when-let [pmdr (get-in init-params [:po :max-depth-reduction-hint])]
       (.setMaxDepthReductionHint policy (js/Math.floor (- 5 pmdr))))
 
-    ;; also make sure that initial state is applied
-    ;;
+    ;; return components we have here
     {:renderer renderer
      :target-element e
      :camera camera
@@ -439,6 +456,49 @@
                       (/ (js/Math.log 4))
                       js/Math.ceil)})))
 
+(defn enable-secondary-mode! []
+  (swap! app-state assoc :secondary-mode-enabled? true)
+  ;; when the secondar mode is applied, make sure we disable all camera interactions
+  ;;
+  (when-let [camera (get-in @app-state [:comps :camera])]
+    (.enableControls camera false))
+
+  (when-let [active-mode (:active-secondary-mode @app-state)]
+    (when-let [mode (get-in @app-state [:modes active-mode])]
+      (.activate mode)
+      (println "WARN: No mode found for" active-mode))))
+
+(defn disable-secondary-mode! []
+  (swap! app-state assoc :secondary-mode-enabled? false)
+
+  ;; make sure camera controls are re-enabled
+  (when-let [camera (get-in @app-state [:comps :camera])]
+    (.enableControls camera true))
+
+  (when-let [active-mode (:active-secondary-mode @app-state)]
+    (if-let [mode (get-in @app-state [:modes active-mode])]
+      (.deactivate mode)
+      (println "WARN: No mode found for" active-mode))))
+
+(defn attach-app-wide-shortcuts!
+  "Interacting with keyboard does fancy things!"
+  []
+  (doto js/document
+    ;; shift key handling is done on key press and release, we don't
+    ;; want to wait for a keypress to happen to register that shift key is
+    ;; down
+    (aset "onkeydown"
+          (fn [e]
+            (case (or (.-keyCode e) (.-which e))
+              16 (enable-secondary-mode!)
+              nil)))
+
+    (aset "onkeyup"
+          (fn [e]
+            (case (or (.-keyCode e) (.-which e))
+              16 (disable-secondary-mode!)
+              nil)))))
+
 (defn startup []
   (go
     (let [defaults (-> "config.json"
@@ -446,7 +506,6 @@
                        <!
                        :body)
           override (or (history/current-state-from-query-string) {})
-
           local-settings (merge defaults override)
           remote-settings (<! (pipeline-params local-settings))
 
@@ -469,6 +528,7 @@
 
       (println "Startup state: " @app-state))
 
+    (attach-app-wide-shortcuts!)
     (reagent/render-component [hud]
                               (. js/document (getElementById "app")))))
 

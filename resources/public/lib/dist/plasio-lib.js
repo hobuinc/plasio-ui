@@ -90,6 +90,10 @@
 	        Orbital: __webpack_require__(11).Orbital
 	    },
 
+	    Modes: {
+	        LinePicker: __webpack_require__(51).LinePicker
+	    },
+
 	    // Net
 	    P2PNode: __webpack_require__(12).P2PNode,
 	    Session: __webpack_require__(12).Session
@@ -338,7 +342,7 @@
 	    vec3 = __webpack_require__(19).vec3,
 	    vec2 = __webpack_require__(19).vec2,
 	    inherits = __webpack_require__(16).inherits,
-	    createHash = __webpack_require__(17),
+	    createHash = __webpack_require__(18),
 	    util = __webpack_require__(13),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
@@ -574,8 +578,8 @@
 	    vec3 = __webpack_require__(19).vec3,
 	    vec2 = __webpack_require__(19).vec2,
 	    inherits = __webpack_require__(16).inherits,
-	    createHash = __webpack_require__(17),
-	    _ = __webpack_require__(18),
+	    createHash = __webpack_require__(18),
+	    _ = __webpack_require__(17),
 	    util = __webpack_require__(13),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
@@ -1137,8 +1141,8 @@
 	    vec2 = __webpack_require__(19).vec2,
 		mat4 = __webpack_require__(19).mat4,
 	    inherits = __webpack_require__(16).inherits,
-	    createHash = __webpack_require__(17),
-	    _ = __webpack_require__(18),
+	    createHash = __webpack_require__(18),
+	    _ = __webpack_require__(17),
 	    util = __webpack_require__(13),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
@@ -3155,7 +3159,7 @@
 	    TriggeredDispatch: TriggeredDispatch
 	};
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(22)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(23)))
 
 /***/ },
 /* 14 */
@@ -3472,7 +3476,7 @@
 	// Entry point for node module
 	//
 
-	module.exports = __webpack_require__(23);
+	module.exports = __webpack_require__(22);
 
 
 /***/ },
@@ -4066,28 +4070,10 @@
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(22)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(23)))
 
 /***/ },
 /* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var exports = module.exports = function (alg) {
-	  var Alg = exports[alg.toLowerCase()]
-	  if(!Alg) throw new Error(alg + ' is not supported (we accept pull requests)')
-	  return new Alg()
-	}
-
-
-	exports.sha1 = __webpack_require__(24)
-	exports.sha224 = __webpack_require__(25)
-	exports.sha256 = __webpack_require__(26)
-	exports.sha384 = __webpack_require__(27)
-	exports.sha512 = __webpack_require__(28)
-
-
-/***/ },
-/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -15521,6 +15507,24 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(34)(module), (function() { return this; }())))
 
 /***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var exports = module.exports = function (alg) {
+	  var Alg = exports[alg.toLowerCase()]
+	  if(!Alg) throw new Error(alg + ' is not supported (we accept pull requests)')
+	  return new Alg()
+	}
+
+
+	exports.sha1 = __webpack_require__(24)
+	exports.sha224 = __webpack_require__(25)
+	exports.sha256 = __webpack_require__(26)
+	exports.sha384 = __webpack_require__(27)
+	exports.sha512 = __webpack_require__(28)
+
+
+/***/ },
 /* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -20080,98 +20084,6 @@
 /* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// shim for using process in browser
-
-	var process = module.exports = {};
-
-	process.nextTick = (function () {
-	    var canSetImmediate = typeof window !== 'undefined'
-	    && window.setImmediate;
-	    var canMutationObserver = typeof window !== 'undefined'
-	    && window.MutationObserver;
-	    var canPost = typeof window !== 'undefined'
-	    && window.postMessage && window.addEventListener
-	    ;
-
-	    if (canSetImmediate) {
-	        return function (f) { return window.setImmediate(f) };
-	    }
-
-	    var queue = [];
-
-	    if (canMutationObserver) {
-	        var hiddenDiv = document.createElement("div");
-	        var observer = new MutationObserver(function () {
-	            var queueList = queue.slice();
-	            queue.length = 0;
-	            queueList.forEach(function (fn) {
-	                fn();
-	            });
-	        });
-
-	        observer.observe(hiddenDiv, { attributes: true });
-
-	        return function nextTick(fn) {
-	            if (!queue.length) {
-	                hiddenDiv.setAttribute('yes', 'no');
-	            }
-	            queue.push(fn);
-	        };
-	    }
-
-	    if (canPost) {
-	        window.addEventListener('message', function (ev) {
-	            var source = ev.source;
-	            if ((source === window || source === null) && ev.data === 'process-tick') {
-	                ev.stopPropagation();
-	                if (queue.length > 0) {
-	                    var fn = queue.shift();
-	                    fn();
-	                }
-	            }
-	        }, true);
-
-	        return function nextTick(fn) {
-	            queue.push(fn);
-	            window.postMessage('process-tick', '*');
-	        };
-	    }
-
-	    return function nextTick(fn) {
-	        setTimeout(fn, 0);
-	    };
-	})();
-
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	// TODO(shtylman)
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-
-
-/***/ },
-/* 23 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/**
 	 * @fileOverview
 	 * @name Greyhound Reader
@@ -20891,6 +20803,98 @@
 	    BBox: BBox,
 	    ReadQueue: ReadQueue,
 	    GreyhoundReader: GreyhoundReader,
+	};
+
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+
+	process.nextTick = (function () {
+	    var canSetImmediate = typeof window !== 'undefined'
+	    && window.setImmediate;
+	    var canMutationObserver = typeof window !== 'undefined'
+	    && window.MutationObserver;
+	    var canPost = typeof window !== 'undefined'
+	    && window.postMessage && window.addEventListener
+	    ;
+
+	    if (canSetImmediate) {
+	        return function (f) { return window.setImmediate(f) };
+	    }
+
+	    var queue = [];
+
+	    if (canMutationObserver) {
+	        var hiddenDiv = document.createElement("div");
+	        var observer = new MutationObserver(function () {
+	            var queueList = queue.slice();
+	            queue.length = 0;
+	            queueList.forEach(function (fn) {
+	                fn();
+	            });
+	        });
+
+	        observer.observe(hiddenDiv, { attributes: true });
+
+	        return function nextTick(fn) {
+	            if (!queue.length) {
+	                hiddenDiv.setAttribute('yes', 'no');
+	            }
+	            queue.push(fn);
+	        };
+	    }
+
+	    if (canPost) {
+	        window.addEventListener('message', function (ev) {
+	            var source = ev.source;
+	            if ((source === window || source === null) && ev.data === 'process-tick') {
+	                ev.stopPropagation();
+	                if (queue.length > 0) {
+	                    var fn = queue.shift();
+	                    fn();
+	                }
+	            }
+	        }, true);
+
+	        return function nextTick(fn) {
+	            queue.push(fn);
+	            window.postMessage('process-tick', '*');
+	        };
+	    }
+
+	    return function nextTick(fn) {
+	        setTimeout(fn, 0);
+	    };
+	})();
+
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	// TODO(shtylman)
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
 	};
 
 
@@ -22819,7 +22823,7 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(50)
+	var base64 = __webpack_require__(48)
 	var ieee754 = __webpack_require__(46)
 	var isArray = __webpack_require__(47)
 
@@ -31963,7 +31967,7 @@
 /* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(48);
+	var util = __webpack_require__(50);
 
 	/**
 	 * Reliable transfer for Chrome Canary DataChannel impl.
@@ -32416,177 +32420,6 @@
 /* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BinaryPack = __webpack_require__(44);
-
-	var util = {
-	  debug: false,
-	  
-	  inherits: function(ctor, superCtor) {
-	    ctor.super_ = superCtor;
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  },
-	  extend: function(dest, source) {
-	    for(var key in source) {
-	      if(source.hasOwnProperty(key)) {
-	        dest[key] = source[key];
-	      }
-	    }
-	    return dest;
-	  },
-	  pack: BinaryPack.pack,
-	  unpack: BinaryPack.unpack,
-	  
-	  log: function () {
-	    if (util.debug) {
-	      var copy = [];
-	      for (var i = 0; i < arguments.length; i++) {
-	        copy[i] = arguments[i];
-	      }
-	      copy.unshift('Reliable: ');
-	      console.log.apply(console, copy);
-	    }
-	  },
-
-	  setZeroTimeout: (function(global) {
-	    var timeouts = [];
-	    var messageName = 'zero-timeout-message';
-
-	    // Like setTimeout, but only takes a function argument.	 There's
-	    // no time argument (always zero) and no arguments (you have to
-	    // use a closure).
-	    function setZeroTimeoutPostMessage(fn) {
-	      timeouts.push(fn);
-	      global.postMessage(messageName, '*');
-	    }		
-
-	    function handleMessage(event) {
-	      if (event.source == global && event.data == messageName) {
-	        if (event.stopPropagation) {
-	          event.stopPropagation();
-	        }
-	        if (timeouts.length) {
-	          timeouts.shift()();
-	        }
-	      }
-	    }
-	    if (global.addEventListener) {
-	      global.addEventListener('message', handleMessage, true);
-	    } else if (global.attachEvent) {
-	      global.attachEvent('onmessage', handleMessage);
-	    }
-	    return setZeroTimeoutPostMessage;
-	  }(this)),
-	  
-	  blobToArrayBuffer: function(blob, cb){
-	    var fr = new FileReader();
-	    fr.onload = function(evt) {
-	      cb(evt.target.result);
-	    };
-	    fr.readAsArrayBuffer(blob);
-	  },
-	  blobToBinaryString: function(blob, cb){
-	    var fr = new FileReader();
-	    fr.onload = function(evt) {
-	      cb(evt.target.result);
-	    };
-	    fr.readAsBinaryString(blob);
-	  },
-	  binaryStringToArrayBuffer: function(binary) {
-	    var byteArray = new Uint8Array(binary.length);
-	    for (var i = 0; i < binary.length; i++) {
-	      byteArray[i] = binary.charCodeAt(i) & 0xff;
-	    }
-	    return byteArray.buffer;
-	  },
-	  randomToken: function () {
-	    return Math.random().toString(36).substr(2);
-	  }
-	};
-
-	module.exports = util;
-
-
-/***/ },
-/* 49 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var binaryFeatures = {};
-	binaryFeatures.useBlobBuilder = (function(){
-	  try {
-	    new Blob([]);
-	    return false;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
-	  try {
-	    return (new Blob([new Uint8Array([])])).size === 0;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	module.exports.binaryFeatures = binaryFeatures;
-	var BlobBuilder = module.exports.BlobBuilder;
-	if (typeof window != 'undefined') {
-	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
-	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
-	}
-
-	function BufferBuilder(){
-	  this._pieces = [];
-	  this._parts = [];
-	}
-
-	BufferBuilder.prototype.append = function(data) {
-	  if(typeof data === 'number') {
-	    this._pieces.push(data);
-	  } else {
-	    this.flush();
-	    this._parts.push(data);
-	  }
-	};
-
-	BufferBuilder.prototype.flush = function() {
-	  if (this._pieces.length > 0) {
-	    var buf = new Uint8Array(this._pieces);
-	    if(!binaryFeatures.useArrayBufferView) {
-	      buf = buf.buffer;
-	    }
-	    this._parts.push(buf);
-	    this._pieces = [];
-	  }
-	};
-
-	BufferBuilder.prototype.getBuffer = function() {
-	  this.flush();
-	  if(binaryFeatures.useBlobBuilder) {
-	    var builder = new BlobBuilder();
-	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
-	      builder.append(this._parts[i]);
-	    }
-	    return builder.getBlob();
-	  } else {
-	    return new Blob(this._parts);
-	  }
-	};
-
-	module.exports.BufferBuilder = BufferBuilder;
-
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 	;(function (exports) {
@@ -32707,6 +32540,243 @@
 		exports.toByteArray = b64ToByteArray
 		exports.fromByteArray = uint8ToBase64
 	}(false ? (this.base64js = {}) : exports))
+
+
+/***/ },
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var binaryFeatures = {};
+	binaryFeatures.useBlobBuilder = (function(){
+	  try {
+	    new Blob([]);
+	    return false;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
+	  try {
+	    return (new Blob([new Uint8Array([])])).size === 0;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	module.exports.binaryFeatures = binaryFeatures;
+	var BlobBuilder = module.exports.BlobBuilder;
+	if (typeof window != 'undefined') {
+	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
+	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+	}
+
+	function BufferBuilder(){
+	  this._pieces = [];
+	  this._parts = [];
+	}
+
+	BufferBuilder.prototype.append = function(data) {
+	  if(typeof data === 'number') {
+	    this._pieces.push(data);
+	  } else {
+	    this.flush();
+	    this._parts.push(data);
+	  }
+	};
+
+	BufferBuilder.prototype.flush = function() {
+	  if (this._pieces.length > 0) {
+	    var buf = new Uint8Array(this._pieces);
+	    if(!binaryFeatures.useArrayBufferView) {
+	      buf = buf.buffer;
+	    }
+	    this._parts.push(buf);
+	    this._pieces = [];
+	  }
+	};
+
+	BufferBuilder.prototype.getBuffer = function() {
+	  this.flush();
+	  if(binaryFeatures.useBlobBuilder) {
+	    var builder = new BlobBuilder();
+	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
+	      builder.append(this._parts[i]);
+	    }
+	    return builder.getBlob();
+	  } else {
+	    return new Blob(this._parts);
+	  }
+	};
+
+	module.exports.BufferBuilder = BufferBuilder;
+
+
+/***/ },
+/* 50 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var BinaryPack = __webpack_require__(44);
+
+	var util = {
+	  debug: false,
+	  
+	  inherits: function(ctor, superCtor) {
+	    ctor.super_ = superCtor;
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  },
+	  extend: function(dest, source) {
+	    for(var key in source) {
+	      if(source.hasOwnProperty(key)) {
+	        dest[key] = source[key];
+	      }
+	    }
+	    return dest;
+	  },
+	  pack: BinaryPack.pack,
+	  unpack: BinaryPack.unpack,
+	  
+	  log: function () {
+	    if (util.debug) {
+	      var copy = [];
+	      for (var i = 0; i < arguments.length; i++) {
+	        copy[i] = arguments[i];
+	      }
+	      copy.unshift('Reliable: ');
+	      console.log.apply(console, copy);
+	    }
+	  },
+
+	  setZeroTimeout: (function(global) {
+	    var timeouts = [];
+	    var messageName = 'zero-timeout-message';
+
+	    // Like setTimeout, but only takes a function argument.	 There's
+	    // no time argument (always zero) and no arguments (you have to
+	    // use a closure).
+	    function setZeroTimeoutPostMessage(fn) {
+	      timeouts.push(fn);
+	      global.postMessage(messageName, '*');
+	    }		
+
+	    function handleMessage(event) {
+	      if (event.source == global && event.data == messageName) {
+	        if (event.stopPropagation) {
+	          event.stopPropagation();
+	        }
+	        if (timeouts.length) {
+	          timeouts.shift()();
+	        }
+	      }
+	    }
+	    if (global.addEventListener) {
+	      global.addEventListener('message', handleMessage, true);
+	    } else if (global.attachEvent) {
+	      global.attachEvent('onmessage', handleMessage);
+	    }
+	    return setZeroTimeoutPostMessage;
+	  }(this)),
+	  
+	  blobToArrayBuffer: function(blob, cb){
+	    var fr = new FileReader();
+	    fr.onload = function(evt) {
+	      cb(evt.target.result);
+	    };
+	    fr.readAsArrayBuffer(blob);
+	  },
+	  blobToBinaryString: function(blob, cb){
+	    var fr = new FileReader();
+	    fr.onload = function(evt) {
+	      cb(evt.target.result);
+	    };
+	    fr.readAsBinaryString(blob);
+	  },
+	  binaryStringToArrayBuffer: function(binary) {
+	    var byteArray = new Uint8Array(binary.length);
+	    for (var i = 0; i < binary.length; i++) {
+	      byteArray[i] = binary.charCodeAt(i) & 0xff;
+	    }
+	    return byteArray.buffer;
+	  },
+	  randomToken: function () {
+	    return Math.random().toString(36).substr(2);
+	  }
+	};
+
+	module.exports = util;
+
+
+/***/ },
+/* 51 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// line-picker.js
+	// Line picker mode
+	//
+
+	var LinePicker = function(elem, renderer) {
+	    this.elem = elem;
+	    this.renderer = renderer;
+	    
+	    this.points = [];
+	};
+
+	LinePicker.prototype.activate = function() {
+	    console.log("Activating line picker!");
+	    this._attachHandlers();
+	};
+
+	LinePicker.prototype.deactivate = function() {
+	    console.log("Deactivating line picker!");
+	    if (this._detachHandlers)
+	        this._detachHandlers();
+	};
+
+	var pointInSpace = function(o, evt) {
+	    var w = o.elem.offsetWidth,
+	        h = o.elem.offsetHeight;
+
+		var x = evt.offsetX==undefined?evt.layerX:evt.offsetX;
+		var y = evt.offsetY==undefined?evt.layerY:evt.offsetY;
+
+	    // pick a point in renderer
+	    //
+	    var p = o.renderer.pickPoint(x, y);
+
+	    console.log("Renderer returned:", p);
+
+	    return p;
+	};
+
+	LinePicker.prototype._attachHandlers = function() {
+	    var o = this;
+	    
+	    var dblclick = function(e) {
+	        e.preventDefault();
+	        var p = pointInSpace(o, e);
+
+	        console.log("clicking on point:", p);
+	        o.points.push(p);
+	    };
+
+	    o.elem.addEventListener("dblclick", dblclick);
+
+	    this._detachHandlers = function() {
+	        o.elem.removeEventListener("dblclick", dblclick);
+	        o._detachHandlers = null;
+	    };
+	};
+
+	module.exports = {
+	    LinePicker: LinePicker
+	};
 
 
 /***/ }
