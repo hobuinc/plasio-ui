@@ -54,20 +54,23 @@
                                       (map #(str "fa-" (name %)) parts)))}])
 
 
-(let [st (atom "")]
-  (defn toolbar
-    "A toolbar control"
-    [f & buttons]
-    [:div.toolbar
-     (into [:div.icons]
-           (map (fn [[id i title active?]]
-                  [:a.button {:class (when active? "active")
-                              :href "javascript:"
-                              :on-mouse-over #(reset! st title)
-                              :on-mouse-leave #(reset! st "")
-                              :on-click (fn [e]
-                                          (.preventDefault e)
-                                          (f id))}
-                   (icon i)])
-                buttons))
-     [:p.tip @st]]))
+(defn toolbar
+  "A toolbar control"
+  [f & buttons]
+  (let [st (atom "")]
+    (fn [f & buttons]
+      [:div.toolbar
+       (into [:div.icons]
+             (map (fn [[id i title state]]
+                    (let [disabled? (and (keyword? state) (= state :disabled))]
+                      [:a.button {:class (when (keyword? state) (name state))
+                                  :href "javascript:"
+                                  :on-mouse-over (when-not disabled? #(reset! st title))
+                                  :on-mouse-leave (when-not disabled? #(reset! st ""))
+                                  :on-click (when-not disabled?
+                                              (fn [e]
+                                                (.preventDefault e)
+                                                (f id)))}
+                       (icon i)]))
+                  buttons))
+       [:p.tip @st]])))

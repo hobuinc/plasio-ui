@@ -16,6 +16,7 @@
                           :right-hud-collapsed? false
                           :secondary-mode-enabled? false
                           :active-secondary-mode nil
+                          :lines-in-scene nil
                           :ro {:point-size 2
                                :point-size-attenuation 1
                                :intensity-blend 0
@@ -221,6 +222,19 @@
       (fn []
         [:div#render-target])})))
 
+(defn do-profile []
+  (if-let [lines (-> @app-state
+                     :lines
+                     seq)]
+    (let [renderer (get-in @app-state [:comps :renderer])
+          bounds (apply array (:bounds @app-state))
+          pairs (->> lines
+                     (map (fn [[_ start end _]] (array start end)))
+                     (apply array))
+          result (.profileLines (js/PlasioLib.Features.Profiler. renderer) pairs bounds 256)]
+      (js/console.log result))
+    (println "Cannot dp profile")))
+
 
 (defn hud []
   (reagent/create-class
@@ -297,13 +311,30 @@
 
        (hud-right
         ;; display action buttons on the top
+        [:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
+        
         (let [current-mode (:active-secondary-mode @app-state)]
-          (w/toolbar
-           (fn [kind]
-             (println "swtiching mode to:" kind)
-             (swap! app-state assoc :active-secondary-mode kind))
-           [:line-picker :map-marker "Line Picking" (= current-mode :line-picker)]
-           [:height-map :area-chart "Heightmap Coloring" (= current-mode :height-map)])))])}))
+          [:div {}
+           [w/toolbar
+            (fn [kind]
+              (println "swtiching mode to:" kind)
+              (swap! app-state assoc :active-secondary-mode kind))
+            [:line-picker :map-marker "Line Picking" (and (= current-mode :line-picker) :active)]
+            [:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
+
+           [w/panel "Visibility Tools"
+            [w/panel-section
+             [w/desc "Use one of the tools to extract useful information"]
+
+             ;; wrap our tool bar into a div element so that we can push it right a bit
+             [:div {:style {:margin-left "5px"}}
+              [w/toolbar
+               (fn [tool]
+                 (case tool
+                   :profile (do-profile)))
+               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]])
+        
+        )])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
@@ -392,6 +423,13 @@
 
     (when-let [pmdr (get-in init-params [:po :max-depth-reduction-hint])]
       (.setMaxDepthReductionHint policy (js/Math.floor (- 5 pmdr))))
+
+    ;; establish a listener for lines, just blindly accept lines and mutate our internal
+    ;; state with list of lines
+    (.addPropertyListener
+     renderer (array "line-segments")
+     (fn [segments]
+       (swap! app-state assoc :lines segments)))
 
     ;; return components we have here
     {:renderer renderer

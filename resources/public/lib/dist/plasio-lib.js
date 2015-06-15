@@ -91,12 +91,16 @@
 	    },
 
 	    Modes: {
-	        LinePicker: __webpack_require__(51).LinePicker
+	        LinePicker: __webpack_require__(12).LinePicker
+	    },
+
+	    Features: {
+	        Profiler: __webpack_require__(13).Profiler
 	    },
 
 	    // Net
-	    P2PNode: __webpack_require__(12).P2PNode,
-	    Session: __webpack_require__(12).Session
+	    P2PNode: __webpack_require__(14).P2PNode,
+	    Session: __webpack_require__(14).Session
 	};
 
 
@@ -108,11 +112,11 @@
 	// Debug policy and loader
 	//
 
-	var BBox = __webpack_require__(15).BBox;
-	var vec3 = __webpack_require__(19).vec3;
-	var EventEmitter = __webpack_require__(14).EventEmitter;
-	var inherits = __webpack_require__(16).inherits;
-	var util = __webpack_require__(13);
+	var BBox = __webpack_require__(17).BBox;
+	var vec3 = __webpack_require__(21).vec3;
+	var EventEmitter = __webpack_require__(16).EventEmitter;
+	var inherits = __webpack_require__(18).inherits;
+	var util = __webpack_require__(15);
 
 	var geocenter = function(bbox) {
 	    // get the center of the box and then transform it into our
@@ -337,13 +341,13 @@
 	// Greyhound data fetch profiles
 	//
 
-	var gh = __webpack_require__(15),
-	    EventEmitter = __webpack_require__(14).EventEmitter,
-	    vec3 = __webpack_require__(19).vec3,
-	    vec2 = __webpack_require__(19).vec2,
-	    inherits = __webpack_require__(16).inherits,
-	    createHash = __webpack_require__(18),
-	    util = __webpack_require__(13),
+	var gh = __webpack_require__(17),
+	    EventEmitter = __webpack_require__(16).EventEmitter,
+	    vec3 = __webpack_require__(21).vec3,
+	    vec2 = __webpack_require__(21).vec2,
+	    inherits = __webpack_require__(18).inherits,
+	    createHash = __webpack_require__(19),
+	    util = __webpack_require__(15),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
 	var Cell = function(renderer, loaders, allBBox, bbox, globalOffset, defaultStartDepth, maxDepthLevel) {
@@ -573,14 +577,14 @@
 	// Greyhound data fetch as a quadtree
 	//
 
-	var gh = __webpack_require__(15),
-	    EventEmitter = __webpack_require__(14).EventEmitter,
-	    vec3 = __webpack_require__(19).vec3,
-	    vec2 = __webpack_require__(19).vec2,
-	    inherits = __webpack_require__(16).inherits,
-	    createHash = __webpack_require__(18),
-	    _ = __webpack_require__(17),
-	    util = __webpack_require__(13),
+	var gh = __webpack_require__(17),
+	    EventEmitter = __webpack_require__(16).EventEmitter,
+	    vec3 = __webpack_require__(21).vec3,
+	    vec2 = __webpack_require__(21).vec2,
+	    inherits = __webpack_require__(18).inherits,
+	    createHash = __webpack_require__(19),
+	    _ = __webpack_require__(20),
+	    util = __webpack_require__(15),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
 
@@ -1135,15 +1139,15 @@
 	// Greyhound data fetch as a quadtree
 	//
 
-	var gh = __webpack_require__(15),
-	    EventEmitter = __webpack_require__(14).EventEmitter,
-	    vec3 = __webpack_require__(19).vec3,
-	    vec2 = __webpack_require__(19).vec2,
-		mat4 = __webpack_require__(19).mat4,
-	    inherits = __webpack_require__(16).inherits,
-	    createHash = __webpack_require__(18),
-	    _ = __webpack_require__(17),
-	    util = __webpack_require__(13),
+	var gh = __webpack_require__(17),
+	    EventEmitter = __webpack_require__(16).EventEmitter,
+	    vec3 = __webpack_require__(21).vec3,
+	    vec2 = __webpack_require__(21).vec2,
+		mat4 = __webpack_require__(21).mat4,
+	    inherits = __webpack_require__(18).inherits,
+	    createHash = __webpack_require__(19),
+	    _ = __webpack_require__(20),
+	    util = __webpack_require__(15),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
 	var Box = function(x, y, z, w, h, d, id, depth) {
@@ -1346,8 +1350,6 @@
 
 			var boxes = intersectBoxToLevel(box, baseDepth, startDepth, frus, view);
 
-			console.log(startDepth, frus, boxes.length);
-
 			allBoxes = allBoxes.concat(boxes);
 		}
 
@@ -1456,9 +1458,8 @@
 		    // generate the clip plane pairs that will determine our LOD offsets
 		    var thisSeries = series();
 		    var clipPlanes = [];
-		    // add the first 4-5 planes at a good eye distance
 
-		    console.log(thisSeries);
+		    // add the first 4-5 planes at a good eye distance
 		    //
 		    for (var i = 0 ; i < thisSeries.length-1 ; i ++) {
 			    var dstart = thisSeries[i];
@@ -1468,7 +1469,6 @@
 		    }
 
 		    startDepth = Math.max(0, o.maxDepth - thisSeries.length - o.maxDepthReduction);
-		    console.log("start depth is:", startDepth);
 
 
 		    // now create a projection matrix
@@ -1483,7 +1483,6 @@
 		    // TODO: this is need a much better way to determine what the aspect is going to be
 		    var aspect = (typeof(window) === "object") ? figureAspect() : 1.0;
 		    
-		    console.log("furstum perspective:", fov, aspect, near, far);
 		    projectionMatrix = mat4.perspective(projectionMatrix || mat4.create(), fov, aspect, near, far);
 
 
@@ -1501,8 +1500,6 @@
 		                          bb.maxs[0] - bb.mins[0],
 		                          bb.maxs[1] - bb.mins[1],
 		                          bb.maxs[2] - bb.mins[2]);
-
-		    console.log("base box:", baseBox);
 
 		    var boxList = allBoxesForThisView(baseBox, startDepth,
 		                                      clipPlanes,
@@ -1591,7 +1588,7 @@
 	// Load stuff from remote buffers
 	//
 
-	var util = __webpack_require__(13);
+	var util = __webpack_require__(15);
 
 	var DecompressManager = function(script, count) {
 		this.script = script;
@@ -1882,7 +1879,7 @@
 	// A whole bunch of tile loaders
 	//
 
-	var SphericalMercator = __webpack_require__(20);
+	var SphericalMercator = __webpack_require__(22);
 
 	var KittyLoader = function() {
 	};
@@ -2137,7 +2134,7 @@
 	// Orbital camera
 	//
 
-	var util = __webpack_require__(13);
+	var util = __webpack_require__(15);
 
 	var ms = function() {
 	    return (new Date()).getTime();
@@ -2638,14 +2635,401 @@
 /* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
+	// line-picker.js
+	// Line picker mode
+	//
+
+	var LinePicker = function(elem, renderer) {
+	    this.elem = elem;
+	    this.renderer = renderer;
+	    this.lastPickedPoint = null;
+	};
+
+	LinePicker.prototype.activate = function() {
+	    console.log("Activating line picker!");
+	    this._attachHandlers();
+	};
+
+	LinePicker.prototype.deactivate = function() {
+	    console.log("Deactivating line picker!");
+	    if (this._detachHandlers)
+	        this._detachHandlers();
+	};
+
+	LinePicker.prototype.resetState = function() {
+	    this.points = [];
+	};
+
+	var pointInSpace = function(o, evt) {
+	    var w = o.elem.offsetWidth,
+	        h = o.elem.offsetHeight;
+
+		var x = evt.offsetX==undefined?evt.layerX:evt.offsetX;
+		var y = evt.offsetY==undefined?evt.layerY:evt.offsetY;
+
+	    // pick a point in renderer
+	    //
+	    var p = o.renderer.pickPoint(x, y);
+	    return p;
+	};
+
+	var randomId = function() {
+	    return Math.random().toFixed(20).substring(2);
+	};
+
+	function hslToRgb(h, s, l){
+	    var r, g, b;
+
+	    if(s == 0){
+	        r = g = b = l; // achromatic
+	    }else{
+	        var hue2rgb = function hue2rgb(p, q, t){
+	            if(t < 0) t += 1;
+	            if(t > 1) t -= 1;
+	            if(t < 1/6) return p + (q - p) * 6 * t;
+	            if(t < 1/2) return q;
+	            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+	            return p;
+	        };
+
+	        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+	        var p = 2 * l - q;
+	        r = hue2rgb(p, q, h + 1/3);
+	        g = hue2rgb(p, q, h);
+	        b = hue2rgb(p, q, h - 1/3);
+	    }
+
+	    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+	};
+
+	var randomColor = function() {
+	    return hslToRgb(Math.random(), 0.5, 0.6);
+	};
+
+	LinePicker.prototype._attachHandlers = function() {
+	    var o = this;
+	    
+	    var dblclick = function(e) {
+	        e.preventDefault();
+	        var p = pointInSpace(o, e);
+
+	        console.log("clicking on point:", p);
+
+	        // if we're
+	        if (o.lastPickedPoint) {
+	            var id = randomId(),
+	                color = randomColor();
+
+	            console.log("Adding line segment:", id, o.lastPickedPoint, p, color);
+
+	            o.renderer.addLineSegment(id, o.lastPickedPoint, p, color);
+	        }
+
+	        o.lastPickedPoint = p;
+	    };
+
+	    o.elem.addEventListener("dblclick", dblclick);
+
+	    this._detachHandlers = function() {
+	        o.elem.removeEventListener("dblclick", dblclick);
+	        o._detachHandlers = null;
+	    };
+	};
+
+	module.exports = {
+	    LinePicker: LinePicker
+	};
+
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// profile.js
+	// A profile creator, needs the renderer to query stuff
+	//
+
+	var mat4 = __webpack_require__(21).mat4;
+	var vec3 = __webpack_require__(21).vec3;
+
+
+	var Profiler = function(renderer) {
+	    this.renderer = renderer;
+	};
+
+	var addDebuggerCanvas = function(buf, res, centerz, zrange, ls) {
+	    var canvas = document.createElement("canvas");
+	    canvas.width = res;
+	    canvas.height = res;
+
+	    canvas.style.cssText = "position:absolute;left:0px;top:0px;";
+
+	    var ctx = canvas.getContext("2d");
+
+	    // note that since viewport is origined at bottom, left, our image here is upside down
+	    var colormap = ['rgb(158,1,66)','rgb(213,62,79)','rgb(244,109,67)','rgb(253,174,97)','rgb(254,224,139)','rgb(255,255,191)','rgb(230,245,152)','rgb(171,221,164)','rgb(102,194,165)','rgb(50,136,189)','rgb(94,79,162)', 'rgb(84,48,5)','rgb(140,81,10)','rgb(191,129,45)','rgb(223,194,125)','rgb(246,232,195)','rgb(245,245,245)','rgb(199,234,229)','rgb(128,205,193)','rgb(53,151,143)','rgb(1,102,94)','rgb(0,60,48)'];
+
+	    for (var i = 0, il = res * res ; i < il ; i ++) {
+	        var r = -1;
+
+	        if (Math.abs(buf[i]) > 0.00001) { // may be something valid
+	            var cc = ((buf[i] + centerz) / zrange);
+	            r = Math.floor(cc * 255.0);
+	        }
+
+	        var row = Math.floor(i / res);
+	        var col = Math.floor(i % res);
+
+	        var c = "";
+	        if (r === -1)
+	            c = "#000";
+	        else {
+	            var step = Math.floor(255 / colormap.length);
+	            var index = Math.floor(r / step);
+	            c = colormap[index];
+	        }
+
+	        ctx.fillStyle = c;
+	        ctx.fillRect(row, res-col, 1, 1);
+	    }
+
+
+	    // draw our scaled lines on top of this
+	    ctx.strokeStyle = "red";
+	    ctx.lineWidth = 5.0;
+
+	    ls.forEach(function(l) {
+	        var start = l[0],
+	            end = l[1];
+
+	        ctx.moveTo(start[0], start[2]);
+	        ctx.lineTo(end[0], end[2]);
+	    });
+
+	    ctx.stroke();
+
+
+	    document.body.appendChild(canvas);
+	};
+
+
+	Profiler.prototype.profileLines = function(lines, bbox, res) {
+	    // compute the largest bounds that will encompass this range
+	    var mins = [9999999999999999999999999,
+	                9999999999999999999999999,
+	                9999999999999999999999999],
+	        maxs = [-9999999999999999999999999,
+	                -9999999999999999999999999,
+	                -9999999999999999999999999];
+
+	    console.log("profiler region bounds:", bbox);
+	    
+	    // our view matrix for ortho projections, basically look straight down
+	    //
+	    var view = mat4.identity(mat4.create());
+	    mat4.rotateZ(view, view, -1.5705);; // make sure we're heading north
+	    mat4.rotateX(view, view, 1.5705);; // rotate 90deg around X, look straight down
+
+	    var centerx = bbox[0] + (bbox[3] - bbox[0]) / 2,
+	        centery = bbox[1] + (bbox[4] - bbox[1]) / 2,
+	        centerz = bbox[2] + (bbox[5] - bbox[2]) / 2;
+
+	    var zrange = bbox[5] - bbox[2];
+
+	    lines.forEach(function(l) {
+	        var s = l[0], e = l[1];
+
+	        console.log("line:", s[0], s[1], s[2], "-->", e[0], e[1], e[2]);
+	    });
+
+	    var p = function(v) {
+	        var x = v[0], y = v[1], z = v[2];
+
+	        mins[0] = Math.min(mins[0], x);
+	        mins[1] = Math.min(mins[1], y);
+	        mins[2] = Math.min(mins[2], z);
+
+	        maxs[0] = Math.max(maxs[0], x);
+	        maxs[1] = Math.max(maxs[1], y);
+	        maxs[2] = Math.max(maxs[2], z);
+	    };
+
+	    lines.forEach(function(line) {
+	        // each point is in world coordinate space, for our ortho
+	        // projection to make sense the point should be representated in the same
+	        // coordinate space as "view".
+	        //
+	        var start = line[0];
+	        var end   = line[1];
+
+	        // now figure mins and maxes in this coordinate space
+	        //
+	        p(start);
+	        p(end);
+	    });
+
+	    console.log("mins:", mins, "maxs:", maxs);
+
+	    // what are the ranges of mins and maxs
+	    var rx = maxs[0] - mins[0],
+	        ry = maxs[1] - mins[1],
+	        rz = maxs[2] - mins[2];
+
+	    console.log("ranges:", rx, ry, rz);
+
+	    // determine our center of where the region of interest is, this is the center of
+	    // our ortho projection
+	    var cx = mins[0] + rx / 2,
+	        cy = mins[1] + ry / 2,
+	        cz = mins[2] + rz / 2;
+
+	    console.log("center:", cx, cy, cz);
+
+	    // chosen range is the max of the two
+	    var cr = Math.max(rx, ry, rz),
+	        cr2 = cr / 2;
+
+	    // now determine the two planes
+	    var wlower = [cx - cr2, cy - cr2, cz - cr2],
+	        wupper = [cx + cr2, cy + cr2, cz + cr2];
+
+	    // now transform themes
+	    var lower = vec3.transformMat4(vec3.create(), wlower, view);
+	    var upper = vec3.transformMat4(vec3.create(), wupper, view);
+
+	    console.log("transformed lower:", lower, " upper:", upper);
+
+
+	    // establish our view matrix
+	    var topDownProjection = mat4.ortho(mat4.create(),
+	                                       upper[0], lower[0],
+	                                       lower[1], upper[1],
+	                                       -10000, 10000);
+	                                       
+	    var proj = mat4.multiply(mat4.create(), topDownProjection, view);
+	    console.log("projection matrix: ", proj);
+	    
+	    // ask renderer to do the projection for us
+	    //
+	    res = res || 128;
+	    var buf = this.renderer.projectToImage(proj, 2, res);
+
+
+	    console.log("got back buffer:", buf);
+
+
+	    // we need to read points back from the buffer on where the lines line in the coordinate system
+	    //
+	    var spaceRanges = wlower.map(function(l, i) {
+	        console.log(wupper[i], l);
+	        return wupper[i] - l;
+	    });
+
+	    console.log("space range:", spaceRanges);
+
+	    var scaledPoint = function(p) {
+	        return [
+	            res * (p[0] - wlower[0]) / spaceRanges[0],
+	            res * (p[1] - wlower[1]) / spaceRanges[1],
+	            res * (p[2] - wlower[2]) / spaceRanges[2]
+	        ];
+	    };
+
+	    var scaledLines = lines.map(function(l) {
+	        var start = l[0];
+	        var end   = l[1];
+
+	        // determine the starts and ends in the coordinate space of the projected image
+	        //
+	        start = scaledPoint(start);
+	        end = scaledPoint(end);
+
+	        console.log("scaled point:", start, end);
+
+	        return [start, end];
+	    });
+
+	    console.log(res, centerz, zrange);
+
+	    // Add debugger canvas to see what's going on
+	    // addDebuggerCanvas(buf, res, centerz, zrange, scaledLines);
+
+	    // read the lines out
+	    //
+	    var pixVal = function(x, y) {
+	        var i = y * res + x;
+	        var row = Math.floor(y);
+	        var col = Math.floor(x);
+
+	        return buf[row * res + col];
+	    };
+
+	    var lineSamples = scaledLines.map(function(l) {
+	        var s = l[0],
+	            e = l[1];
+
+	        // All coordinates here are in image space
+	        // read stuff in on the lines
+	        var samples = [];
+
+	        console.log(s, e);
+	        var x0 = Math.floor(s[0]), y0 = Math.floor(s[2]),
+	            x1 = Math.floor(e[0]), y1 = Math.floor(e[2]);
+
+	        var dx = Math.abs(x1 - x0),
+	            dy = Math.abs(y1 - y0);
+
+	        var sdx = (x1 - x0) < 0 ? -1 : 1,
+	            sdy = (y1 - y0) < 0 ? -1 : 1;
+
+	        var x, y, f;
+
+	        if (dx > dy) {
+	            // more horizontal than vertical
+	            for (x = 0 ; x <= dx ; x ++) {
+	                f = x / dx;
+	                y = y0 + sdy * dy * f;
+
+	                samples.push(pixVal(x0 + sdx * x, y));
+	            }
+	        }
+	        else {
+	            // more horizontal than vertical
+	            for (y = 0 ; y <= dy ; y ++) {
+	                f = y / dy;
+	                x = x0 + sdx * dx * f;
+	                samples.push(pixVal(x, y0 + sdy * y));
+	            }
+	        }
+
+	        // make sure the z is correctly offset by our centerz
+	        return samples.map(function(s) {
+	            if (Math.abs(s) < 0.000001)
+	                return 0;
+	            return s + centerz;
+	        });
+	    });
+
+	    return lineSamples;
+	};
+
+	module.exports = {
+	    Profiler: Profiler
+	};
+
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
 	// p2p.js
 	// Peer to peer stuff to guide sessions
 	//
 
-	var Peer = __webpack_require__(21);
-	var EventEmitter = __webpack_require__(14).EventEmitter;
-	var util = __webpack_require__(13);
-	var u = __webpack_require__(16);
+	var Peer = __webpack_require__(23);
+	var EventEmitter = __webpack_require__(16).EventEmitter;
+	var util = __webpack_require__(15);
+	var u = __webpack_require__(18);
 
 	var baseUrl = "http://thor.udayv.com:2379/v2/keys/";
 
@@ -2938,14 +3322,14 @@
 
 
 /***/ },
-/* 13 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {// util.js
 	// much wow utility functions
 	//
 
-	var vec3 = __webpack_require__(19).vec3;
+	var vec3 = __webpack_require__(21).vec3;
 
 	var suc = function(s) {
 	    return Math.floor(s/100) == 2;
@@ -3159,10 +3543,10 @@
 	    TriggeredDispatch: TriggeredDispatch
 	};
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(23)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(30)))
 
 /***/ },
-/* 14 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -3469,18 +3853,18 @@
 
 
 /***/ },
-/* 15 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// index.js
 	// Entry point for node module
 	//
 
-	module.exports = __webpack_require__(22);
+	module.exports = __webpack_require__(24);
 
 
 /***/ },
-/* 16 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {// Copyright Joyent, Inc. and other Node contributors.
@@ -4008,7 +4392,7 @@
 	}
 	exports.isPrimitive = isPrimitive;
 
-	exports.isBuffer = __webpack_require__(29);
+	exports.isBuffer = __webpack_require__(31);
 
 	function objectToString(o) {
 	  return Object.prototype.toString.call(o);
@@ -4052,7 +4436,7 @@
 	 *     prototype.
 	 * @param {function} superCtor Constructor function to inherit prototype from.
 	 */
-	exports.inherits = __webpack_require__(35);
+	exports.inherits = __webpack_require__(38);
 
 	exports._extend = function(origin, add) {
 	  // Don't do anything if add isn't an object
@@ -4070,10 +4454,28 @@
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(23)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(30)))
 
 /***/ },
-/* 17 */
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var exports = module.exports = function (alg) {
+	  var Alg = exports[alg.toLowerCase()]
+	  if(!Alg) throw new Error(alg + ' is not supported (we accept pull requests)')
+	  return new Alg()
+	}
+
+
+	exports.sha1 = __webpack_require__(25)
+	exports.sha224 = __webpack_require__(26)
+	exports.sha256 = __webpack_require__(27)
+	exports.sha384 = __webpack_require__(28)
+	exports.sha512 = __webpack_require__(29)
+
+
+/***/ },
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -15504,28 +15906,10 @@
 	  }
 	}.call(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(34)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(36)(module), (function() { return this; }())))
 
 /***/ },
-/* 18 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var exports = module.exports = function (alg) {
-	  var Alg = exports[alg.toLowerCase()]
-	  if(!Alg) throw new Error(alg + ' is not supported (we accept pull requests)')
-	  return new Alg()
-	}
-
-
-	exports.sha1 = __webpack_require__(24)
-	exports.sha224 = __webpack_require__(25)
-	exports.sha256 = __webpack_require__(26)
-	exports.sha384 = __webpack_require__(27)
-	exports.sha512 = __webpack_require__(28)
-
-
-/***/ },
-/* 19 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -19402,7 +19786,7 @@
 
 
 /***/ },
-/* 20 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var SphericalMercator = (function(){
@@ -19578,14 +19962,14 @@
 
 
 /***/ },
-/* 21 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(30);
-	var EventEmitter = __webpack_require__(37);
-	var Socket = __webpack_require__(31);
-	var MediaConnection = __webpack_require__(32);
-	var DataConnection = __webpack_require__(33);
+	var util = __webpack_require__(32);
+	var EventEmitter = __webpack_require__(39);
+	var Socket = __webpack_require__(33);
+	var MediaConnection = __webpack_require__(34);
+	var DataConnection = __webpack_require__(35);
 
 	/**
 	 * A peer who can initiate connections with other peers.
@@ -20081,7 +20465,7 @@
 
 
 /***/ },
-/* 22 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -20095,10 +20479,10 @@
 	 * @version 0.3
 	 */
 
-	var WebSocket = __webpack_require__(41);
-	var Buffer = __webpack_require__(38).Buffer;
-	var _ = __webpack_require__(42);
-	var EventEmitter = __webpack_require__(14).EventEmitter;
+	var WebSocket = __webpack_require__(44);
+	var Buffer = __webpack_require__(40).Buffer;
+	var _ = __webpack_require__(45);
+	var EventEmitter = __webpack_require__(16).EventEmitter;
 
 	/**
 	 * Represents a schema definition.  Constructing schema definitions using this
@@ -20807,99 +21191,7 @@
 
 
 /***/ },
-/* 23 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// shim for using process in browser
-
-	var process = module.exports = {};
-
-	process.nextTick = (function () {
-	    var canSetImmediate = typeof window !== 'undefined'
-	    && window.setImmediate;
-	    var canMutationObserver = typeof window !== 'undefined'
-	    && window.MutationObserver;
-	    var canPost = typeof window !== 'undefined'
-	    && window.postMessage && window.addEventListener
-	    ;
-
-	    if (canSetImmediate) {
-	        return function (f) { return window.setImmediate(f) };
-	    }
-
-	    var queue = [];
-
-	    if (canMutationObserver) {
-	        var hiddenDiv = document.createElement("div");
-	        var observer = new MutationObserver(function () {
-	            var queueList = queue.slice();
-	            queue.length = 0;
-	            queueList.forEach(function (fn) {
-	                fn();
-	            });
-	        });
-
-	        observer.observe(hiddenDiv, { attributes: true });
-
-	        return function nextTick(fn) {
-	            if (!queue.length) {
-	                hiddenDiv.setAttribute('yes', 'no');
-	            }
-	            queue.push(fn);
-	        };
-	    }
-
-	    if (canPost) {
-	        window.addEventListener('message', function (ev) {
-	            var source = ev.source;
-	            if ((source === window || source === null) && ev.data === 'process-tick') {
-	                ev.stopPropagation();
-	                if (queue.length > 0) {
-	                    var fn = queue.shift();
-	                    fn();
-	                }
-	            }
-	        }, true);
-
-	        return function nextTick(fn) {
-	            queue.push(fn);
-	            window.postMessage('process-tick', '*');
-	        };
-	    }
-
-	    return function nextTick(fn) {
-	        setTimeout(fn, 0);
-	    };
-	})();
-
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	// TODO(shtylman)
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-
-
-/***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
@@ -20912,7 +21204,7 @@
 	 */
 
 	var inherits = __webpack_require__(43)
-	var Hash = __webpack_require__(36)
+	var Hash = __webpack_require__(37)
 
 	var W = new Array(80)
 
@@ -20999,10 +21291,10 @@
 	module.exports = Sha1
 
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -21014,8 +21306,8 @@
 	 */
 
 	var inherits = __webpack_require__(43)
-	var SHA256 = __webpack_require__(26)
-	var Hash = __webpack_require__(36)
+	var SHA256 = __webpack_require__(27)
+	var Hash = __webpack_require__(37)
 
 	var W = new Array(64)
 
@@ -21058,10 +21350,10 @@
 
 	module.exports = Sha224
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -21073,7 +21365,7 @@
 	 */
 
 	var inherits = __webpack_require__(43)
-	var Hash = __webpack_require__(36)
+	var Hash = __webpack_require__(37)
 
 	var K = [
 	  0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
@@ -21214,15 +21506,15 @@
 
 	module.exports = Sha256
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(43)
-	var SHA512 = __webpack_require__(28);
-	var Hash = __webpack_require__(36)
+	var SHA512 = __webpack_require__(29);
+	var Hash = __webpack_require__(37)
 
 	var W = new Array(160)
 
@@ -21277,14 +21569,14 @@
 
 	module.exports = Sha384
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(43)
-	var Hash = __webpack_require__(36)
+	var Hash = __webpack_require__(37)
 
 	var K = [
 	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
@@ -21529,10 +21821,102 @@
 
 	module.exports = Sha512
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 29 */
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+
+	process.nextTick = (function () {
+	    var canSetImmediate = typeof window !== 'undefined'
+	    && window.setImmediate;
+	    var canMutationObserver = typeof window !== 'undefined'
+	    && window.MutationObserver;
+	    var canPost = typeof window !== 'undefined'
+	    && window.postMessage && window.addEventListener
+	    ;
+
+	    if (canSetImmediate) {
+	        return function (f) { return window.setImmediate(f) };
+	    }
+
+	    var queue = [];
+
+	    if (canMutationObserver) {
+	        var hiddenDiv = document.createElement("div");
+	        var observer = new MutationObserver(function () {
+	            var queueList = queue.slice();
+	            queue.length = 0;
+	            queueList.forEach(function (fn) {
+	                fn();
+	            });
+	        });
+
+	        observer.observe(hiddenDiv, { attributes: true });
+
+	        return function nextTick(fn) {
+	            if (!queue.length) {
+	                hiddenDiv.setAttribute('yes', 'no');
+	            }
+	            queue.push(fn);
+	        };
+	    }
+
+	    if (canPost) {
+	        window.addEventListener('message', function (ev) {
+	            var source = ev.source;
+	            if ((source === window || source === null) && ev.data === 'process-tick') {
+	                ev.stopPropagation();
+	                if (queue.length > 0) {
+	                    var fn = queue.shift();
+	                    fn();
+	                }
+	            }
+	        }, true);
+
+	        return function nextTick(fn) {
+	            queue.push(fn);
+	            window.postMessage('process-tick', '*');
+	        };
+	    }
+
+	    return function nextTick(fn) {
+	        setTimeout(fn, 0);
+	    };
+	})();
+
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	// TODO(shtylman)
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+
+
+/***/ },
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function isBuffer(arg) {
@@ -21543,14 +21927,14 @@
 	}
 
 /***/ },
-/* 30 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var defaultConfig = {'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }]};
 	var dataCount = 1;
 
-	var BinaryPack = __webpack_require__(44);
-	var RTCPeerConnection = __webpack_require__(39).RTCPeerConnection;
+	var BinaryPack = __webpack_require__(46);
+	var RTCPeerConnection = __webpack_require__(41).RTCPeerConnection;
 
 	var util = {
 	  noop: function() {},
@@ -21863,11 +22247,11 @@
 
 
 /***/ },
-/* 31 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(30);
-	var EventEmitter = __webpack_require__(37);
+	var util = __webpack_require__(32);
+	var EventEmitter = __webpack_require__(39);
 
 	/**
 	 * An abstraction on top of WebSockets and XHR streaming to provide fastest
@@ -22083,12 +22467,12 @@
 
 
 /***/ },
-/* 32 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(30);
-	var EventEmitter = __webpack_require__(37);
-	var Negotiator = __webpack_require__(40);
+	var util = __webpack_require__(32);
+	var EventEmitter = __webpack_require__(39);
+	var Negotiator = __webpack_require__(42);
 
 	/**
 	 * Wraps the streaming interface between two Peers.
@@ -22184,13 +22568,13 @@
 
 
 /***/ },
-/* 33 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(30);
-	var EventEmitter = __webpack_require__(37);
-	var Negotiator = __webpack_require__(40);
-	var Reliable = __webpack_require__(45);
+	var util = __webpack_require__(32);
+	var EventEmitter = __webpack_require__(39);
+	var Negotiator = __webpack_require__(42);
+	var Reliable = __webpack_require__(47);
 
 	/**
 	 * Wraps a DataChannel between two Peers.
@@ -22457,7 +22841,7 @@
 
 
 /***/ },
-/* 34 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function(module) {
@@ -22473,36 +22857,7 @@
 
 
 /***/ },
-/* 35 */
-/***/ function(module, exports, __webpack_require__) {
-
-	if (typeof Object.create === 'function') {
-	  // implementation from standard node.js 'util' module
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  };
-	} else {
-	  // old school shim for old browsers
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    var TempCtor = function () {}
-	    TempCtor.prototype = superCtor.prototype
-	    ctor.prototype = new TempCtor()
-	    ctor.prototype.constructor = ctor
-	  }
-	}
-
-
-/***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {//prototype class for hash functions
@@ -22575,10 +22930,39 @@
 
 	module.exports = Hash
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 37 */
+/* 38 */
+/***/ function(module, exports, __webpack_require__) {
+
+	if (typeof Object.create === 'function') {
+	  // implementation from standard node.js 'util' module
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  };
+	} else {
+	  // old school shim for old browsers
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    var TempCtor = function () {}
+	    TempCtor.prototype = superCtor.prototype
+	    ctor.prototype = new TempCtor()
+	    ctor.prototype.constructor = ctor
+	  }
+	}
+
+
+/***/ },
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -22813,7 +23197,7 @@
 
 
 /***/ },
-/* 38 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*!
@@ -22823,9 +23207,9 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(48)
-	var ieee754 = __webpack_require__(46)
-	var isArray = __webpack_require__(47)
+	var base64 = __webpack_require__(51)
+	var ieee754 = __webpack_require__(48)
+	var isArray = __webpack_require__(49)
 
 	exports.Buffer = Buffer
 	exports.SlowBuffer = Buffer
@@ -23867,10 +24251,10 @@
 	  }
 	}
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(38).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 39 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports.RTCSessionDescription = window.RTCSessionDescription ||
@@ -23882,13 +24266,13 @@
 
 
 /***/ },
-/* 40 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(30);
-	var RTCPeerConnection = __webpack_require__(39).RTCPeerConnection;
-	var RTCSessionDescription = __webpack_require__(39).RTCSessionDescription;
-	var RTCIceCandidate = __webpack_require__(39).RTCIceCandidate;
+	var util = __webpack_require__(32);
+	var RTCPeerConnection = __webpack_require__(41).RTCPeerConnection;
+	var RTCSessionDescription = __webpack_require__(41).RTCSessionDescription;
+	var RTCIceCandidate = __webpack_require__(41).RTCIceCandidate;
 
 	/**
 	 * Manages all negotiations between Peers.
@@ -24197,7 +24581,36 @@
 
 
 /***/ },
-/* 41 */
+/* 43 */
+/***/ function(module, exports, __webpack_require__) {
+
+	if (typeof Object.create === 'function') {
+	  // implementation from standard node.js 'util' module
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  };
+	} else {
+	  // old school shim for old browsers
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    var TempCtor = function () {}
+	    TempCtor.prototype = superCtor.prototype
+	    ctor.prototype = new TempCtor()
+	    ctor.prototype.constructor = ctor
+	  }
+	}
+
+
+/***/ },
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -24246,7 +24659,7 @@
 
 
 /***/ },
-/* 42 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -31407,43 +31820,14 @@
 	  }
 	}.call(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(34)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(36)(module), (function() { return this; }())))
 
 /***/ },
-/* 43 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
-	if (typeof Object.create === 'function') {
-	  // implementation from standard node.js 'util' module
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  };
-	} else {
-	  // old school shim for old browsers
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    var TempCtor = function () {}
-	    TempCtor.prototype = superCtor.prototype
-	    ctor.prototype = new TempCtor()
-	    ctor.prototype.constructor = ctor
-	  }
-	}
-
-
-/***/ },
-/* 44 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var BufferBuilder = __webpack_require__(49).BufferBuilder;
-	var binaryFeatures = __webpack_require__(49).binaryFeatures;
+	var BufferBuilder = __webpack_require__(50).BufferBuilder;
+	var binaryFeatures = __webpack_require__(50).binaryFeatures;
 
 	var BinaryPack = {
 	  unpack: function(data){
@@ -31964,10 +32348,10 @@
 
 
 /***/ },
-/* 45 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(50);
+	var util = __webpack_require__(52);
 
 	/**
 	 * Reliable transfer for Chrome Canary DataChannel impl.
@@ -32288,7 +32672,7 @@
 
 
 /***/ },
-/* 46 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports.read = function(buffer, offset, isLE, mLen, nBytes) {
@@ -32378,7 +32762,7 @@
 
 
 /***/ },
-/* 47 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -32417,7 +32801,77 @@
 
 
 /***/ },
-/* 48 */
+/* 50 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var binaryFeatures = {};
+	binaryFeatures.useBlobBuilder = (function(){
+	  try {
+	    new Blob([]);
+	    return false;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
+	  try {
+	    return (new Blob([new Uint8Array([])])).size === 0;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	module.exports.binaryFeatures = binaryFeatures;
+	var BlobBuilder = module.exports.BlobBuilder;
+	if (typeof window != 'undefined') {
+	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
+	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+	}
+
+	function BufferBuilder(){
+	  this._pieces = [];
+	  this._parts = [];
+	}
+
+	BufferBuilder.prototype.append = function(data) {
+	  if(typeof data === 'number') {
+	    this._pieces.push(data);
+	  } else {
+	    this.flush();
+	    this._parts.push(data);
+	  }
+	};
+
+	BufferBuilder.prototype.flush = function() {
+	  if (this._pieces.length > 0) {
+	    var buf = new Uint8Array(this._pieces);
+	    if(!binaryFeatures.useArrayBufferView) {
+	      buf = buf.buffer;
+	    }
+	    this._parts.push(buf);
+	    this._pieces = [];
+	  }
+	};
+
+	BufferBuilder.prototype.getBuffer = function() {
+	  this.flush();
+	  if(binaryFeatures.useBlobBuilder) {
+	    var builder = new BlobBuilder();
+	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
+	      builder.append(this._parts[i]);
+	    }
+	    return builder.getBlob();
+	  } else {
+	    return new Blob(this._parts);
+	  }
+	};
+
+	module.exports.BufferBuilder = BufferBuilder;
+
+
+/***/ },
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -32543,80 +32997,10 @@
 
 
 /***/ },
-/* 49 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var binaryFeatures = {};
-	binaryFeatures.useBlobBuilder = (function(){
-	  try {
-	    new Blob([]);
-	    return false;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
-	  try {
-	    return (new Blob([new Uint8Array([])])).size === 0;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	module.exports.binaryFeatures = binaryFeatures;
-	var BlobBuilder = module.exports.BlobBuilder;
-	if (typeof window != 'undefined') {
-	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
-	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
-	}
-
-	function BufferBuilder(){
-	  this._pieces = [];
-	  this._parts = [];
-	}
-
-	BufferBuilder.prototype.append = function(data) {
-	  if(typeof data === 'number') {
-	    this._pieces.push(data);
-	  } else {
-	    this.flush();
-	    this._parts.push(data);
-	  }
-	};
-
-	BufferBuilder.prototype.flush = function() {
-	  if (this._pieces.length > 0) {
-	    var buf = new Uint8Array(this._pieces);
-	    if(!binaryFeatures.useArrayBufferView) {
-	      buf = buf.buffer;
-	    }
-	    this._parts.push(buf);
-	    this._pieces = [];
-	  }
-	};
-
-	BufferBuilder.prototype.getBuffer = function() {
-	  this.flush();
-	  if(binaryFeatures.useBlobBuilder) {
-	    var builder = new BlobBuilder();
-	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
-	      builder.append(this._parts[i]);
-	    }
-	    return builder.getBlob();
-	  } else {
-	    return new Blob(this._parts);
-	  }
-	};
-
-	module.exports.BufferBuilder = BufferBuilder;
-
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var BinaryPack = __webpack_require__(44);
+	var BinaryPack = __webpack_require__(46);
 
 	var util = {
 	  debug: false,
@@ -32711,72 +33095,6 @@
 	};
 
 	module.exports = util;
-
-
-/***/ },
-/* 51 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// line-picker.js
-	// Line picker mode
-	//
-
-	var LinePicker = function(elem, renderer) {
-	    this.elem = elem;
-	    this.renderer = renderer;
-	    
-	    this.points = [];
-	};
-
-	LinePicker.prototype.activate = function() {
-	    console.log("Activating line picker!");
-	    this._attachHandlers();
-	};
-
-	LinePicker.prototype.deactivate = function() {
-	    console.log("Deactivating line picker!");
-	    if (this._detachHandlers)
-	        this._detachHandlers();
-	};
-
-	var pointInSpace = function(o, evt) {
-	    var w = o.elem.offsetWidth,
-	        h = o.elem.offsetHeight;
-
-		var x = evt.offsetX==undefined?evt.layerX:evt.offsetX;
-		var y = evt.offsetY==undefined?evt.layerY:evt.offsetY;
-
-	    // pick a point in renderer
-	    //
-	    var p = o.renderer.pickPoint(x, y);
-
-	    console.log("Renderer returned:", p);
-
-	    return p;
-	};
-
-	LinePicker.prototype._attachHandlers = function() {
-	    var o = this;
-	    
-	    var dblclick = function(e) {
-	        e.preventDefault();
-	        var p = pointInSpace(o, e);
-
-	        console.log("clicking on point:", p);
-	        o.points.push(p);
-	    };
-
-	    o.elem.addEventListener("dblclick", dblclick);
-
-	    this._detachHandlers = function() {
-	        o.elem.removeEventListener("dblclick", dblclick);
-	        o._detachHandlers = null;
-	    };
-	};
-
-	module.exports = {
-	    LinePicker: LinePicker
-	};
 
 
 /***/ }
