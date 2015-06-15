@@ -49,8 +49,7 @@
        (fn [start min max f]
          [:div.slider])})))
 
-(defn icon [& parts]
-  [:i {:class (str "fa " (string/join " "
+(defn icon [& parts] [:i {:class (str "fa " (string/join " "
                                       (map #(str "fa-" (name %)) parts)))}])
 
 
@@ -74,3 +73,43 @@
                        (icon i)]))
                   buttons))
        [:p.tip @st]])))
+
+
+(defn prepend [name series]
+  (.concat (array name) series))
+
+(defn filter-zeros [items]
+  (->> items
+       vec
+       (remove zero?)
+       (apply array)))
+
+(defn make-color [[r g b]]
+  (str "rgba(" r "," g "," b ", 1.0)"))
+
+
+(defn profile-series [[id color series]]
+  (reagent/create-class
+   {:component-did-mount
+    (fn [this]
+      (js/console.log "parent element is:" (reagent/dom-node this))
+      (.generate js/c3
+                 (js-obj "bindto" (reagent/dom-node this)
+                         "size" (js-obj "height" 180
+                                        "width" 1000)
+                         "legend" (js-obj "show" false)
+                         "axis" (js-obj "x" (js-obj "show" false)
+                                        "y" (js-obj "color" "#ffffff"))
+                         "data" (js-obj "columns" (array (prepend "Profile" (filter-zeros series)))
+                                        "colors" (js-obj "Profile" (make-color color))))))
+
+    :reagent-render
+    (fn [[id color series]]
+      [:div.profile-series])}))
+
+(defn profile-view [series]
+  [:div.profile-view
+   [profile-series (first series)]
+   [:div.close
+    [:a.fa.fa-times {:href "javascript:"
+                     :on-click #(println "dismiss!")}]]])

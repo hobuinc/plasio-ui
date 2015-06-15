@@ -232,7 +232,12 @@
                      (map (fn [[_ start end _]] (array start end)))
                      (apply array))
           result (.profileLines (js/PlasioLib.Features.Profiler. renderer) pairs bounds 256)]
-      (js/console.log result))
+      (js/console.log result)
+
+      (swap! app-state assoc :profile-series
+             (mapv (fn [[id _ _ color] i]
+                     [id color (aget result i)])
+                   lines (range))))
     (println "Cannot dp profile")))
 
 
@@ -308,7 +313,6 @@
 
        [compass]
 
-
        (hud-right
         ;; display action buttons on the top
         [:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
@@ -332,9 +336,12 @@
                (fn [tool]
                  (case tool
                    :profile (do-profile)))
-               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]])
-        
-        )])}))
+               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]]))
+
+
+       ;; if we have any profile views to show, show them
+       (when-let [series (:profile-series @app-state)]
+         [w/profile-view series])])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro

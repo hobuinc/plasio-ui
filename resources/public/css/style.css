@@ -282,3 +282,39 @@ a:hover {
     line-height: 13px;
     font-weight: 700;
 }
+
+.profile-view {
+    position: absolute;
+    width: 70%;
+    bottom: 10px;
+    left: 25px;
+    height: 200px;
+    background-color: RGBA(40, 40, 40, 0.5);
+    border: 2px solid RGBA(0, 163, 136, 1);
+    border-radius: 3px;
+    box-shadow: 0px 2px 2px black;
+}
+
+.profile-view .profile-series {
+    margin-top: 10px;
+}
+
+.profile-view .close {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    color: white;
+}
+
+.c3-axis-y .tick {
+    font-weight: 700;
+    fill: white;
+}
+
+.c3-axis-y .tick line {
+    stroke: white;
+}
+
+.c3-axis-y .domain {
+    stroke: white;
+}
