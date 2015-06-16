@@ -17,6 +17,8 @@
                           :secondary-mode-enabled? false
                           :active-secondary-mode nil
                           :lines-in-scene nil
+                          :window {:width 0
+                                   :height 0}
                           :ro {:point-size 2
                                :point-size-attenuation 1
                                :intensity-blend 0
@@ -341,7 +343,7 @@
 
        ;; if we have any profile views to show, show them
        (when-let [series (:profile-series @app-state)]
-         [w/profile-view series])])}))
+         [w/profile-view series #(swap! app-state dissoc :profile-series)])])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
@@ -570,6 +572,7 @@
       (when (not hard-blend?)
         (swap! app-state assoc-in [:ro :intensity-blend]
                (if intensity? 0.2 0)))
+
 
       (println "Startup state: " @app-state))
 

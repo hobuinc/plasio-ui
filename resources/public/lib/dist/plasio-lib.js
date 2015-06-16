@@ -2807,9 +2807,9 @@
 	    });
 
 	    ctx.stroke();
-
-
 	    document.body.appendChild(canvas);
+
+	    return canvas;
 	};
 
 
@@ -2902,8 +2902,8 @@
 
 	    // establish our view matrix
 	    var topDownProjection = mat4.ortho(mat4.create(),
-	                                       upper[0], lower[0],
-	                                       lower[1], upper[1],
+	                                       lower[0], upper[0],
+	                                       upper[1], lower[1],
 	                                       -10000, 10000);
 	                                       
 	    var proj = mat4.multiply(mat4.create(), topDownProjection, view);
@@ -2914,14 +2914,9 @@
 	    res = res || 128;
 	    var buf = this.renderer.projectToImage(proj, 2, res);
 
-
-	    console.log("got back buffer:", buf);
-
-
 	    // we need to read points back from the buffer on where the lines line in the coordinate system
 	    //
 	    var spaceRanges = wlower.map(function(l, i) {
-	        console.log(wupper[i], l);
 	        return wupper[i] - l;
 	    });
 
@@ -2944,15 +2939,17 @@
 	        start = scaledPoint(start);
 	        end = scaledPoint(end);
 
-	        console.log("scaled point:", start, end);
-
 	        return [start, end];
 	    });
 
-	    console.log(res, centerz, zrange);
-
-	    // Add debugger canvas to see what's going on
-	    // addDebuggerCanvas(buf, res, centerz, zrange, scaledLines);
+	    // such debugger, when uncommented, it shows the canvas view of what we're picking and what we're
+	    // reading back, pixVal has a line that a needs to be uncommented in case read tracking is needed
+	    //
+	    /*
+	    var canvas = addDebuggerCanvas(buf, res, centerz, zrange, scaledLines);
+	    var ctx = canvas.getContext("2d");
+	    ctx.fillStyle = "green";
+	    */
 
 	    // read the lines out
 	    //
@@ -2960,6 +2957,9 @@
 	        var i = y * res + x;
 	        var row = Math.floor(y);
 	        var col = Math.floor(x);
+
+	        // The line below is the read tracking line
+	        // ctx.fillRect(col, row, 1, 1);
 
 	        return buf[row * res + col];
 	    };
@@ -2972,7 +2972,6 @@
 	        // read stuff in on the lines
 	        var samples = [];
 
-	        console.log(s, e);
 	        var x0 = Math.floor(s[0]), y0 = Math.floor(s[2]),
 	            x1 = Math.floor(e[0]), y1 = Math.floor(e[2]);
 
