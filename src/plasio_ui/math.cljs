@@ -1,4 +1,4 @@
-(ns iowa-lidar-ui.math
+(ns plasio-ui.math
   (:require cljsjs.gl-matrix))
 
 

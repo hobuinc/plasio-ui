@@ -85,11 +85,13 @@ a:hover {
 }
 
 .hud-container.hud-left.hud-collapsed {
-    left: -280px
+    left: -280px;
+    overflow: hidden;
 }
 
 .hud-container.hud-right.hud-collapsed {
-    right: -280px
+    right: -280px;
+    overflow: hidden;
 }
 .hud-container .hud-contents {
     position: absolute;

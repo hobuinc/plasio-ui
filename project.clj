@@ -1,4 +1,4 @@
-(defproject iowa-lidar-ui "0.1.0-SNAPSHOT"
+(defproject plasio-ui "0.1.0-SNAPSHOT"
   :description "FIXME: write this!"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -17,27 +17,27 @@
   :source-paths ["src"]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
-  
+
   :cljsbuild {
     :builds [{:id "dev"
               :source-paths ["src"]
 
-              :figwheel { :on-jsload "iowa-lidar-ui.core/on-js-reload" }
+              :figwheel { :on-jsload "plasio-ui.core/on-js-reload" }
 
-              :compiler {:main iowa-lidar-ui.core
+              :compiler {:main plasio-ui.core
                          :asset-path "js/compiled/out"
-                         :output-to "resources/public/js/compiled/iowa_lidar_ui.js"
+                         :output-to "resources/public/js/compiled/plasio_ui.js"
                          :output-dir "resources/public/js/compiled/out"
                          :source-map-timestamp true }}
              {:id "min"
               :source-paths ["src"]
-              :compiler {:output-to "resources/public/js/compiled/iowa_lidar_ui.js"
-                         :main iowa-lidar-ui.core
+              :compiler {:output-to "resources/public/js/compiled/plasio_ui.js"
+                         :main plasio-ui.core
                          :optimizations :whitespace
                          :pretty-print false}}]}
 
   :figwheel {
-             ;; :http-server-root "public" ;; default and assumes "resources" 
+             ;; :http-server-root "public" ;; default and assumes "resources"
              ;; :server-port 3449 ;; default
              :css-dirs ["resources/public/css"] ;; watch and update CSS
 
@@ -63,5 +63,5 @@
              ;; :repl false
 
              ;; to configure a different figwheel logfile path
-             ;; :server-logfile "tmp/logs/figwheel-logfile.log" 
+             ;; :server-logfile "tmp/logs/figwheel-logfile.log"
              })

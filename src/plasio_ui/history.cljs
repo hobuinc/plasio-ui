@@ -1,4 +1,4 @@
-(ns iowa-lidar-ui.history
+(ns plasio-ui.history
   "URL and history stuff, most of the stuff here is HTML5 but will try not to fail"
   (:require [clojure.walk :as walk]
             [clojure.string :refer [join split]]))
@@ -15,6 +15,8 @@
    [[:camera :max-distance] "cmd"]
    [[:ro :point-size] "ps"]
    [[:ro :point-size-attenuation] "pa"]
+   [[:ro :intensity-blend] "ib"]
+   [[:ro :intensity-clamps] "ic"]
    [[:po :distance-hint] "dh"]
    [[:po :max-depth-reduction-hint] "mdr"]])
 
