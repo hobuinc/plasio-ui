@@ -2652,11 +2652,14 @@
 
 	LinePicker.prototype.deactivate = function() {
 	    console.log("Deactivating line picker!");
+	    this.lastPickedPoint = null;
 	    if (this._detachHandlers)
 	        this._detachHandlers();
 	};
 
 	LinePicker.prototype.resetState = function() {
+	    this.lastPickedPoint = null;
+	    this.renderer.removeAllLineSegments();
 	    this.points = [];
 	};
 
@@ -2703,7 +2706,7 @@
 	};
 
 	var randomColor = function() {
-	    return hslToRgb(Math.random(), 0.5, 0.6);
+	    return hslToRgb(Math.random(), 0.5, 0.7);
 	};
 
 	LinePicker.prototype._attachHandlers = function() {

@@ -16,7 +16,6 @@
                           :right-hud-collapsed? false
                           :secondary-mode-enabled? false
                           :active-secondary-mode nil
-                          :lines-in-scene nil
                           :window {:width 0
                                    :height 0}
                           :ro {:point-size 2
@@ -30,6 +29,23 @@
 ;; requested (history) when this is set to false, you may update the app-state
 ;; without causing a snapshot however the UI  state will still update
 (def ^:dynamic ^:private *save-snapshot-on-ui-update* true)
+
+
+(let [timer (clojure.core/atom nil)]
+  (defn post-message
+    ([msg]
+     (post-message :message msg))
+
+    ([type msg]
+     ;; if there is a timer waiting kill it
+     (when @timer
+       (js/clearTimeout @timer)
+       (reset! timer nil))
+
+     (swap! app-state assoc :status-message {:type type
+                                             :message msg})
+     (let [t (js/setTimeout #(swap! app-state dissoc :status-message) 5000)]
+       (reset! timer t)))))
 
 ;; Much code duplication here, but I don't want to over engineer this
 ;;
@@ -240,7 +256,17 @@
              (mapv (fn [[id _ _ color] i]
                      [id color (aget result i)])
                    lines (range))))
-    (println "Cannot dp profile")))
+    (post-message :error "Cannot create profile, no line segments available.")))
+
+
+(defn format-dist [[x1 y1 z1] [x2 y2 z2]]
+  (let [dx (- x2 x1)
+        dy (- y2 y1)
+        dz (- z2 z1)]
+    (-> (+ (* dx dx) (* dy dy) (* dz dz))
+        js/Math.sqrt
+        (.toFixed 4))))
+
 
 
 (defn hud []
@@ -338,12 +364,42 @@
                (fn [tool]
                  (case tool
                    :profile (do-profile)))
-               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]]))
+               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]])
+
+        ;; if there are any line segments available, so the tools to play with them
+        ;;
+        (when-let [lines (some-> @app-state
+                                 :lines
+                                 seq
+                                 js->clj)]
+          (println "have lines!" lines)
+          [w/panel-with-close "Line Segments"
+           ;; when the close button is hit on line-segments, we need to reset the picker state
+           ;; the state will propagate down to making sure that no lines exist in our app state
+           ;;
+           #(do
+              ;; reset line picker
+              (when-let [line-picker (get-in @app-state [:modes :line-picker])]
+               (.resetState line-picker))
+
+              ;; reset any profiles which are active
+              (swap! app-state dissoc :profile-series))
+           
+           [w/panel-section
+            [w/desc "All line segments in scene, lengths in data units."]
+            (for [[id start end [r g b]] lines]
+              ^{:key id} [:div.line-info {:style {:color (str "rgb(" r "," g "," b ")")}}
+                          (format-dist end start)])]]))
 
 
        ;; if we have any profile views to show, show them
        (when-let [series (:profile-series @app-state)]
-         [w/profile-view series #(swap! app-state dissoc :profile-series)])])}))
+         [w/profile-view series #(swap! app-state dissoc :profile-series)])
+
+       ;; the element which shows us all the system messages
+       ;;
+       (when-let [status (:status-message @app-state)]
+         [w/status (:type status) (:message status)])])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro

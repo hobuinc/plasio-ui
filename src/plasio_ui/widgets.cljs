@@ -9,6 +9,14 @@
    [:div.title title]
    (into [:div.contents] children)])
 
+(defn panel-with-close
+  [title f & children]
+  [:div.panel
+   [:div.title title]
+   [:div.close-button [:a {:href "javascript:"
+                           :on-click f} [:i.fa.fa-times]]]
+   (into [:div.contents] children)])
+
 (defn panel-section
   "A section inside a panel"
   [& children]
@@ -166,7 +174,6 @@
       (fn [this]
         ;; make sure we unhook the resizer
         (when-let [rs (:remove-resizer @state)]
-          (println "removing resizr!")
           (rs)))
       
       :reagent-render
@@ -179,3 +186,7 @@
    [:div.close
     [:a.fa.fa-times {:href "javascript:"
                      :on-click f}]]])
+
+
+(defn status [type text]
+  [:div.status-message {:class (name type)} text])
