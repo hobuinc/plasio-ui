@@ -621,7 +621,7 @@
       (println "color? " color?)
       (println "intensity? " intensity?)
 
-      (swap! app-state merge settings)
+      (swap! app-state (fn [st] (merge-with conj st settings)))
 
       ;; if we don't yet have an intensity blend setting from the URL or
       ;; elsewhere, assign one based on whether we have color/intensity.
