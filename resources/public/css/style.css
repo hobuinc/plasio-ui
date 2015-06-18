@@ -34,6 +34,7 @@ select:focus {
 
 select {
     margin-left: 5px;
+    margin-bottom: 10px;
     background-color: RGBA(172, 240, 242, 1);
     width: 100%;
 }
