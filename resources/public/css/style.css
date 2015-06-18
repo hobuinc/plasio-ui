@@ -1,13 +1,13 @@
 /* some style */
 
-@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,700);
+@import url(http://fonts.googleapis.com/css?family=Lato:400,700);
 
 html, body {
     height: 100%;
 }
 
 body {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Lato', sans-serif;
     background-color: #333;
     color: #999;
     margin: 0px;
@@ -38,6 +38,15 @@ select {
     width: 100%;
 }
 
+.noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 .loader {
     text-align: center;
     margin-top: 3em;
@@ -62,7 +71,7 @@ select {
 
 #brand #sub-brand {
     font-size: 14px;
-    margin-top: -12px;
+    margin-top: -10px;
     margin-bottom: 5px;
     padding-left: 3px;
     color: RGBA(22, 149, 163, 1);
@@ -73,20 +82,27 @@ select {
     top: 0px;
     bottom: 0px;
     overflow-y: auto;
+    background-color: RGBA(0,0,0,0.7);
     width: 300px;
-    background-color: rgba(50,128,128,0.5);
+}
+
+.hud-container.active {
+    background-color: RGBA(235, 127, 0, 0.5);
 }
 
 .hud-container.hud-left {
     -webkit-transition: left 0.5s;
     transition: left 0.2s;
     left: 0px;
+    border-right: 1px solid RGBA(0, 163, 136, 1);
 }
 
 .hud-container.hud-right {
     -webkit-transition: right 0.5s;
     transition: right 0.2s;
+    width: 300px;
     right: 0px;
+    border-left: 1px solid RGBA(0, 163, 136, 1);
 }
 
 .hud-container a {
@@ -133,12 +149,12 @@ select {
 }
 
 .panel {
+    position: relative;
     padding: 5px;
-    margin-bottom: 10px;
 }
 
 .panel .panel-section {
-    margin-bottom: 30px;
+    margin-bottom: 5px;
 }
 
 .panel .title {
@@ -149,14 +165,21 @@ select {
     color: RGBA(172, 240, 242, 1);
 }
 
+.panel .close-button {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    font-size: 10px;
+}
+
 .desc {
     color: #ddd;
-    font-size: 0.8em;
+    font-size: 0.9em;
     padding-left: 0.5em;
 }
 
 .slider {
-    margin: 10px 5px;
+    margin: 10px 5px 20px 5px;
 }
 
 .noUi-connect {
@@ -197,8 +220,8 @@ select {
     width: 96px;
     height: 96px;
     position: fixed;
-    top: 5px;
-    right: 5px;
+    bottom: 5px;
+    right: 25px;
     font: monospace;
 }
 
@@ -239,4 +262,100 @@ select {
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
     border-top: 40px solid white;
+}
+
+.toolbar {
+    margin-top: 10px;
+}
+
+.toolbar .button {
+    text-align: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 3px;
+    background-color: RGBA(0, 163, 136, 1);
+    color: white;
+    display: inline-block;
+    font-size: 22px;
+    box-shadow: 0px 1px 1px black;
+    padding: 4px;
+    box-sizing: border-box;
+    margin-right: 5px;
+}
+
+.toolbar .button.active {
+    background-color: RGBA(235, 127, 0, 1);
+}
+
+.toolbar .button.disabled {
+    background-color: RGBA(128, 128, 128, 1);
+}
+
+.toolbar .tip {
+    display: inline-block;
+    margin: 5px 0px 0px 0px;
+    color: white;
+    height: 13px;
+    line-height: 13px;
+    font-weight: 700;
+}
+
+.profile-view {
+    position: absolute;
+    width: 70%;
+    bottom: 10px;
+    left: 25px;
+    height: 200px;
+    background-color: RGBA(0,0,0,0.7);
+    border: 2px solid RGBA(0, 163, 136, 1);
+    border-radius: 3px;
+    box-shadow: 0px 2px 2px black;
+}
+
+.profile-view .profile-series {
+    margin-top: 10px;
+}
+
+.profile-view .close {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    color: white;
+}
+
+
+.line-info {
+    margin-left: 5px;
+    padding: 2px 0px 2px 10px;
+    font-weight: bold;
+}
+
+.status-message {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    background-color: RGBA(235, 127, 0, 1);
+    color: white;
+    z-index: 100000;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.status-message.error {
+    background-color: #d00;
+}
+
+.c3-axis-y .tick {
+    font-weight: 700;
+    fill: white;
+}
+
+
+.c3-axis-y .tick line {
+    stroke: white;
+}
+
+.c3-axis-y .domain {
+    stroke: white;
 }

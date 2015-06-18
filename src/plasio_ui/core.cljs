@@ -14,6 +14,10 @@
 
 (defonce app-state (atom {:left-hud-collapsed? false
                           :right-hud-collapsed? false
+                          :secondary-mode-enabled? false
+                          :active-secondary-mode nil
+                          :window {:width 0
+                                   :height 0}
                           :ro {:point-size 2
                                :point-size-attenuation 1
                                :intensity-blend 0
@@ -25,6 +29,23 @@
 ;; requested (history) when this is set to false, you may update the app-state
 ;; without causing a snapshot however the UI  state will still update
 (def ^:dynamic ^:private *save-snapshot-on-ui-update* true)
+
+
+(let [timer (clojure.core/atom nil)]
+  (defn post-message
+    ([msg]
+     (post-message :message msg))
+
+    ([type msg]
+     ;; if there is a timer waiting kill it
+     (when @timer
+       (js/clearTimeout @timer)
+       (reset! timer nil))
+
+     (swap! app-state assoc :status-message {:type type
+                                             :message msg})
+     (let [t (js/setTimeout #(swap! app-state dissoc :status-message) 5000)]
+       (reset! timer t)))))
 
 ;; Much code duplication here, but I don't want to over engineer this
 ;;
@@ -39,9 +60,12 @@
 
 
 (defn hud-right [& children]
-  (let [is-collapsed? (:right-hud-collapsed? @app-state)]
+  (let [is-collapsed? (:right-hud-collapsed? @app-state)
+        secondary? (:secondary-mode-enabled? @app-state)]
     [:div.hud-container.hud-right
-     {:class (when is-collapsed? " hud-collapsed")}
+     {:class (cond->> ""
+               is-collapsed? (str "hud-collapsed ")
+               secondary? (str "active "))}
      [:a.hud-collapse {:href     "javascript:"
                        :on-click #(swap! app-state update-in [:right-hud-collapsed?] not)}
       (if is-collapsed? "\u00AB" "\u00BB")]
@@ -179,6 +203,11 @@
                                        (- 5)
                                        js/Math.floor))))))
 
+(defn initialize-modes
+  "Instantiate all modes that we know of, we should be doing lazy instantiate here,
+  but screw that"
+  [{:keys [target-element renderer]}]
+  {:line-picker (js/PlasioLib.Modes.LinePicker. target-element renderer)})
 
 (defn render-target []
   (let [this (reagent/current-component)]
@@ -195,8 +224,12 @@
                                               :color?     (:color? @app-state)
                                               :intensity? (:intensity? @app-state)
                                               :ro         (:ro @app-state)
-                                              :init-params init-state})]
-          (swap! app-state assoc :comps comps))
+                                              :init-params init-state})
+              modes (initialize-modes comps)]
+          (swap! app-state assoc
+                 :comps comps
+                 :modes modes
+                 :active-secondary-mode :line-picker))
 
         ;; listen to changes to history
         (history/listen (fn [st]
@@ -206,6 +239,34 @@
       :reagent-render
       (fn []
         [:div#render-target])})))
+
+(defn do-profile []
+  (if-let [lines (-> @app-state
+                     :lines
+                     seq)]
+    (let [renderer (get-in @app-state [:comps :renderer])
+          bounds (apply array (:bounds @app-state))
+          pairs (->> lines
+                     (map (fn [[_ start end _]] (array start end)))
+                     (apply array))
+          result (.profileLines (js/PlasioLib.Features.Profiler. renderer) pairs bounds 256)]
+      (js/console.log result)
+
+      (swap! app-state assoc :profile-series
+             (mapv (fn [[id _ _ color] i]
+                     [id color (aget result i)])
+                   lines (range))))
+    (post-message :error "Cannot create profile, no line segments available.")))
+
+
+(defn format-dist [[x1 y1 z1] [x2 y2 z2]]
+  (let [dx (- x2 x1)
+        dy (- y2 y1)
+        dz (- z2 z1)]
+    (-> (+ (* dx dx) (* dy dy) (* dz dz))
+        js/Math.sqrt
+        (.toFixed 4))))
+
 
 
 (defn hud []
@@ -290,10 +351,65 @@
 
        [compass]
 
+       (hud-right
+        ;; display action buttons on the top
+        [:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
 
-       #_(hud-right
-          (w/panel "Many Descriptions"
-                   [:div "Hi"]))])}))
+        (let [current-mode (:active-secondary-mode @app-state)]
+          [:div {}
+           [w/toolbar
+            (fn [kind]
+              (println "swtiching mode to:" kind)
+              (swap! app-state assoc :active-secondary-mode kind))
+            [:line-picker :map-marker "Line Picking" (and (= current-mode :line-picker) :active)]
+            [:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
+
+           [w/panel "Visibility Tools"
+            [w/panel-section
+             [w/desc "Use one of the tools to extract useful information"]
+
+             ;; wrap our tool bar into a div element so that we can push it right a bit
+             [:div {:style {:margin-left "5px"}}
+              [w/toolbar
+               (fn [tool]
+                 (case tool
+                   :profile (do-profile)))
+               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]])
+
+        ;; if there are any line segments available, so the tools to play with them
+        ;;
+        (when-let [lines (some-> @app-state
+                                 :lines
+                                 seq
+                                 js->clj)]
+          (println "have lines!" lines)
+          [w/panel-with-close "Line Segments"
+           ;; when the close button is hit on line-segments, we need to reset the picker state
+           ;; the state will propagate down to making sure that no lines exist in our app state
+           ;;
+           #(do
+              ;; reset line picker
+              (when-let [line-picker (get-in @app-state [:modes :line-picker])]
+               (.resetState line-picker))
+
+              ;; reset any profiles which are active
+              (swap! app-state dissoc :profile-series))
+
+           [w/panel-section
+            [w/desc "All line segments in scene, lengths in data units."]
+            (for [[id start end [r g b]] lines]
+              ^{:key id} [:div.line-info {:style {:color (str "rgb(" r "," g "," b ")")}}
+                          (format-dist end start)])]]))
+
+
+       ;; if we have any profile views to show, show them
+       (when-let [series (:profile-series @app-state)]
+         [w/profile-view series #(swap! app-state dissoc :profile-series)])
+
+       ;; the element which shows us all the system messages
+       ;;
+       (when-let [status (:status-message @app-state)]
+         [w/status (:type status) (:message status)])])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
@@ -301,7 +417,8 @@
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
         loaders (merge
-                 {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader. server pipeline max-depth compress? color? intensity?)
+                 {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
+                              server pipeline max-depth compress? color? intensity?)
                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
                   (when (not color?)
                     {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
@@ -388,8 +505,14 @@
     (when-let [pmdr (get-in init-params [:po :max-depth-reduction-hint])]
       (.setMaxDepthReductionHint policy (js/Math.floor (- 5 pmdr))))
 
-    ;; also make sure that initial state is applied
-    ;;
+    ;; establish a listener for lines, just blindly accept lines and mutate our internal
+    ;; state with list of lines
+    (.addPropertyListener
+     renderer (array "line-segments")
+     (fn [segments]
+       (swap! app-state assoc :lines segments)))
+
+    ;; return components we have here
     {:renderer renderer
      :target-element e
      :camera camera
@@ -452,6 +575,49 @@
                       (/ (js/Math.log 4))
                       js/Math.ceil)})))
 
+(defn enable-secondary-mode! []
+  (swap! app-state assoc :secondary-mode-enabled? true)
+  ;; when the secondar mode is applied, make sure we disable all camera interactions
+  ;;
+  (when-let [camera (get-in @app-state [:comps :camera])]
+    (.enableControls camera false))
+
+  (when-let [active-mode (:active-secondary-mode @app-state)]
+    (when-let [mode (get-in @app-state [:modes active-mode])]
+      (.activate mode)
+      (println "WARN: No mode found for" active-mode))))
+
+(defn disable-secondary-mode! []
+  (swap! app-state assoc :secondary-mode-enabled? false)
+
+  ;; make sure camera controls are re-enabled
+  (when-let [camera (get-in @app-state [:comps :camera])]
+    (.enableControls camera true))
+
+  (when-let [active-mode (:active-secondary-mode @app-state)]
+    (if-let [mode (get-in @app-state [:modes active-mode])]
+      (.deactivate mode)
+      (println "WARN: No mode found for" active-mode))))
+
+(defn attach-app-wide-shortcuts!
+  "Interacting with keyboard does fancy things!"
+  []
+  (doto js/document
+    ;; shift key handling is done on key press and release, we don't
+    ;; want to wait for a keypress to happen to register that shift key is
+    ;; down
+    (aset "onkeydown"
+          (fn [e]
+            (case (or (.-keyCode e) (.-which e))
+              16 (enable-secondary-mode!)
+              nil)))
+
+    (aset "onkeyup"
+          (fn [e]
+            (case (or (.-keyCode e) (.-which e))
+              16 (disable-secondary-mode!)
+              nil)))))
+
 (defn startup []
   (go
     (let [defaults (-> "config.json"
@@ -459,7 +625,6 @@
                        <!
                        :body)
           override (or (history/current-state-from-query-string) {})
-
           local-settings (merge defaults override)
           remote-settings (<! (pipeline-params local-settings))
 
@@ -486,6 +651,7 @@
 
       (println "Startup state: " @app-state))
 
+    (attach-app-wide-shortcuts!)
     (reagent/render-component [hud]
                               (. js/document (getElementById "app")))))
 
