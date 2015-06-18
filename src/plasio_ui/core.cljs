@@ -240,6 +240,13 @@
         ;; Point appearance
         [w/panel "Point Rendering"
 
+         ;; imagery tile source
+         [w/panel-section
+          [w/desc "Imagery tile source"]
+          [w/dropdown #(swap! app-state assoc-in [:ro :imagery-source] %)
+           (get-in @app-state [:imagery-sources])
+           (get-in @app-state [:ro :imagery-source])]]
+
          ;; base point size
          [w/panel-section
           [w/desc "Base point size"]
@@ -293,9 +300,15 @@
         loaders (merge
                  {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader. server pipeline max-depth compress? color? intensity?)
                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
-                 (when (not color?)
-                   {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
-        policy (js/PlasioLib.FrustumLODNodePolicy. (clj->js loaders) renderer (apply js/Array bbox) nil max-depth)
+                  (when (not color?)
+                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
+        policy (js/PlasioLib.FrustumLODNodePolicy.
+                 (clj->js loaders)
+                 renderer
+                 (apply js/Array bbox)
+                 nil
+                 max-depth
+                 (:imagery-source ro))
         camera (js/PlasioLib.Cameras.Orbital.
                 e renderer
                 (fn [eye target final? applying-state?]
@@ -463,6 +476,10 @@
       (when (not hard-blend?)
         (swap! app-state assoc-in [:ro :intensity-blend]
                (if intensity? 0.2 0)))
+
+      (if (not (get-in settings [:ro :imagery-source]))
+        (swap! app-state assoc-in [:ro :imagery-source]
+               (get-in (:imagery-sources defaults) [0 0])))
 
       (println "Startup state: " @app-state))
 

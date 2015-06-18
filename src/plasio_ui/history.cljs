@@ -17,6 +17,7 @@
    [[:ro :point-size-attenuation] "pa"]
    [[:ro :intensity-blend] "ib"]
    [[:ro :intensity-clamps] "ic"]
+   [[:ro :imagery-source] "is"]
    [[:po :distance-hint] "dh"]
    [[:po :max-depth-reduction-hint] "mdr"]])
 

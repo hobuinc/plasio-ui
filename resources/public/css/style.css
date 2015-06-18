@@ -28,6 +28,16 @@ a:hover {
     color: #EB7F00;
 }
 
+select:focus {
+    outline: 0;
+}
+
+select {
+    margin-left: 5px;
+    background-color: RGBA(172, 240, 242, 1);
+    width: 100%;
+}
+
 .loader {
     text-align: center;
     margin-top: 3em;
@@ -93,6 +103,7 @@ a:hover {
     right: -280px;
     overflow: hidden;
 }
+
 .hud-container .hud-contents {
     position: absolute;
     top: 5px;
@@ -100,7 +111,6 @@ a:hover {
     right: 5px;
     bottom: 5px;
 }
-
 
 .hud-left .hud-collapse {
     position: absolute;

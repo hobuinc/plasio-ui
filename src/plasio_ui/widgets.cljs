@@ -48,3 +48,17 @@
        :reagent-render
        (fn [start min max f]
          [:div.slider])})))
+
+(defn dropdown
+  "A dropdown option list"
+  [f choices start]
+  (let [this (reagent/current-component)
+        selected (reagent/atom (or start (get-in choices [0 0])))
+        emit #(f (reset! selected (.. % -target -value)))]
+    (reagent/create-class
+      {:reagent-render
+       (fn [f choices start]
+         [:select.dropdown {:value @selected :onChange emit}
+          (for [[k v] choices]
+            [:option {:value k :key k} v])])})))
+
