@@ -1379,7 +1379,6 @@
 	    var bbox = o.bbox;
 	    var bb = new gh.BBox(bbox.slice(0, 3),
 	                         bbox.slice(3, 6));
-	    var imagerySource = o.imagerySource;
 
 		// although we have bounding box here provided to us by the user, we should
 	    // always simulate this as an async thing, since certain policies will
@@ -1420,7 +1419,7 @@
 
 		    if (l.overlay) {
 	            id[l.overlay.constructor.key] =
-	                l.overlay.queryFor(bbox, imagerySource);
+	                l.overlay.queryFor(bbox, o.imagerySource);
 	        }
 
 		    if (l.transform) {

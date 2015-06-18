@@ -243,7 +243,10 @@
          ;; imagery tile source
          [w/panel-section
           [w/desc "Imagery tile source"]
-          [w/dropdown #(swap! app-state assoc-in [:ro :imagery-source] %)
+          [w/dropdown #(let [source %
+                             policy (get-in @app-state [:comps :policy])]
+                         (swap! app-state assoc-in [:ro :imagery-source] source)
+                         (.setImagerySource policy source))
            (get-in @app-state [:imagery-sources])
            (get-in @app-state [:ro :imagery-source])]]
 
