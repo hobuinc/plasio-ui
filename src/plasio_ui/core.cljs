@@ -120,7 +120,7 @@
    "elevation" elevation))
 
 (defn- ui-state [st]
-  (select-keys st [:ro :po]))
+    (select-keys st [:ro :po :pm]))
 
 (defn- params-state [st]
   (select-keys st [:server :pipeline]))
@@ -285,7 +285,11 @@
          [w/panel-section
           [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
           [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
-           #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]])
+           #(let [val %
+                  c (:camera @app-state)]
+              (println "EL" (:elevation c))
+              (println "AZ" (:azimuth c))
+              (swap! app-state assoc-in [:pm :z-exaggeration] val))]]])
 
        [compass]
 
