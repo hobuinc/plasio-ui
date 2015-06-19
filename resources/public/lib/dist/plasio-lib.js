@@ -3578,7 +3578,7 @@
 	    TriggeredDispatch: TriggeredDispatch
 	};
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(25)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(30)))
 
 /***/ },
 /* 16 */
@@ -4489,7 +4489,7 @@
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(25)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(30)))
 
 /***/ },
 /* 19 */
@@ -4502,11 +4502,11 @@
 	}
 
 
-	exports.sha1 = __webpack_require__(26)
-	exports.sha224 = __webpack_require__(27)
-	exports.sha256 = __webpack_require__(28)
-	exports.sha384 = __webpack_require__(29)
-	exports.sha512 = __webpack_require__(30)
+	exports.sha1 = __webpack_require__(25)
+	exports.sha224 = __webpack_require__(26)
+	exports.sha256 = __webpack_require__(27)
+	exports.sha384 = __webpack_require__(28)
+	exports.sha512 = __webpack_require__(29)
 
 
 /***/ },
@@ -20516,7 +20516,7 @@
 
 	var WebSocket = __webpack_require__(43);
 	var Buffer = __webpack_require__(40).Buffer;
-	var _ = __webpack_require__(45);
+	var _ = __webpack_require__(44);
 	var EventEmitter = __webpack_require__(16).EventEmitter;
 
 	/**
@@ -21229,98 +21229,6 @@
 /* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// shim for using process in browser
-
-	var process = module.exports = {};
-
-	process.nextTick = (function () {
-	    var canSetImmediate = typeof window !== 'undefined'
-	    && window.setImmediate;
-	    var canMutationObserver = typeof window !== 'undefined'
-	    && window.MutationObserver;
-	    var canPost = typeof window !== 'undefined'
-	    && window.postMessage && window.addEventListener
-	    ;
-
-	    if (canSetImmediate) {
-	        return function (f) { return window.setImmediate(f) };
-	    }
-
-	    var queue = [];
-
-	    if (canMutationObserver) {
-	        var hiddenDiv = document.createElement("div");
-	        var observer = new MutationObserver(function () {
-	            var queueList = queue.slice();
-	            queue.length = 0;
-	            queueList.forEach(function (fn) {
-	                fn();
-	            });
-	        });
-
-	        observer.observe(hiddenDiv, { attributes: true });
-
-	        return function nextTick(fn) {
-	            if (!queue.length) {
-	                hiddenDiv.setAttribute('yes', 'no');
-	            }
-	            queue.push(fn);
-	        };
-	    }
-
-	    if (canPost) {
-	        window.addEventListener('message', function (ev) {
-	            var source = ev.source;
-	            if ((source === window || source === null) && ev.data === 'process-tick') {
-	                ev.stopPropagation();
-	                if (queue.length > 0) {
-	                    var fn = queue.shift();
-	                    fn();
-	                }
-	            }
-	        }, true);
-
-	        return function nextTick(fn) {
-	            queue.push(fn);
-	            window.postMessage('process-tick', '*');
-	        };
-	    }
-
-	    return function nextTick(fn) {
-	        setTimeout(fn, 0);
-	    };
-	})();
-
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	// TODO(shtylman)
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-
-
-/***/ },
-/* 26 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
 	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
 	 * in FIPS PUB 180-1
@@ -21330,7 +21238,7 @@
 	 * See http://pajhome.org.uk/crypt/md5 for details.
 	 */
 
-	var inherits = __webpack_require__(44)
+	var inherits = __webpack_require__(45)
 	var Hash = __webpack_require__(38)
 
 	var W = new Array(80)
@@ -21421,7 +21329,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 27 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -21432,8 +21340,8 @@
 	 *
 	 */
 
-	var inherits = __webpack_require__(44)
-	var SHA256 = __webpack_require__(28)
+	var inherits = __webpack_require__(45)
+	var SHA256 = __webpack_require__(27)
 	var Hash = __webpack_require__(38)
 
 	var W = new Array(64)
@@ -21480,7 +21388,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 28 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -21491,7 +21399,7 @@
 	 *
 	 */
 
-	var inherits = __webpack_require__(44)
+	var inherits = __webpack_require__(45)
 	var Hash = __webpack_require__(38)
 
 	var K = [
@@ -21636,11 +21544,11 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 29 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(44)
-	var SHA512 = __webpack_require__(30);
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(45)
+	var SHA512 = __webpack_require__(29);
 	var Hash = __webpack_require__(38)
 
 	var W = new Array(160)
@@ -21699,10 +21607,10 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
-/* 30 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(44)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(45)
 	var Hash = __webpack_require__(38)
 
 	var K = [
@@ -21949,6 +21857,98 @@
 	module.exports = Sha512
 	
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+
+	process.nextTick = (function () {
+	    var canSetImmediate = typeof window !== 'undefined'
+	    && window.setImmediate;
+	    var canMutationObserver = typeof window !== 'undefined'
+	    && window.MutationObserver;
+	    var canPost = typeof window !== 'undefined'
+	    && window.postMessage && window.addEventListener
+	    ;
+
+	    if (canSetImmediate) {
+	        return function (f) { return window.setImmediate(f) };
+	    }
+
+	    var queue = [];
+
+	    if (canMutationObserver) {
+	        var hiddenDiv = document.createElement("div");
+	        var observer = new MutationObserver(function () {
+	            var queueList = queue.slice();
+	            queue.length = 0;
+	            queueList.forEach(function (fn) {
+	                fn();
+	            });
+	        });
+
+	        observer.observe(hiddenDiv, { attributes: true });
+
+	        return function nextTick(fn) {
+	            if (!queue.length) {
+	                hiddenDiv.setAttribute('yes', 'no');
+	            }
+	            queue.push(fn);
+	        };
+	    }
+
+	    if (canPost) {
+	        window.addEventListener('message', function (ev) {
+	            var source = ev.source;
+	            if ((source === window || source === null) && ev.data === 'process-tick') {
+	                ev.stopPropagation();
+	                if (queue.length > 0) {
+	                    var fn = queue.shift();
+	                    fn();
+	                }
+	            }
+	        }, true);
+
+	        return function nextTick(fn) {
+	            queue.push(fn);
+	            window.postMessage('process-tick', '*');
+	        };
+	    }
+
+	    return function nextTick(fn) {
+	        setTimeout(fn, 0);
+	    };
+	})();
+
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	// TODO(shtylman)
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+
 
 /***/ },
 /* 31 */
@@ -23242,7 +23242,7 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(51)
+	var base64 = __webpack_require__(50)
 	var ieee754 = __webpack_require__(48)
 	var isArray = __webpack_require__(49)
 
@@ -24666,35 +24666,6 @@
 
 /***/ },
 /* 44 */
-/***/ function(module, exports, __webpack_require__) {
-
-	if (typeof Object.create === 'function') {
-	  // implementation from standard node.js 'util' module
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  };
-	} else {
-	  // old school shim for old browsers
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    var TempCtor = function () {}
-	    TempCtor.prototype = superCtor.prototype
-	    ctor.prototype = new TempCtor()
-	    ctor.prototype.constructor = ctor
-	  }
-	}
-
-
-/***/ },
-/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -31858,11 +31829,40 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(36)(module), (function() { return this; }())))
 
 /***/ },
+/* 45 */
+/***/ function(module, exports, __webpack_require__) {
+
+	if (typeof Object.create === 'function') {
+	  // implementation from standard node.js 'util' module
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  };
+	} else {
+	  // old school shim for old browsers
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    var TempCtor = function () {}
+	    TempCtor.prototype = superCtor.prototype
+	    ctor.prototype = new TempCtor()
+	    ctor.prototype.constructor = ctor
+	  }
+	}
+
+
+/***/ },
 /* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BufferBuilder = __webpack_require__(50).BufferBuilder;
-	var binaryFeatures = __webpack_require__(50).binaryFeatures;
+	var BufferBuilder = __webpack_require__(52).BufferBuilder;
+	var binaryFeatures = __webpack_require__(52).binaryFeatures;
 
 	var BinaryPack = {
 	  unpack: function(data){
@@ -32386,7 +32386,7 @@
 /* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(52);
+	var util = __webpack_require__(51);
 
 	/**
 	 * Reliable transfer for Chrome Canary DataChannel impl.
@@ -32839,76 +32839,6 @@
 /* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var binaryFeatures = {};
-	binaryFeatures.useBlobBuilder = (function(){
-	  try {
-	    new Blob([]);
-	    return false;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
-	  try {
-	    return (new Blob([new Uint8Array([])])).size === 0;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	module.exports.binaryFeatures = binaryFeatures;
-	var BlobBuilder = module.exports.BlobBuilder;
-	if (typeof window != 'undefined') {
-	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
-	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
-	}
-
-	function BufferBuilder(){
-	  this._pieces = [];
-	  this._parts = [];
-	}
-
-	BufferBuilder.prototype.append = function(data) {
-	  if(typeof data === 'number') {
-	    this._pieces.push(data);
-	  } else {
-	    this.flush();
-	    this._parts.push(data);
-	  }
-	};
-
-	BufferBuilder.prototype.flush = function() {
-	  if (this._pieces.length > 0) {
-	    var buf = new Uint8Array(this._pieces);
-	    if(!binaryFeatures.useArrayBufferView) {
-	      buf = buf.buffer;
-	    }
-	    this._parts.push(buf);
-	    this._pieces = [];
-	  }
-	};
-
-	BufferBuilder.prototype.getBuffer = function() {
-	  this.flush();
-	  if(binaryFeatures.useBlobBuilder) {
-	    var builder = new BlobBuilder();
-	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
-	      builder.append(this._parts[i]);
-	    }
-	    return builder.getBlob();
-	  } else {
-	    return new Blob(this._parts);
-	  }
-	};
-
-	module.exports.BufferBuilder = BufferBuilder;
-
-
-/***/ },
-/* 51 */
-/***/ function(module, exports, __webpack_require__) {
-
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 	;(function (exports) {
@@ -33032,7 +32962,7 @@
 
 
 /***/ },
-/* 52 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var BinaryPack = __webpack_require__(46);
@@ -33130,6 +33060,76 @@
 	};
 
 	module.exports = util;
+
+
+/***/ },
+/* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var binaryFeatures = {};
+	binaryFeatures.useBlobBuilder = (function(){
+	  try {
+	    new Blob([]);
+	    return false;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
+	  try {
+	    return (new Blob([new Uint8Array([])])).size === 0;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	module.exports.binaryFeatures = binaryFeatures;
+	var BlobBuilder = module.exports.BlobBuilder;
+	if (typeof window != 'undefined') {
+	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
+	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+	}
+
+	function BufferBuilder(){
+	  this._pieces = [];
+	  this._parts = [];
+	}
+
+	BufferBuilder.prototype.append = function(data) {
+	  if(typeof data === 'number') {
+	    this._pieces.push(data);
+	  } else {
+	    this.flush();
+	    this._parts.push(data);
+	  }
+	};
+
+	BufferBuilder.prototype.flush = function() {
+	  if (this._pieces.length > 0) {
+	    var buf = new Uint8Array(this._pieces);
+	    if(!binaryFeatures.useArrayBufferView) {
+	      buf = buf.buffer;
+	    }
+	    this._parts.push(buf);
+	    this._pieces = [];
+	  }
+	};
+
+	BufferBuilder.prototype.getBuffer = function() {
+	  this.flush();
+	  if(binaryFeatures.useBlobBuilder) {
+	    var builder = new BlobBuilder();
+	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
+	      builder.append(this._parts[i]);
+	    }
+	    return builder.getBlob();
+	  } else {
+	    return new Blob(this._parts);
+	  }
+	};
+
+	module.exports.BufferBuilder = BufferBuilder;
 
 
 /***/ }

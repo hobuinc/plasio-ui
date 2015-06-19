@@ -26,6 +26,10 @@
                                :max-depth-reduction-hint 5}
                           :pm {:z-exaggeration 1}}))
 
+
+;; keep lines separate because we don't want to trigger the entire UI repaint
+(defonce app-state-lines (atom nil))
+
 ;; when this value is true, everytime the app-state atom updates, a snapshot is
 ;; requested (history) when this is set to false, you may update the app-state
 ;; without causing a snapshot however the UI  state will still update
@@ -387,11 +391,10 @@
 
         ;; if there are any line segments available, so the tools to play with them
         ;;
-        (when-let [lines (some-> @app-state
-                                 :lines
+        (when-let [lines (some-> @app-state-lines
                                  seq
-                                 js->clj)]
-          (println "have lines!" lines)
+                                 js->clj
+                                 reverse)]
           [w/panel-with-close "Line Segments"
            ;; when the close button is hit on line-segments, we need to reset the picker state
            ;; the state will propagate down to making sure that no lines exist in our app state
@@ -399,7 +402,7 @@
            #(do
               ;; reset line picker
               (when-let [line-picker (get-in @app-state [:modes :line-picker])]
-               (.resetState line-picker))
+                (.resetState line-picker))
 
               ;; reset any profiles which are active
               (swap! app-state dissoc :profile-series))
@@ -520,7 +523,7 @@
     (.addPropertyListener
      renderer (array "line-segments")
      (fn [segments]
-       (swap! app-state assoc :lines segments)))
+       (reset! app-state-lines segments)))
 
     ;; return components we have here
     {:renderer renderer
