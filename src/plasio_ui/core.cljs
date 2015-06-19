@@ -356,11 +356,7 @@
          [w/panel-section
           [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
           [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
-           #(let [val %
-                  c (:camera @app-state)]
-              (println "EL" (:elevation c))
-              (println "AZ" (:azimuth c))
-              (swap! app-state assoc-in [:pm :z-exaggeration] val))]]])
+           #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]])
 
        [compass]
 
@@ -558,7 +554,7 @@
           bounds (if (= 4 (count bounds))
                    (apply conj (subvec bounds 0 2)
                           0
-                          (conj (subvec bounds 2 4) 1000))
+                          (conj (subvec bounds 2 4) 520))
                    bounds)
 
           ;; get the total number of points
