@@ -247,8 +247,7 @@
         [:div#render-target])})))
 
 (defn do-profile []
-  (if-let [lines (-> @app-state
-                     :lines
+  (if-let [lines (-> @app-state-lines
                      seq)]
     (let [renderer (get-in @app-state [:comps :renderer])
           bounds (apply array (:bounds @app-state))

@@ -1153,7 +1153,7 @@
 	var Box = function(x, y, z, w, h, d, id, depth) {
 		this.x = x; this.y = y ; this.w = w, this.h = h;
 		this.z = z; this.d = d;
-		
+
 		this.id = id || "R";
 		this.depth = depth || 0;
 	};
@@ -1175,9 +1175,17 @@
 		];
 	};
 
-	var FrustumLODNodePolicy = function(loaders, renderer, bbox, closestPlaneDistance, maxDepth) {
+	var FrustumLODNodePolicy = function(
+	        loaders,
+	        renderer,
+	        bbox,
+	        closestPlaneDistance,
+	        maxDepth,
+	        imagerySource) {
+
 	    if (!loaders.point || !loaders.transform)
-	        throw new Error("The loaders need to have point buffer and transform loaders");
+	        throw new Error(
+	                "The loaders need to have point buffer and transform loaders");
 
 	    this.renderer = renderer;
 	    this.bbox = bbox;
@@ -1185,6 +1193,7 @@
 		this.maxDepth = (maxDepth || 19) + 1;
 		this.closestPlaneDistance = (closestPlaneDistance || 50);
 		this.maxDepthReduction = 0;
+	    this.imagerySource = imagerySource;
 
 		this.debug = {};
 	};
@@ -1202,6 +1211,17 @@
 	FrustumLODNodePolicy.prototype.stop = function() {
 	    this.renderer.removePropertyListener(this.propListener);
 	    this.renderer.removePropertyListener(this.cameraPropsListener);
+	};
+
+	FrustumLODNodePolicy.prototype.setImagerySource = function(imagerySource) {
+	    if (this.clearAll)
+	        this.clearAll();
+
+	    this.imagerySource = imagerySource;
+	    this.nodes = [];
+
+	    if (this.simulateVal)
+	        this.simulateVal();
 	};
 
 	FrustumLODNodePolicy.prototype._hookupDebug = function() {
@@ -1278,7 +1298,7 @@
 		for (var j = 0 ; j < planes.length ; j ++) {
 			var p1 = planes[j];
 			var v = false;
-			
+
 	        // for the first 4 planes, do regular frustum check
 	        for (var i = 0 ; i < 8 && !v ; i ++) {
 	            var d = dist(p1, points[i]);
@@ -1291,7 +1311,7 @@
 			// the box is complete outside the frame of this plane
 			if (!v) return false;
 
-			// the near and far distances are what the 
+			// the near and far distances are what the
 		}
 
 		return true;
@@ -1358,17 +1378,17 @@
 
 
 	FrustumLODNodePolicy.prototype.start = function() {
-	    var o  = this;
+	    var o = this;
 
-	    // first things first, download the meta information file and see what we're dealing with
-	    //
+	    // first things first, download the meta information file and see what
+	    // we're dealing with
 	    var bbox = o.bbox;
 	    var bb = new gh.BBox(bbox.slice(0, 3),
 	                         bbox.slice(3, 6));
 
-		// although we have bounding box here provided to us by the user, we should always simulate
-		// this as an async thing, since certain policies will probably fetch it from the server.
-		//
+		// although we have bounding box here provided to us by the user, we should
+	    // always simulate this as an async thing, since certain policies will
+	    // probably fetch it from the server.
 		setTimeout(function() {
 	        o.emit("bbox", bb);
 		});
@@ -1386,7 +1406,8 @@
 	    var makeId = function(node) {
 	        var id = {};
 
-		    // make sure the points are in a valid coordinate system, offset them by the center
+		    // make sure the points are in a valid coordinate system, offset them
+	        // by the center
 		    var x = node.x + center[0],
 		        y = node.y + center[1];
 
@@ -1397,9 +1418,20 @@
 	        var depthEnd = node.depth;
 	        var depthBegin = (depthEnd === startDepth) ? 0 : (depthEnd - 1);
 
-		    if (l.point) id[l.point.constructor.key] = l.point.queryFor(bbox, depthBegin, depthEnd);
-		    if (l.overlay) id[l.overlay.constructor.key] = l.overlay.queryFor(bbox);
-		    if (l.transform) id[l.transform.constructor.key] = l.transform.queryFor(worldBBox, bbox);
+		    if (l.point) {
+	            id[l.point.constructor.key] =
+	                l.point.queryFor(bbox, depthBegin, depthEnd);
+	        }
+
+		    if (l.overlay) {
+	            id[l.overlay.constructor.key] =
+	                l.overlay.queryFor(bbox, o.imagerySource);
+	        }
+
+		    if (l.transform) {
+	            id[l.transform.constructor.key] =
+	                l.transform.queryFor(worldBBox, bbox);
+	        }
 
 	        return id;
 	    };
@@ -1428,7 +1460,9 @@
 			    return;
 
 		    if (camera.type !== "perspective") {
-			    console.log("FrustumLODNodePolicy only supports perspective cameras for now");
+			    console.log(
+	                "FrustumLODNodePolicy only supports perspective cameras " +
+	                "for now");
 			    return;
 		    }
 
@@ -1482,7 +1516,7 @@
 
 		    // TODO: this is need a much better way to determine what the aspect is going to be
 		    var aspect = (typeof(window) === "object") ? figureAspect() : 1.0;
-		    
+		    console.log("frustum perspective:", fov, aspect, near, far);
 		    projectionMatrix = mat4.perspective(projectionMatrix || mat4.create(), fov, aspect, near, far);
 
 
@@ -1520,10 +1554,16 @@
 			o.nodes = _.union(_.difference(o.nodes, nodesToRemove), newNodes);
 
 			console.log('Nodes in scene:', o.nodes.length);
-		    var deepestNodeDepth = _.max(o.nodes, function(n) { return n.depth; }).depth;
+		    var deepestNodeDepth = _.max(o.nodes, function(n) {
+	            return n.depth;
+	        }).depth;
+
 		    console.log('Deepest node:', deepestNodeDepth);
 
-		    console.log('Nodes at deepest:', _.filter(o.nodes, function(n) { return n.depth === deepestNodeDepth; }).length);
+		    console.log('Nodes at deepest:',
+	                _.filter(o.nodes, function(n) {
+	                    return n.depth === deepestNodeDepth;
+	                }).length);
 
 		    var goingDeep = _.find(o.nodes, function(n) {
 			    return n.depth > (series.length / 2);
@@ -1564,6 +1604,12 @@
 		    o.simulateVal = function() {
 			    trigger.simulateVal();
 		    };
+
+	        o.clearAll = function() {
+	            _.forEach(o.nodes, function(n) {
+	                o.renderer.removePointBuffer(makeId(n));
+	            });
+	        };
 	    });
 
 		// make sure view properties are triggered through our trigger mechanism
@@ -1896,9 +1942,9 @@
 
 	KittyLoader.load = function(params, cb) {
 	    var s = params.size;
-	    
+
 	    var url = "https://placekitten.com/" + s + "/" + s;
-	    
+
 	    var img = new Image();
 	    img.crossOrigin = '';
 	    img.onload = function() {
@@ -1973,9 +2019,10 @@
 	    return tiles;
 	};
 
-	var fetchTile = function(tile, cb) {
+	var fetchTile = function(tile, mapboxType, cb) {
 	    var url =
-	            "http://api.tiles.mapbox.com/v4/hobu.l8a69jch/" +
+	            "http://api.tiles.mapbox.com/v4/" +
+	            mapboxType + "/" +
 	            tile.zoom + "/" +
 	            tile.x + "/" +
 	            tile.y + ".jpg70" +
@@ -1991,12 +2038,12 @@
 	    image.src= url;
 	};
 
-	var loadAllTiles = function(tiles, cb) {
+	var loadAllTiles = function(tiles, mapboxType, cb) {
 	    var imgs = [];
 
 	    for (var i in tiles) {
 	        var t = tiles[i];
-	        fetchTile(t, function(err, res) {
+	        fetchTile(t, mapboxType, function(err, res) {
 	            imgs.push(res);
 	            if (imgs.length === tiles.length)
 	                cb(null, imgs);
@@ -2038,34 +2085,36 @@
 	};
 
 
-	MapboxLoader.prototype.queryFor = function(bbox) {
-	    var box = bbox.mins.slice(0, 2).concat(bbox.maxs.slice(0, 2));
+	MapboxLoader.prototype.queryFor = function(bbox, imagerySource) {
 	    return {
-	        bbox: box
+	        bbox: bbox.mins.slice(0, 2).concat(bbox.maxs.slice(0, 2)),
+	        imagerySource: imagerySource
 	    };
 	};
 
 	MapboxLoader.load = function(params, cb) {
-		if (false)
+		if (false) {
 			return setTimeout(function() {
 				var c = document.createElement("canvas");
 				c.width = 1024;
 				c.height = 1024;
-				
+
 				return cb(null, { image: c, needFlip: false });
 			});
-		
+	    }
+
 	    var bbox = params.bbox;
+	    var mapboxType = params.imagerySource || "hobu.l8a69jch";
 	    var s = new SphericalMercator();
-	    
+
 	    var tiles = tilesForRegion(s, bbox);
 
-	    loadAllTiles(tiles, function(err, images) {
+	    loadAllTiles(tiles, mapboxType, function(err, images) {
 	        var c = document.createElement("canvas");
 
 	        c.width = 1024;
 	        c.height = 1024;
-	        
+
 	        var ctx = c.getContext("2d");
 	        drawTilesToCanvas(ctx, bbox, images);
 
@@ -2079,7 +2128,7 @@
 
 	        document.body.appendChild(c);
 	         */
-	        
+
 	        cb(null, {
 	            image: c,
 	            needFlip: false
@@ -4471,7 +4520,7 @@
 	 *     prototype.
 	 * @param {function} superCtor Constructor function to inherit prototype from.
 	 */
-	exports.inherits = __webpack_require__(37);
+	exports.inherits = __webpack_require__(38);
 
 	exports._extend = function(origin, add) {
 	  // Don't do anything if add isn't an object
@@ -21239,7 +21288,7 @@
 	 */
 
 	var inherits = __webpack_require__(45)
-	var Hash = __webpack_require__(38)
+	var Hash = __webpack_require__(37)
 
 	var W = new Array(80)
 
@@ -21342,7 +21391,7 @@
 
 	var inherits = __webpack_require__(45)
 	var SHA256 = __webpack_require__(27)
-	var Hash = __webpack_require__(38)
+	var Hash = __webpack_require__(37)
 
 	var W = new Array(64)
 
@@ -21400,7 +21449,7 @@
 	 */
 
 	var inherits = __webpack_require__(45)
-	var Hash = __webpack_require__(38)
+	var Hash = __webpack_require__(37)
 
 	var K = [
 	  0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
@@ -21549,7 +21598,7 @@
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(45)
 	var SHA512 = __webpack_require__(29);
-	var Hash = __webpack_require__(38)
+	var Hash = __webpack_require__(37)
 
 	var W = new Array(160)
 
@@ -21611,7 +21660,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(45)
-	var Hash = __webpack_require__(38)
+	var Hash = __webpack_require__(37)
 
 	var K = [
 	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
@@ -22895,35 +22944,6 @@
 /* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
-	if (typeof Object.create === 'function') {
-	  // implementation from standard node.js 'util' module
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  };
-	} else {
-	  // old school shim for old browsers
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    var TempCtor = function () {}
-	    TempCtor.prototype = superCtor.prototype
-	    ctor.prototype = new TempCtor()
-	    ctor.prototype.constructor = ctor
-	  }
-	}
-
-
-/***/ },
-/* 38 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/* WEBPACK VAR INJECTION */(function(Buffer) {//prototype class for hash functions
 	function Hash (blockSize, finalSize) {
 	  this._block = new Buffer(blockSize) //new Uint32Array(blockSize/4)
@@ -22995,6 +23015,35 @@
 	module.exports = Hash
 	
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
+
+/***/ },
+/* 38 */
+/***/ function(module, exports, __webpack_require__) {
+
+	if (typeof Object.create === 'function') {
+	  // implementation from standard node.js 'util' module
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  };
+	} else {
+	  // old school shim for old browsers
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    var TempCtor = function () {}
+	    TempCtor.prototype = superCtor.prototype
+	    ctor.prototype = new TempCtor()
+	    ctor.prototype.constructor = ctor
+	  }
+	}
+
 
 /***/ },
 /* 39 */
@@ -31861,8 +31910,8 @@
 /* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BufferBuilder = __webpack_require__(52).BufferBuilder;
-	var binaryFeatures = __webpack_require__(52).binaryFeatures;
+	var BufferBuilder = __webpack_require__(51).BufferBuilder;
+	var binaryFeatures = __webpack_require__(51).binaryFeatures;
 
 	var BinaryPack = {
 	  unpack: function(data){
@@ -32386,7 +32435,7 @@
 /* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var util = __webpack_require__(51);
+	var util = __webpack_require__(52);
 
 	/**
 	 * Reliable transfer for Chrome Canary DataChannel impl.
@@ -32965,6 +33014,76 @@
 /* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var binaryFeatures = {};
+	binaryFeatures.useBlobBuilder = (function(){
+	  try {
+	    new Blob([]);
+	    return false;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
+	  try {
+	    return (new Blob([new Uint8Array([])])).size === 0;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	module.exports.binaryFeatures = binaryFeatures;
+	var BlobBuilder = module.exports.BlobBuilder;
+	if (typeof window != 'undefined') {
+	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
+	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+	}
+
+	function BufferBuilder(){
+	  this._pieces = [];
+	  this._parts = [];
+	}
+
+	BufferBuilder.prototype.append = function(data) {
+	  if(typeof data === 'number') {
+	    this._pieces.push(data);
+	  } else {
+	    this.flush();
+	    this._parts.push(data);
+	  }
+	};
+
+	BufferBuilder.prototype.flush = function() {
+	  if (this._pieces.length > 0) {
+	    var buf = new Uint8Array(this._pieces);
+	    if(!binaryFeatures.useArrayBufferView) {
+	      buf = buf.buffer;
+	    }
+	    this._parts.push(buf);
+	    this._pieces = [];
+	  }
+	};
+
+	BufferBuilder.prototype.getBuffer = function() {
+	  this.flush();
+	  if(binaryFeatures.useBlobBuilder) {
+	    var builder = new BlobBuilder();
+	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
+	      builder.append(this._parts[i]);
+	    }
+	    return builder.getBlob();
+	  } else {
+	    return new Blob(this._parts);
+	  }
+	};
+
+	module.exports.BufferBuilder = BufferBuilder;
+
+
+/***/ },
+/* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var BinaryPack = __webpack_require__(46);
 
 	var util = {
@@ -33060,76 +33179,6 @@
 	};
 
 	module.exports = util;
-
-
-/***/ },
-/* 52 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var binaryFeatures = {};
-	binaryFeatures.useBlobBuilder = (function(){
-	  try {
-	    new Blob([]);
-	    return false;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
-	  try {
-	    return (new Blob([new Uint8Array([])])).size === 0;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	module.exports.binaryFeatures = binaryFeatures;
-	var BlobBuilder = module.exports.BlobBuilder;
-	if (typeof window != 'undefined') {
-	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
-	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
-	}
-
-	function BufferBuilder(){
-	  this._pieces = [];
-	  this._parts = [];
-	}
-
-	BufferBuilder.prototype.append = function(data) {
-	  if(typeof data === 'number') {
-	    this._pieces.push(data);
-	  } else {
-	    this.flush();
-	    this._parts.push(data);
-	  }
-	};
-
-	BufferBuilder.prototype.flush = function() {
-	  if (this._pieces.length > 0) {
-	    var buf = new Uint8Array(this._pieces);
-	    if(!binaryFeatures.useArrayBufferView) {
-	      buf = buf.buffer;
-	    }
-	    this._parts.push(buf);
-	    this._pieces = [];
-	  }
-	};
-
-	BufferBuilder.prototype.getBuffer = function() {
-	  this.flush();
-	  if(binaryFeatures.useBlobBuilder) {
-	    var builder = new BlobBuilder();
-	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
-	      builder.append(this._parts[i]);
-	    }
-	    return builder.getBlob();
-	  } else {
-	    return new Blob(this._parts);
-	  }
-	};
-
-	module.exports.BufferBuilder = BufferBuilder;
 
 
 /***/ }
