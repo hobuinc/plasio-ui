@@ -400,7 +400,9 @@
            ;;
            #(do
               ;; reset line picker
+              (println "RESETTING LINE PICKER")
               (when-let [line-picker (get-in @app-state [:modes :line-picker])]
+                (js/console.log line-picker)
                 (.resetState line-picker))
 
               ;; reset any profiles which are active
@@ -585,6 +587,7 @@
        :max-depth (-> num-points
                       js/Math.log
                       (/ (js/Math.log 4))
+                      (* 1.1)
                       js/Math.ceil)})))
 
 (defn enable-secondary-mode! []
