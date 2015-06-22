@@ -15,6 +15,24 @@ body {
     overflow: hidden;
 }
 
+
+::-webkit-scrollbar-track
+{
+	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+	background-color: #333;
+}
+
+::-webkit-scrollbar
+{
+	width: 6px;
+	background-color: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb
+{
+	background-color: RGBA(0, 163, 136, 1);
+}
+
 #app {
     height: 100%;
 }
@@ -116,7 +134,7 @@ select:disabled {
     -webkit-transition: left 0.5s;
     transition: left 0.2s;
     left: 0px;
-    border-right: 1px solid RGBA(0, 163, 136, 1);
+    border-right: 3px solid RGBA(0, 163, 136, 1);
 }
 
 .hud-container.hud-right {
@@ -124,7 +142,7 @@ select:disabled {
     transition: right 0.2s;
     width: 300px;
     right: 0px;
-    border-left: 1px solid RGBA(0, 163, 136, 1);
+    border-left: 3px solid RGBA(0, 163, 136, 1);
 }
 
 .hud-container a {
@@ -148,6 +166,7 @@ select:disabled {
     left: 5px;
     right: 5px;
     bottom: 5px;
+    padding: 5px;
     overflow-y: auto;
 }
 
