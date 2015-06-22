@@ -309,12 +309,14 @@
          ;; imagery tile source
          [w/panel-section
           [w/desc "Imagery tile source"]
-          [w/dropdown #(let [source %
-                             policy (get-in @app-state [:comps :policy])]
-                         (swap! app-state assoc-in [:ro :imagery-source] source)
-                         (.setImagerySource policy source))
+          [w/dropdown
            (get-in @app-state [:imagery-sources])
-           (get-in @app-state [:ro :imagery-source])]]
+           (get-in @app-state [:ro :imagery-source])
+           (not (:color? @app-state))
+           #(let [source %
+                  policy (get-in @app-state [:comps :policy])]
+              (swap! app-state assoc-in [:ro :imagery-source] source)
+              (.setImagerySource policy source))]]
 
          ;; base point size
          [w/panel-section
@@ -331,13 +333,21 @@
          ;; intensity blending factor
          [w/panel-section
           [w/desc "Intensity blending, how much of intensity to blend with color"]
-          [w/slider (get-in @app-state [:ro :intensity-blend]) 0 1
+          [w/slider
+           (get-in @app-state [:ro :intensity-blend])
+           0
+           1
+           (:intensity? @app-state)
            #(swap! app-state assoc-in [:ro :intensity-blend] %)]]
 
          ;; intensity scaling clamp
          [w/panel-section
           [w/desc "Intensity scaling, narrow down range of intensity values"]
-          [w/slider (get-in @app-state [:ro :intensity-clamps]) 0 255
+          [w/slider
+           (get-in @app-state [:ro :intensity-clamps])
+           0
+           255
+           (:intensity? @app-state)
            #(swap! app-state assoc-in [:ro :intensity-clamps] (vec (seq %)))]]]
 
         ;; split plane distance

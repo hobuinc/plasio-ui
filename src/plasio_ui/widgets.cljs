@@ -29,46 +29,53 @@
 
 (defn slider
   "An abstracted jQuery slider control"
-  [start min max f]
-  (let [this (reagent/current-component)]
-    (reagent/create-class
-      {:component-did-mount
-       (fn []
-         (let [slider (js/jQuery (.getDOMNode this))
-               single? (number? start)
-               start (if single?
-                       start
-                       (apply array start))
-               emit #(f (let [value (.val slider)]
-                          (if single?
-                            (js/parseFloat value)
-                            (mapv js/parseFloat (string/split value #",")))))]
-           (doto slider
-             (.on "slide" emit)
-             (.on "set" emit))
-           (.noUiSlider slider
-                        (js-obj
-                          "start" start
-                          "connect" (if single? "lower" true)
-                          "range" (js-obj "min" min
-                                          "max" max)))))
+  ([start min max f] (slider start min max true f))
+  ([start min max enable? f]
+   (let [this (reagent/current-component)]
+     (reagent/create-class
+       {:component-did-mount
+        (fn []
+          (let [slider (js/jQuery (.getDOMNode this))
+                single? (number? start)
+                start (if single?
+                        start
+                        (apply array start))
+                emit #(f (let [value (.val slider)]
+                           (if single?
+                             (js/parseFloat value)
+                             (mapv js/parseFloat (string/split value #",")))))]
+            (doto slider
+              (.on "slide" emit)
+              (.on "set" emit))
+            (when (not enable?) (.attr slider "disabled" "disabled"))
+            (.noUiSlider slider
+                         (js-obj
+                           "start" start
+                           "connect" (if single? "lower" true)
+                           "range" (js-obj "min" min
+                                           "max" max)))))
 
        :reagent-render
        (fn [start min max f]
-         [:div.slider])})))
+         [:div.slider])}))))
 
 (defn dropdown
   "A dropdown option list"
-  [f choices start]
-  (let [this (reagent/current-component)
-        selected (reagent/atom (or start (get-in choices [0 0])))
-        emit #(f (reset! selected (.. % -target -value)))]
-    (reagent/create-class
-      {:reagent-render
-       (fn [f choices start]
-         [:select.dropdown {:value @selected :onChange emit}
-          (for [[k v] choices]
-            [:option {:value k :key k} v])])})))
+  ([choices start f] (dropdown choices start true f))
+  ([choices start enable? f]
+   (let [this (reagent/current-component)
+         selected (reagent/atom (or start (get-in choices [0 0])))
+         emit #(f (reset! selected (.. % -target -value)))]
+     (reagent/create-class
+       {:component-did-mount
+        (fn []
+          (let [node (js/jQuery (.getDOMNode this))]
+            (when (not enable?) (.attr node "disabled" "disabled"))))
+        :reagent-render
+        (fn [choices start enable? f]
+          [:select.dropdown {:value @selected :onChange emit}
+           (for [[k v] choices]
+             [:option {:value k :key k} v])])}))))
 
 
 (defn icon [& parts] [:i {:class (str "fa " (string/join " "

@@ -39,6 +39,12 @@ select {
     width: 100%;
 }
 
+select:disabled {
+    cursor: not-allowed;
+    color: #444;
+    background-color: #B8B8B8;
+}
+
 .noselect {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -189,6 +195,16 @@ select {
 
 .noUi-background {
     background: RGBA(172, 240, 242, 1);
+}
+
+.noUi-target[disabled="disabled"] .noUi-background {
+    background: #B8B8B8;
+}
+
+.noUi-target[disabled="disabled"] .noUi-handle,
+.noUi-target[disabled="disabled"] .noUi-handle-lower,
+.noUi-target[disabled="disabled"] .noUi-handle-upper {
+    background: #444;
 }
 
 .noUi-handle {
