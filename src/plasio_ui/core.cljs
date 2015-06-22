@@ -309,12 +309,27 @@
         [w/panel "Dataset info"
          [w/panel-section
           [w/key-val-table
-           (let [n (:num-points @app-state)
-                 ps (:point-size @app-state)
-                 gb (/ (* n ps) 1073741824)
-                 comma-regex (js/RegExp. "\\B(?=(\\d{3})+(?!\\d))" "g")]
-             [["Points" (.replace (.toString n) comma-regex ",")]
-              ["Raw index size" (gs/format "%.2f GB" gb)]])]]]
+           (let [num-points (:num-points @app-state)
+                 size-bytes (* num-points (:point-size @app-state))
+                 pow (fn [x n] (reduce * (repeat n x)))
+                 scales {"KB" (pow 1024 1)
+                         "MB" (pow 1024 2)
+                         "GB" (pow 1024 3)
+                         "TB" (pow 1024 4)}
+                 check-scale #(> (/ size-bytes %) 1)
+                 mem-type (cond
+                            (check-scale (get scales "TB")) "TB"
+                            (check-scale (get scales "GB")) "GB"
+                            (check-scale (get scales "MB")) "MB"
+                            :else "KB")
+                 comma-regex (js/RegExp. "\\B(?=(\\d{3})+(?!\\d))" "g")
+                 commify (fn [n]
+                           (let [regex (js/RegExp."\\B(?=(\\d{3})+(?!\\d))" "g")]
+                             (.replace (.toString n) regex ",")))]
+             [["Points" (commify num-points)]
+              ["Raw index size" (gs/format "%.2f %s"
+                                           (/ size-bytes (get scales mem-type))
+                                           mem-type)]])]]]
 
         ;; Point appearance
         [w/panel "Point Rendering"

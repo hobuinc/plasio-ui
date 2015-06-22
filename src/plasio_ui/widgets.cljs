@@ -103,8 +103,10 @@
                     (let [disabled? (and (keyword? state) (= state :disabled))]
                       [:a.button {:class (when (keyword? state) (name state))
                                   :href "javascript:"
-                                  :on-mouse-over (when-not disabled? #(reset! st title))
-                                  :on-mouse-leave (when-not disabled? #(reset! st ""))
+                                  :on-mouse-over (when-not disabled?
+                                                   #(reset! st title))
+                                  :on-mouse-leave (when-not disabled?
+                                                    #(reset! st ""))
                                   :on-click (when-not disabled?
                                               (fn [e]
                                                 (.preventDefault e)
