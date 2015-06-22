@@ -5,6 +5,8 @@
               [reagent.core :as reagent :refer [atom]]
               [cljs.core.async :as async]
               [cljs-http.client :as http]
+              [goog.string :as gs]
+              [goog.string.format]
               cljsjs.gl-matrix)
     (:require-macros [cljs.core.async.macros :refer [go]]))
 
@@ -303,6 +305,17 @@
          [:div#sub-brand (or (:sub-brand @app-state)
                              "Dynamic Point Cloud Renderer")]]
 
+        ;; Dataset info
+        [w/panel "Dataset info"
+         [w/panel-section
+          [w/key-val-table
+           (let [n (:num-points @app-state)
+                 ps (:point-size @app-state)
+                 gb (/ (* n ps) 1073741824)
+                 comma-regex (js/RegExp. "\\B(?=(\\d{3})+(?!\\d))" "g")]
+             [["Points" (.replace (.toString n) comma-regex ",")]
+              ["Raw index size" (gs/format "%.2f GB" gb)]])]]]
+
         ;; Point appearance
         [w/panel "Point Rendering"
 
@@ -586,12 +599,14 @@
                      <!
                      :body)
 
+          point-size (reduce + (mapv :size schema))
           dim-names (set (mapv :name schema))
           colors '("Red" "Green" "Blue")]
       {:server (urlify server)
        :pipeline pipeline
        :bounds bounds
        :num-points num-points
+       :point-size point-size
        :intensity? (contains? dim-names "Intensity")
        :color? (every? true? (map #(contains? dim-names %) colors))
        :max-depth (-> num-points

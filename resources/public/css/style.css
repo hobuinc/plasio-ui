@@ -185,6 +185,19 @@ select:disabled {
     padding-left: 0.5em;
 }
 
+table.key-val {
+  width: 100%;
+  color: #ddd;
+}
+
+table.key-val td {
+  padding: 2px;
+}
+
+table.key-val td:last-child {
+  text-align: right;
+}
+
 .slider {
     margin: 10px 5px 20px 5px;
 }

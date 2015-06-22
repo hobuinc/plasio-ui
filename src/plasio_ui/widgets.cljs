@@ -77,6 +77,16 @@
            (for [[k v] choices]
              [:option {:value k :key k} v])])}))))
 
+(defn key-val-table
+  [data]
+  (let [this (reagent/current-component)]
+    (reagent/create-class
+      {:reagent-render
+       (fn [data]
+         [:table.key-val
+          [:tbody
+           (for [[k v] data]
+             [:tr {:key k} [:td k][:td v]])]])})))
 
 (defn icon [& parts] [:i {:class (str "fa " (string/join " "
                                       (map #(str "fa-" (name %)) parts)))}])
