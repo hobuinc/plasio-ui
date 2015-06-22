@@ -597,8 +597,8 @@
        :max-depth (-> num-points
                       js/Math.log
                       (/ (js/Math.log 4))
-                      (* 1.1)
-                      js/Math.ceil)})))
+                      (* 1.2)
+                      js/Math.floor)})))
 
 (defn enable-secondary-mode! []
   (swap! app-state assoc :secondary-mode-enabled? true)
@@ -624,6 +624,13 @@
       (.deactivate mode)
       (println "WARN: No mode found for" active-mode))))
 
+
+(defn toggle-huds! []
+  (swap! app-state
+         #(-> %
+              (update-in [:left-hud-collapsed?] not)
+              (update-in [:right-hud-collapsed?] not))))
+
 (defn attach-app-wide-shortcuts!
   "Interacting with keyboard does fancy things!"
   []
@@ -635,6 +642,9 @@
           (fn [e]
             (case (or (.-keyCode e) (.-which e))
               16 (enable-secondary-mode!)
+              9  (do
+                   (.preventDefault e)
+                   (toggle-huds!))
               nil)))
 
     (aset "onkeyup"
@@ -643,9 +653,14 @@
               16 (disable-secondary-mode!)
               nil)))))
 
+(defn config-with-build-id []
+  (if (clojure.string/blank? js/BuildID)
+    "config.json"
+    (str "config-" js/BuildID ".json")))
+
 (defn startup []
   (go
-    (let [defaults (-> "config.json"
+    (let [defaults (-> (config-with-build-id)
                        (http/get {:with-credentials? false})
                        <!
                        :body)
