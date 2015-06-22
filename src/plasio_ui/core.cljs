@@ -63,7 +63,8 @@
      [:a.hud-collapse {:href     "javascript:"
                        :on-click #(swap! app-state update-in [:left-hud-collapsed?] not)}
       (if is-collapsed? "\u00BB" "\u00AB")]
-     (into [:div.hud-contents] children)]))
+     [:div (first children)]
+     (into [:div.hud-contents.left-contents] (rest children))]))
 
 
 (defn hud-right [& children]
@@ -300,36 +301,35 @@
        ;; hud elements
        (hud-left
         ;; show app brand
-        [:div#brand (or (:brand @app-state)
-                        "Plasio-UI")
-         [:div#sub-brand (or (:sub-brand @app-state)
-                             "Dynamic Point Cloud Renderer")]]
+        [:div
+         [:div#brand (or (:brand @app-state)
+                         "Plasio-UI")
+          [:div#sub-brand (or (:sub-brand @app-state)
+                              "Dynamic Point Cloud Renderer")]]
 
-        ;; Dataset info
-        [w/panel "Dataset info"
-         [w/panel-section
-          [w/key-val-table
-           (let [num-points (:num-points @app-state)
-                 size-bytes (* num-points (:point-size @app-state))
-                 pow (fn [x n] (reduce * (repeat n x)))
-                 scales {"KB" (pow 1024 1)
-                         "MB" (pow 1024 2)
-                         "GB" (pow 1024 3)
-                         "TB" (pow 1024 4)}
-                 check-scale #(> (/ size-bytes %) 1)
-                 mem-type (cond
-                            (check-scale (get scales "TB")) "TB"
-                            (check-scale (get scales "GB")) "GB"
-                            (check-scale (get scales "MB")) "MB"
-                            :else "KB")
-                 comma-regex (js/RegExp. "\\B(?=(\\d{3})+(?!\\d))" "g")
-                 commify (fn [n]
-                           (let [regex (js/RegExp."\\B(?=(\\d{3})+(?!\\d))" "g")]
-                             (.replace (.toString n) regex ",")))]
-             [["Points" (commify num-points)]
-              ["Raw index size" (gs/format "%.2f %s"
-                                           (/ size-bytes (get scales mem-type))
-                                           mem-type)]])]]]
+         ;; Dataset info
+         (let [num-points (:num-points @app-state)
+               size-bytes (* num-points (:point-size @app-state))
+               pow js/Math.pow
+               scales {"KB" (pow 1024 1)
+                       "MB" (pow 1024 2)
+                       "GB" (pow 1024 3)
+                       "TB" (pow 1024 4)}
+               check-scale #(> (/ size-bytes %) 1)
+               mem-type (cond
+                          (check-scale (get scales "TB")) "TB"
+                          (check-scale (get scales "GB")) "GB"
+                          (check-scale (get scales "MB")) "MB"
+                          :else "KB")
+               comma-regex (js/RegExp. "\\B(?=(\\d{3})+(?!\\d))" "g")
+               commify (fn [n]
+                         (let [regex (js/RegExp."\\B(?=(\\d{3})+(?!\\d))" "g")]
+                           (.replace (.toString n) regex ",")))]
+           [:div.dataset-info
+            [:p.points (commify num-points)]
+            [:p.index-size (gs/format "%.2f %s"
+                                      (/ size-bytes (get scales mem-type))
+                                      mem-type)]])]
 
         ;; Point appearance
         [w/panel "Point Rendering"

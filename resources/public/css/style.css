@@ -72,23 +72,38 @@ select:disabled {
     font-size: 3em;
     text-transform: lowercase;
     font-weight: 700;
-    margin-bottom: 0.5em;
+    padding-left: 10px;
     color: RGBA(34, 83, 120, 1);
 }
 
 #brand #sub-brand {
     font-size: 14px;
     margin-top: -10px;
-    margin-bottom: 5px;
     padding-left: 3px;
     color: RGBA(22, 149, 163, 1);
+}
+
+.dataset-info {
+    font-size: 14px;
+    padding-left: 10px;
+}
+
+.dataset-info p {
+    color: #eee;
+    display: inline-block;
+    padding: 0px;
+    margin: 5px 0px 10px 5px;
+}
+
+.dataset-info .points:after {
+    content: ' Points / ';
 }
 
 .hud-container {
     position: absolute;
     top: 0px;
     bottom: 0px;
-    overflow-y: auto;
+    overflow-y: hidden;
     background-color: RGBA(0,0,0,0.7);
     width: 300px;
 }
@@ -133,6 +148,11 @@ select:disabled {
     left: 5px;
     right: 5px;
     bottom: 5px;
+    overflow-y: auto;
+}
+
+.hud-container .hud-contents.left-contents {
+    top: 100px;
 }
 
 .hud-left .hud-collapse {
