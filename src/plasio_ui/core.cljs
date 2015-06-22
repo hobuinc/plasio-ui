@@ -2,6 +2,7 @@
     (:require [plasio-ui.widgets :as w]
               [plasio-ui.math :as math]
               [plasio-ui.history :as history]
+              [plasio-ui.snapshots :as ss]
               [reagent.core :as reagent :refer [atom]]
               [cljs.core.async :as async]
               [cljs-http.client :as http]
@@ -30,10 +31,21 @@
 ;; keep lines separate because we don't want to trigger the entire UI repaint
 (defonce app-state-lines (atom nil))
 
+
+;; time machine takes a state atom onto which it stores its state, we are going to
+;; pass it our own state object so that changes to time machine can be reflected on our UI
+;;
+(defonce time-machine-state (atom nil))
+
 ;; when this value is true, everytime the app-state atom updates, a snapshot is
 ;; requested (history) when this is set to false, you may update the app-state
 ;; without causing a snapshot however the UI  state will still update
 (def ^:dynamic ^:private *save-snapshot-on-ui-update* true)
+
+;; if we're going back in time, we don't want to re-capture the state again as we update it
+;; this flag tells the history grabber to not grab it
+;;
+(def ^:dynamic ^:private *going-back-in-time?* false)
 
 
 (let [timer (clojure.core/atom nil)]
@@ -88,33 +100,35 @@
      {:component-did-mount
       (fn []
         (if-let [renderer (get-in @app-state [:comps :renderer])]
-          (.addPropertyListener
-           renderer (array "view")
-           (fn [view]
-             (when view
-               (let [eye (.-eye view)
-                     target (.-target view)]
-                 ;; such calculations, mostly project vectors to xz plane and
-                 ;; compute the angle between the two vectors
-                 (when (and eye target)
-                   (let [plane (math/target-plane target)       ;; plane at target
-                         peye (math/project-point plane eye)    ;; project eye
-                         v (math/make-vec target peye)          ;; vector from target to eye
-                         theta (math/angle-between zvec v)      ;; angle between target->eye and z
-                         theta (math/->deg theta)               ;; in degrees
+          (do
+            (.addPropertyListener
+             renderer (array "view")
+             (fn [view]
+               (when view
+                 (let [eye (.-eye view)
+                       target (.-target view)]
+                   ;; such calculations, mostly project vectors to xz plane and
+                   ;; compute the angle between the two vectors
+                   (when (and eye target)
+                     (let [plane (math/target-plane target)       ;; plane at target
+                           peye (math/project-point plane eye)    ;; project eye
+                           v (math/make-vec target peye)          ;; vector from target to eye
+                           theta (math/angle-between zvec v)      ;; angle between target->eye and z
+                           theta (math/->deg theta)               ;; in degrees
 
-                         t->e (math/make-vec target eye)        ;; target->eye vector
-                         t->pe (math/make-vec target peye)      ;; target->projected eye vector
-                         incline (math/angle-between t->e t->pe)  ;; angle between t->e and t->pe
-                         incline (math/->deg incline)]            ;; in degrees
+                           t->e (math/make-vec target eye)        ;; target->eye vector
+                           t->pe (math/make-vec target peye)      ;; target->projected eye vector
+                           incline (math/angle-between t->e t->pe)  ;; angle between t->e and t->pe
+                           incline (math/->deg incline)]            ;; in degrees
 
-                     ;; make sure the values are appropriately adjusted for them to make sense as
-                     ;; css transforms
-                     (reset! angles
-                             [(if (< (aget v 0) 0)
-                                theta
-                                (- 360 theta))
-                              (- 90 (max 20 incline))])))))))
+                       ;; make sure the values are appropriately adjusted for them to make sense as
+                       ;; css transforms
+                       (reset! angles
+                               [(if (< (aget v 0) 0)
+                                  theta
+                                  (- 360 theta))
+                                (- 90 (max 20 incline))])))))))
+            )
           (throw (js/Error. "Renderer is not intialized, cannot have compass if renderer is not available"))))
       :reagent-render
       (fn []
@@ -231,11 +245,17 @@
                                               :intensity? (:intensity? @app-state)
                                               :ro         (:ro @app-state)
                                               :init-params init-state})
-              modes (initialize-modes comps)]
+              modes (initialize-modes comps)
+              time-machine (ss/make-time-machine time-machine-state (:renderer comps) 1000)]
           (swap! app-state assoc
                  :comps comps
                  :modes modes
+                 :time-machine time-machine
                  :active-secondary-mode :line-picker))
+
+        ;; startup time machine
+        ;;
+        (ss/start-time-machine! (:time-machine @app-state))
 
         ;; listen to changes to history
         (history/listen (fn [st]
@@ -374,7 +394,7 @@
               (println "swtiching mode to:" kind)
               (swap! app-state assoc :active-secondary-mode kind))
             [:line-picker :map-marker "Line Picking" (and (= current-mode :line-picker) :active)]
-            [:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
+            [:time-machine :history "Time Machine" (and (= current-mode :time-machine) :active)]]
 
            [w/panel "Visibility Tools"
             [w/panel-section
@@ -412,7 +432,29 @@
             [w/desc "All line segments in scene, lengths in data units."]
             (for [[id start end [r g b]] lines]
               ^{:key id} [:div.line-info {:style {:color (str "rgb(" r "," g "," b ")")}}
-                          (format-dist end start)])]]))
+                          (format-dist end start)])]])
+
+
+        ;; if the we have the scrubber mode active, lets show that
+        ;;
+        (when (= (:active-secondary-mode @app-state) :time-machine)
+          (let [time-machine (:time-machine @app-state)]
+            [w/panel "Time Machine"
+             [w/panel-section
+              [w/desc "Move the slider to the left to go back in time."]
+              (let [snapshots (:snapshots @time-machine-state)
+                    index (:index @time-machine-state)
+                    total (count snapshots)]
+                [:div
+                 [:input {:type "range"
+                          :min  "0"
+                          :max  total
+                          :style {:width "100%"}
+                          :value (- total index)
+                          :on-change #(->> (.. % -target -value)
+                                           (- total)
+                                           (ss/activate-snapshot! time-machine))}]
+                 [:p (str "Total " total " history snapshots")]])]])))
 
 
        ;; if we have any profile views to show, show them

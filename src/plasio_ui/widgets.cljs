@@ -30,32 +30,55 @@
 (defn slider
   "An abstracted jQuery slider control"
   [start min max f]
-  (let [this (reagent/current-component)]
+  (let [this (reagent/current-component)
+        mounted-slider (atom nil)
+        coerce-val (fn [v]
+                     (if (number? v)
+                       v (apply array v)))
+        build-slider (fn [start min max f]
+                       (let [slider (js/jQuery (.getDOMNode this))
+                             single? (number? start)
+                             start (coerce-val start)
+                             emit #(f (let [value (.val slider)]
+                                        (println "EMITING!" value)
+                                        (if single?
+                                          (js/parseFloat value)
+                                          (mapv js/parseFloat (string/split value #",")))))]
+                         (reset! mounted-slider slider)
+                         (doto slider
+                           (.on "slide" emit)
+                           (.on "set" emit)
+                           (.on "change" emit)
+                           (.noUiSlider 
+                            (js-obj
+                             "start" start
+                             "connect" (if single? "lower" true)
+                             "range" (js-obj "min" min
+                                             "max" max))))))]
     (reagent/create-class
-      {:component-did-mount
-       (fn []
-         (let [slider (js/jQuery (.getDOMNode this))
-               single? (number? start)
-               start (if single?
-                       start
-                       (apply array start))
-               emit #(f (let [value (.val slider)]
-                          (if single?
-                            (js/parseFloat value)
-                            (mapv js/parseFloat (string/split value #",")))))]
-           (doto slider
-             (.on "slide" emit)
-             (.on "set" emit))
-           (.noUiSlider slider
-                        (js-obj
-                          "start" start
-                          "connect" (if single? "lower" true)
-                          "range" (js-obj "min" min
-                                          "max" max)))))
+     {:component-did-mount
+      (fn []
+        (build-slider start min max f))
 
-       :reagent-render
-       (fn [start min max f]
-         [:div.slider])})))
+      :component-will-receive-props
+      (fn [_ [_ s n x nf]]
+        ;; we only really have to do work here if the mins and the maxes changed, other than tha
+        ;; we cannot really detect changes in handler function, nor do we need to directly set
+        ;; slider value since slider does that on its own or during creation
+        (when (or (not= n min) (not= x max))
+          (println "setting slider to:" n x s)
+          (when-let [slider @mounted-slider]
+            (doto slider
+              (.noUiSlider (js-obj "start" s
+                                   "step" 1
+                                   "min" n
+                                   "max" x)
+                           true)
+              #_(.val (coerce-val s))))))
+
+      :reagent-render
+      (fn [start min max f]
+        [:div.slider])})))
 
 (defn dropdown
   "A dropdown option list"
