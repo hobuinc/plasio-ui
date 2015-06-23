@@ -78,11 +78,11 @@
              [:option {:value k :key k} v])])}))))
 
 (defn key-val-table
-  [data]
+  [& data]
   (let [this (reagent/current-component)]
     (reagent/create-class
       {:reagent-render
-       (fn [data]
+       (fn [& data]
          [:table.key-val
           [:tbody
            (for [[k v] data]

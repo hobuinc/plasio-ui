@@ -171,7 +171,7 @@ select:disabled {
 }
 
 .hud-container .hud-contents.left-contents {
-    top: 100px;
+    top: 165px;
 }
 
 .hud-left .hud-collapse {
@@ -222,15 +222,22 @@ select:disabled {
     color: #ddd;
     font-size: 0.9em;
     padding-left: 0.5em;
+    padding-bottom: 0.2em;
 }
 
 table.key-val {
   width: 100%;
   color: #ddd;
+  border-collapse: collapse;
+}
+
+table.key-val tr {
+    border-bottom: 1px dotted #555;
+    font-size: 0.9em;
 }
 
 table.key-val td {
-  padding: 2px;
+    padding: 5px 2px 2px 2px;
 }
 
 table.key-val td:last-child {
@@ -345,7 +352,7 @@ table.key-val td:last-child {
     background-color: RGBA(0, 163, 136, 1);
     color: white;
     display: inline-block;
-    font-size: 22px;
+    font-size: 26px;
     box-shadow: 0px 1px 1px black;
     padding: 4px;
     box-sizing: border-box;
