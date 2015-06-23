@@ -336,7 +336,7 @@
          (let [[points size] (index-information)]
            [:div.dataset-info
             [:p.points points]
-            [:p.index-size size]])
+            #_[:p.index-size (str size " uncompressed")]])
 
          (let [primary-mode (:active-primary-mode @app-state)]
            [:div {:style {:margin "15px"}}
@@ -426,9 +426,10 @@
                 [w/panel "Point Source Information"
                  [w/key-val-table
                   ["Point Count" points]
-                  ["Index Size" size]
+                  ["Uncompressed Index Size" size]
                   ["Powered By" "entwine"]
-                  ["Caching" "Amazon CloudFront"]]])
+                  ["Caching" "Amazon CloudFront"]
+                  ["Backend" "Amazon EC2"]]])
 
 
               nil)
@@ -438,7 +439,7 @@
 
        (hud-right
         ;; display action buttons on the top
-        [:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
+        #_[:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
 
         (let [current-mode (:active-secondary-mode @app-state)]
           [:div {}
@@ -446,6 +447,10 @@
             (fn [kind]
               (swap! app-state assoc :active-secondary-mode kind))
             [:line-picker :map-marker "Line Picking" (and (= current-mode :line-picker) :active)]
+            [:follow-path :video-camera "Follow Path" :disabled]
+            [:tag-regions :tags "Tag Regions" :disabled]
+            [:bookmarks :bookmark-o "Bookmarks" :disabled]
+            [:search :search "Search" :disabled]
             #_[:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
 
            [w/panel "Visibility Tools"
@@ -647,7 +652,7 @@
                      <!
                      :body)
 
-          point-size (reduce + (mapv :size schema))
+          point-size 28 #_(reduce + (mapv :size schema))
           dim-names (set (mapv :name schema))
           colors '("Red" "Green" "Blue")]
       {:server (urlify server)

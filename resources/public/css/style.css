@@ -110,11 +110,11 @@ select:disabled {
     color: #eee;
     display: inline-block;
     padding: 0px;
-    margin: 5px 0px 10px 5px;
+    margin: 0px;
 }
 
 .dataset-info .points:after {
-    content: ' Points / ';
+    content: ' Points';
 }
 
 .hud-container {
@@ -236,8 +236,13 @@ table.key-val tr {
     font-size: 0.9em;
 }
 
+table.key-val tr:last-child {
+    border-bottom: none;
+}
+
 table.key-val td {
-    padding: 5px 2px 2px 2px;
+    padding: 2px 2px 10px 2px;
+    vertical-align: top;
 }
 
 table.key-val td:last-child {
