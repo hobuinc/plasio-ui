@@ -243,10 +243,14 @@ table.key-val tr:last-child {
 table.key-val td {
     padding: 2px 2px 10px 2px;
     vertical-align: top;
+    white-space: nowrap;
+    float: left;
 }
 
 table.key-val td:last-child {
   text-align: right;
+  white-space: nowrap;
+  float: right;
 }
 
 .slider {
