@@ -350,87 +350,89 @@
              ]])]
 
         ;; Point appearance
-        (case (:active-primary-mode @app-state)
-          :point-rendering
-          [w/panel "Point Rendering"
+        (let [mode (:active-primary-mode @app-state)]
+          (with-meta
+            (case mode
+              :point-rendering
+              [w/panel "Point Rendering"
 
-           ;; imagery tile source
-           [w/panel-section
-            [w/desc "Imagery tile source"]
-            [w/dropdown
-             (get-in @app-state [:imagery-sources])
-             (get-in @app-state [:ro :imagery-source])
-             (not (:color? @app-state))
-             #(let [source %
-                    policy (get-in @app-state [:comps :policy])]
-                (swap! app-state assoc-in [:ro :imagery-source] source)
-                (.setImagerySource policy source))]]
+               ;; imagery tile source
+               [w/panel-section
+                [w/desc "Imagery tile source"]
+                [w/dropdown
+                 (get-in @app-state [:imagery-sources])
+                 (get-in @app-state [:ro :imagery-source])
+                 (not (:color? @app-state))
+                 #(let [source %
+                        policy (get-in @app-state [:comps :policy])]
+                    (swap! app-state assoc-in [:ro :imagery-source] source)
+                    (.setImagerySource policy source))]]
 
-           ;; base point size
-           [w/panel-section
-            [w/desc "Base point size"]
-            [w/slider (get-in @app-state [:ro :point-size]) 1 10
-             #(swap! app-state assoc-in [:ro :point-size] %)]]
+               ;; base point size
+               [w/panel-section
+                [w/desc "Base point size"]
+                [w/slider (get-in @app-state [:ro :point-size]) 1 10
+                 #(swap! app-state assoc-in [:ro :point-size] %)]]
 
-           ;; point attenuation factor
-           [w/panel-section
-            [w/desc "Attenuation factor, points closer to you are bloated more"]
-            [w/slider (get-in @app-state [:ro :point-size-attenuation]) 0 5
-             #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]
+               ;; point attenuation factor
+               [w/panel-section
+                [w/desc "Attenuation factor, points closer to you are bloated more"]
+                [w/slider (get-in @app-state [:ro :point-size-attenuation]) 0 5
+                 #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]
 
-           ;; intensity blending factor
-           [w/panel-section
-            [w/desc "Intensity blending, how much of intensity to blend with color"]
-            [w/slider
-             (get-in @app-state [:ro :intensity-blend])
-             0
-             1
-             (:intensity? @app-state)
-             #(swap! app-state assoc-in [:ro :intensity-blend] %)]]
+               ;; intensity blending factor
+               [w/panel-section
+                [w/desc "Intensity blending, how much of intensity to blend with color"]
+                [w/slider
+                 (get-in @app-state [:ro :intensity-blend])
+                 0
+                 1
+                 (:intensity? @app-state)
+                 #(swap! app-state assoc-in [:ro :intensity-blend] %)]]
 
-           ;; intensity scaling clamp
-           [w/panel-section
-            [w/desc "Intensity scaling, narrow down range of intensity values"]
-            [w/slider
-             (get-in @app-state [:ro :intensity-clamps])
-             0
-             255
-             (:intensity? @app-state)
-             #(swap! app-state assoc-in [:ro :intensity-clamps] (vec (seq %)))]]]
+               ;; intensity scaling clamp
+               [w/panel-section
+                [w/desc "Intensity scaling, narrow down range of intensity values"]
+                [w/slider
+                 (get-in @app-state [:ro :intensity-clamps])
+                 0
+                 255
+                 (:intensity? @app-state)
+                 #(swap! app-state assoc-in [:ro :intensity-clamps] (vec (seq %)))]]]
 
-          :point-loading
-          [w/panel "Point Loading"
+              :point-loading
+              [w/panel "Point Loading"
 
-           ;; How close the first splitting plane is
-           [w/panel-section
-            [w/desc "Distance for highest resolution data.  Farther it is, more points get loaded."]
-            [w/slider (get-in @app-state [:po :distance-hint]) 10 70
-             #(swap! app-state assoc-in [:po :distance-hint] %)]]
+               ;; How close the first splitting plane is
+               [w/panel-section
+                [w/desc "Distance for highest resolution data.  Farther it is, more points get loaded."]
+                [w/slider (get-in @app-state [:po :distance-hint]) 10 70
+                 #(swap! app-state assoc-in [:po :distance-hint] %)]]
 
-           #_[w/panel-section
-            [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
-            [w/slider (get-in @app-state [:po :max-depth-reduction-hint]) 0 5
-             #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]]
+               [w/panel-section
+                [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
+                [w/slider (get-in @app-state [:po :max-depth-reduction-hint]) 0 5
+                 #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]]
 
-          :point-manipulation
-          [w/panel "Point Manipulation"
+              :point-manipulation
+              [w/panel "Point Manipulation"
+               [w/panel-section
+                [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
+                [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
+                 #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]]
 
-           [w/panel-section
-            [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
-            [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
-             #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]]
-
-          :point-information
-          (let [[points size] (index-information)]
-            [w/panel "Point Source Information"
-             [w/key-val-table
-              ["Point Count" points]
-              ["Index Size" size]
-              ["Powered By" "entwine"]
-              ["Caching" "Amazon Cloud Front"]]])
+              :point-information
+              (let [[points size] (index-information)]
+                [w/panel "Point Source Information"
+                 [w/key-val-table
+                  ["Point Count" points]
+                  ["Index Size" size]
+                  ["Powered By" "entwine"]
+                  ["Caching" "Amazon CloudFront"]]])
 
 
-          nil))
+              nil)
+            {:key mode})))
 
        [compass]
 
