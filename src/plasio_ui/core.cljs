@@ -70,7 +70,8 @@
 
 (defn hud-right [& children]
   (let [is-collapsed? (:right-hud-collapsed? @app-state)
-        secondary? (:secondary-mode-enabled? @app-state)]
+        secondary? (and (:secondary-mode-enabled? @app-state)
+                        (:active-secondary-mode @app-state))]
     [:div.hud-container.hud-right
      {:class (cond->> ""
                is-collapsed? (str "hud-collapsed ")
@@ -239,7 +240,6 @@
           (swap! app-state assoc
                  :comps comps
                  :modes modes
-                 :active-secondary-mode :line-picker
                  :active-primary-mode :point-rendering))
 
         ;; listen to changes to history
@@ -342,7 +342,8 @@
            [:div {:style {:margin "15px"}}
             [w/toolbar
              (fn [kind]
-               (swap! app-state assoc :active-primary-mode kind))
+               (swap! app-state assoc :active-primary-mode kind)
+               )
              [:point-rendering :cogs "Point Rendering Configuration" (and (= primary-mode :point-rendering) :active)]
              [:point-loading :cloud-download "Point Loading" (and (= primary-mode :point-loading) :active)]
              [:point-manipulation :magic "Point Manipulation" (and (= primary-mode :point-manipulation) :active)]
@@ -445,7 +446,11 @@
           [:div {}
            [w/toolbar
             (fn [kind]
-              (swap! app-state assoc :active-secondary-mode kind))
+              (swap! app-state update-in [:active-secondary-mode]
+                     (fn [mode]
+                       (println mode kind)
+                       (when-not (= mode kind)
+                         kind))))
             [:line-picker :map-marker "Line Picking" (and (= current-mode :line-picker) :active)]
             [:follow-path :video-camera "Follow Path" :disabled]
             [:tag-regions :tags "Tag Regions" :disabled]
@@ -463,7 +468,7 @@
                (fn [tool]
                  (case tool
                    :profile (do-profile)))
-               [:profile :area-chart "Profile" (and (not= :line-picker current-mode) :disabled)]]]]]])
+               [:profile :area-chart "Profile" (and (not (seq @app-state-lines)) :disabled)]]]]]])
 
         ;; if there are any line segments available, so the tools to play with them
         ;;
@@ -677,8 +682,7 @@
 
   (when-let [active-mode (:active-secondary-mode @app-state)]
     (when-let [mode (get-in @app-state [:modes active-mode])]
-      (.activate mode)
-      (println "WARN: No mode found for" active-mode))))
+      (.activate mode))))
 
 (defn disable-secondary-mode! []
   (swap! app-state assoc :secondary-mode-enabled? false)
@@ -689,8 +693,7 @@
 
   (when-let [active-mode (:active-secondary-mode @app-state)]
     (if-let [mode (get-in @app-state [:modes active-mode])]
-      (.deactivate mode)
-      (println "WARN: No mode found for" active-mode))))
+      (.deactivate mode))))
 
 
 (defn toggle-huds! []
@@ -720,6 +723,15 @@
             (case (or (.-keyCode e) (.-which e))
               16 (disable-secondary-mode!)
               nil)))))
+
+
+(defn attach-window-wide-events! []
+  (doto js/window
+    (.addEventListener "blur"
+                       (fn []
+                         (println "Main window losing focus")
+                         (when (:secondary-mode-enabled? @app-state)
+                           (disable-secondary-mode!))))))
 
 (defn config-with-build-id []
   (if (clojure.string/blank? js/BuildID)
@@ -760,6 +772,7 @@
       (println "Startup state: " @app-state))
 
     (attach-app-wide-shortcuts!)
+    (attach-window-wide-events!)
     (reagent/render-component [hud]
                               (. js/document (getElementById "app")))))
 
