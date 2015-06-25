@@ -71,27 +71,27 @@
 
 	module.exports = {
 	    // policy and loaders
-	    Debug: __webpack_require__(5),
-	    NodeDistancePolicy: __webpack_require__(4).NodeDistancePolicy,
-	    QuadTreeNodePolicy: __webpack_require__(7).QuadTreeNodePolicy,
-	    FrustumLODNodePolicy: __webpack_require__(6).FrustumLODNodePolicy,
+	    Debug: __webpack_require__(4),
+	    NodeDistancePolicy: __webpack_require__(5).NodeDistancePolicy,
+	    QuadTreeNodePolicy: __webpack_require__(6).QuadTreeNodePolicy,
+	    FrustumLODNodePolicy: __webpack_require__(7).FrustumLODNodePolicy,
 
 	    // Loaders
 	    Loaders: {
-	        GreyhoundStaticLoader: __webpack_require__(10).GreyhoundStaticLoader,
-	        GreyhoundPipelineLoader: __webpack_require__(10).GreyhoundPipelineLoader,
-	        KittyLoader: __webpack_require__(8).KittyLoader,
-	        MapboxLoader: __webpack_require__(8).MapboxLoader,
-	        TransformLoader: __webpack_require__(9).TransformLoader
+	        GreyhoundStaticLoader: __webpack_require__(8).GreyhoundStaticLoader,
+	        GreyhoundPipelineLoader: __webpack_require__(8).GreyhoundPipelineLoader,
+	        KittyLoader: __webpack_require__(9).KittyLoader,
+	        MapboxLoader: __webpack_require__(9).MapboxLoader,
+	        TransformLoader: __webpack_require__(10).TransformLoader
 	    },
 
 	    // cameras
 	    Cameras: {
-	        Orbital: __webpack_require__(12).Orbital
+	        Orbital: __webpack_require__(11).Orbital
 	    },
 
 	    Modes: {
-	        LinePicker: __webpack_require__(11).LinePicker
+	        LinePicker: __webpack_require__(12).LinePicker
 	    },
 
 	    Features: {
@@ -108,16 +108,245 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
+	// debug.js
+	// Debug policy and loader
+	//
+
+	var BBox = __webpack_require__(17).BBox;
+	var vec3 = __webpack_require__(21).vec3;
+	var EventEmitter = __webpack_require__(16).EventEmitter;
+	var inherits = __webpack_require__(18).inherits;
+	var util = __webpack_require__(15);
+
+	var geocenter = function(bbox) {
+	    // get the center of the box and then transform it into our
+	    // coordinate space
+	    //
+	    var center = [bbox.mins[0] + (bbox.maxs[0] - bbox.mins[0]) / 2,
+	                  bbox.mins[1] + (bbox.maxs[1] - bbox.mins[1]) / 2,
+	                  bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2];
+
+	    // now transform it
+	    return [-center[0], center[2], center[1]];
+	};
+
+	var geodist = function(a, b) {
+	    return vec3.distance([a[0], 0, a[2]],
+	                         [b[0], 0, b[2]]);
+	    
+	};
+
+
+
+	var makeid = function(b) {
+	    return "debug:" + JSON.stringify({h: b.height, n: b.mins, x: b.maxs});
+	};
+
+	var decodeid = function(id) {
+	    var b = JSON.parse(id.substr(6));
+	    var bbx = new BBox(b.n, b.x);
+	    bbx.height = b.h;
+	    
+	    return bbx;
+	};
+
+	var blend = (function() {
+	    var c = [0, 0, 0],
+	        c1 = [0, 0, 0],
+	        c2 = [0, 0, 0];
+	    
+	    return function(s, e, f) {
+	        return vec3.add(c,
+	                        vec3.scale(c1, s, 1 - f),
+	                        vec3.scale(c2, e, f));
+	    };
+	})();
+
+	var genDebugBuffer = function(bbox) {
+	    // generate a debug buffer in the bound box
+	    // each point is 3 (xyz), 3 (rgb) and 2 (intensity + class)
+	    //
+	    var points = 10;
+	    
+	    var pnts = new Float32Array(32 * points * points);
+	    var pc = 0;
+	    var c = bbox.height >= 15 ?
+	            [1, 1, 1] :
+	            blend([1, 0, 0], [0, 1, 0], bbox.height / 16);
+	            
+	    for (var y = 0 ; y < points ; y ++) {
+	        for(var x = 0; x < points ; x++) {
+	            var fx = x / points,
+	                fy = y / points;
+
+	            pnts[pc++] = bbox.mins[0] + (bbox.maxs[0] - bbox.mins[0]) * fx;
+	            pnts[pc++] = bbox.mins[1] + (bbox.maxs[1] - bbox.mins[1]) * fy;
+	            pnts[pc++] = 0;
+
+	            pnts[pc++] = c[0];
+	            pnts[pc++] = c[1];
+	            pnts[pc++] = c[2];
+
+	            pnts[pc++] = 0;
+	            pnts[pc++] = 0;
+	        }
+	    }
+
+	    return pnts;
+	};
+
+
+	var Loader = function() {
+	    this.key = "debug";
+	};
+
+	inherits(Loader, EventEmitter);
+
+	Loader.prototype.load = function(id, cb) {
+	    // load a debug buffer using the given ID
+	    //
+	    var b = decodeid(id);
+
+	    var o = this;
+	    setTimeout(function() {
+	        cb(null, genDebugBuffer(b));
+	    });
+	};
+
+
+	var splitTillDepth = function(bbox, depth) {
+	    var split = function(b, d) {
+	        var bxs = b.splitQuad();
+	        if (depth === d) return bxs;
+
+	        return [].concat(split(bxs[0], d + 1),
+	                         split(bxs[1], d + 1),
+	                         split(bxs[2], d + 1),
+	                         split(bxs[3], d + 1));
+	    };
+
+	    return split(bbox, 1);
+	};
+
+	var NodeDistancePolicy = function(renderer) {
+	    this.renderer = renderer;
+	    var size = 4000;
+	    
+	    var h = size / 2;
+
+	    this.bbox = new BBox([-h, -h, -h], [h, h, h]);
+	    this.boxes = splitTillDepth(this.bbox, 3).map(function(b) {
+	        b.height = 0;
+	        return b;
+	    });
+
+	    this.maxDist = Math.sqrt(size * size + size * size);
+	};
+
+	inherits(NodeDistancePolicy, EventEmitter);
+
+	NodeDistancePolicy.prototype.start = function() {
+	    // start node distance policy
+	    var o = this;
+
+	    o.renderer.setRenderOptions({
+	        maxColorComponent: 1.0
+	    });
+
+	    setTimeout(function() {
+	        o.emit("bbox", o.bbox);
+	    });
+
+	    var falloff = function(x, df) {
+	        // if x is very small, make sure its something valid
+	        if (Math.abs(x) < 0.0001)
+	            x = 0.00001 * Math.sign(x);
+
+	        // the falloff function is a blend of two functions, controlled by
+	        // the blending factor df
+	        //
+	        var f1 = 1 + Math.log(Math.max(0.00001, x - 0.01)) / 3;
+	        var f2 = 1 + Math.log(x);
+
+	        df = df * df * df;
+
+
+	        return f2 * df + f1 * (1 - df);
+	    };
+	    
+
+
+	    this.renderer.addPropertyListener(["view"], function(view) {
+	        console.log("new view");
+	        if (!view)
+	            return;
+	        
+	        var target = view.target,
+	            eye = view.eye;
+	        
+	        if (!target || !eye)
+	            return;
+
+	        var et = vec3.distance(target, eye); // the distance between the eye and the target
+
+	        // df goes from 0 -> 1
+	        // when near the target, the value needs to be close to 0
+	        // when far from the target, the value needs to be close to 1
+	        //
+	        var df = util.clamp(et / o.maxDist, 0, 1); 
+
+	        console.log("doing stuff");
+
+	        o.boxes.forEach(function(b) {
+	            // update current box based on distance
+	            var dist = geodist(target, geocenter(b));
+	            // dist_f is always between 0 and 1, 0 indicating that its close
+	            // to us, while 1 means that its far enough that we don't care anymore
+	            // how far it is
+	            //
+	            var dist_f = Math.min(1, dist / o.maxDist);
+
+	            // we can change the dist_f to better suit our needs for DOF fall off
+	            //
+	            var weight = falloff(dist_f, df);
+
+	            console.log("---> w:", weight, "d:", dist_f, "df:", df);
+
+	            // h tells us the level of detail ranging from 16 to 0.
+	            var h = Math.floor(16 * (1 - weight));
+
+	            if (h !== b.height) {
+	                // the height need to be adjusted
+	                o.renderer.removePointBuffer(makeid(b));
+
+	                b.height = h;
+	                o.renderer.addPointBuffer(makeid(b));
+	            }
+	        });
+	    });
+	};
+
+	module.exports = {
+	    Loader: Loader,
+	    NodeDistancePolicy: NodeDistancePolicy
+	};
+
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
 	// greyhound.js 
 	// Greyhound data fetch profiles
 	//
 
-	var gh = __webpack_require__(19),
+	var gh = __webpack_require__(17),
 	    EventEmitter = __webpack_require__(16).EventEmitter,
 	    vec3 = __webpack_require__(21).vec3,
 	    vec2 = __webpack_require__(21).vec2,
-	    inherits = __webpack_require__(17).inherits,
-	    createHash = __webpack_require__(18),
+	    inherits = __webpack_require__(18).inherits,
+	    createHash = __webpack_require__(19),
 	    util = __webpack_require__(15),
 	    TriggeredDispatch = util.TriggeredDispatch;
 
@@ -341,790 +570,19 @@
 
 
 /***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// debug.js
-	// Debug policy and loader
-	//
-
-	var BBox = __webpack_require__(19).BBox;
-	var vec3 = __webpack_require__(21).vec3;
-	var EventEmitter = __webpack_require__(16).EventEmitter;
-	var inherits = __webpack_require__(17).inherits;
-	var util = __webpack_require__(15);
-
-	var geocenter = function(bbox) {
-	    // get the center of the box and then transform it into our
-	    // coordinate space
-	    //
-	    var center = [bbox.mins[0] + (bbox.maxs[0] - bbox.mins[0]) / 2,
-	                  bbox.mins[1] + (bbox.maxs[1] - bbox.mins[1]) / 2,
-	                  bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2];
-
-	    // now transform it
-	    return [-center[0], center[2], center[1]];
-	};
-
-	var geodist = function(a, b) {
-	    return vec3.distance([a[0], 0, a[2]],
-	                         [b[0], 0, b[2]]);
-	    
-	};
-
-
-
-	var makeid = function(b) {
-	    return "debug:" + JSON.stringify({h: b.height, n: b.mins, x: b.maxs});
-	};
-
-	var decodeid = function(id) {
-	    var b = JSON.parse(id.substr(6));
-	    var bbx = new BBox(b.n, b.x);
-	    bbx.height = b.h;
-	    
-	    return bbx;
-	};
-
-	var blend = (function() {
-	    var c = [0, 0, 0],
-	        c1 = [0, 0, 0],
-	        c2 = [0, 0, 0];
-	    
-	    return function(s, e, f) {
-	        return vec3.add(c,
-	                        vec3.scale(c1, s, 1 - f),
-	                        vec3.scale(c2, e, f));
-	    };
-	})();
-
-	var genDebugBuffer = function(bbox) {
-	    // generate a debug buffer in the bound box
-	    // each point is 3 (xyz), 3 (rgb) and 2 (intensity + class)
-	    //
-	    var points = 10;
-	    
-	    var pnts = new Float32Array(32 * points * points);
-	    var pc = 0;
-	    var c = bbox.height >= 15 ?
-	            [1, 1, 1] :
-	            blend([1, 0, 0], [0, 1, 0], bbox.height / 16);
-	            
-	    for (var y = 0 ; y < points ; y ++) {
-	        for(var x = 0; x < points ; x++) {
-	            var fx = x / points,
-	                fy = y / points;
-
-	            pnts[pc++] = bbox.mins[0] + (bbox.maxs[0] - bbox.mins[0]) * fx;
-	            pnts[pc++] = bbox.mins[1] + (bbox.maxs[1] - bbox.mins[1]) * fy;
-	            pnts[pc++] = 0;
-
-	            pnts[pc++] = c[0];
-	            pnts[pc++] = c[1];
-	            pnts[pc++] = c[2];
-
-	            pnts[pc++] = 0;
-	            pnts[pc++] = 0;
-	        }
-	    }
-
-	    return pnts;
-	};
-
-
-	var Loader = function() {
-	    this.key = "debug";
-	};
-
-	inherits(Loader, EventEmitter);
-
-	Loader.prototype.load = function(id, cb) {
-	    // load a debug buffer using the given ID
-	    //
-	    var b = decodeid(id);
-
-	    var o = this;
-	    setTimeout(function() {
-	        cb(null, genDebugBuffer(b));
-	    });
-	};
-
-
-	var splitTillDepth = function(bbox, depth) {
-	    var split = function(b, d) {
-	        var bxs = b.splitQuad();
-	        if (depth === d) return bxs;
-
-	        return [].concat(split(bxs[0], d + 1),
-	                         split(bxs[1], d + 1),
-	                         split(bxs[2], d + 1),
-	                         split(bxs[3], d + 1));
-	    };
-
-	    return split(bbox, 1);
-	};
-
-	var NodeDistancePolicy = function(renderer) {
-	    this.renderer = renderer;
-	    var size = 4000;
-	    
-	    var h = size / 2;
-
-	    this.bbox = new BBox([-h, -h, -h], [h, h, h]);
-	    this.boxes = splitTillDepth(this.bbox, 3).map(function(b) {
-	        b.height = 0;
-	        return b;
-	    });
-
-	    this.maxDist = Math.sqrt(size * size + size * size);
-	};
-
-	inherits(NodeDistancePolicy, EventEmitter);
-
-	NodeDistancePolicy.prototype.start = function() {
-	    // start node distance policy
-	    var o = this;
-
-	    o.renderer.setRenderOptions({
-	        maxColorComponent: 1.0
-	    });
-
-	    setTimeout(function() {
-	        o.emit("bbox", o.bbox);
-	    });
-
-	    var falloff = function(x, df) {
-	        // if x is very small, make sure its something valid
-	        if (Math.abs(x) < 0.0001)
-	            x = 0.00001 * Math.sign(x);
-
-	        // the falloff function is a blend of two functions, controlled by
-	        // the blending factor df
-	        //
-	        var f1 = 1 + Math.log(Math.max(0.00001, x - 0.01)) / 3;
-	        var f2 = 1 + Math.log(x);
-
-	        df = df * df * df;
-
-
-	        return f2 * df + f1 * (1 - df);
-	    };
-	    
-
-
-	    this.renderer.addPropertyListener(["view"], function(view) {
-	        console.log("new view");
-	        if (!view)
-	            return;
-	        
-	        var target = view.target,
-	            eye = view.eye;
-	        
-	        if (!target || !eye)
-	            return;
-
-	        var et = vec3.distance(target, eye); // the distance between the eye and the target
-
-	        // df goes from 0 -> 1
-	        // when near the target, the value needs to be close to 0
-	        // when far from the target, the value needs to be close to 1
-	        //
-	        var df = util.clamp(et / o.maxDist, 0, 1); 
-
-	        console.log("doing stuff");
-
-	        o.boxes.forEach(function(b) {
-	            // update current box based on distance
-	            var dist = geodist(target, geocenter(b));
-	            // dist_f is always between 0 and 1, 0 indicating that its close
-	            // to us, while 1 means that its far enough that we don't care anymore
-	            // how far it is
-	            //
-	            var dist_f = Math.min(1, dist / o.maxDist);
-
-	            // we can change the dist_f to better suit our needs for DOF fall off
-	            //
-	            var weight = falloff(dist_f, df);
-
-	            console.log("---> w:", weight, "d:", dist_f, "df:", df);
-
-	            // h tells us the level of detail ranging from 16 to 0.
-	            var h = Math.floor(16 * (1 - weight));
-
-	            if (h !== b.height) {
-	                // the height need to be adjusted
-	                o.renderer.removePointBuffer(makeid(b));
-
-	                b.height = h;
-	                o.renderer.addPointBuffer(makeid(b));
-	            }
-	        });
-	    });
-	};
-
-	module.exports = {
-	    Loader: Loader,
-	    NodeDistancePolicy: NodeDistancePolicy
-	};
-
-
-
-/***/ },
 /* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// greyhound-lod.js
-	// Greyhound data fetch as a quadtree
-	//
-
-	var gh = __webpack_require__(19),
-	    EventEmitter = __webpack_require__(16).EventEmitter,
-	    vec3 = __webpack_require__(21).vec3,
-	    vec2 = __webpack_require__(21).vec2,
-		mat4 = __webpack_require__(21).mat4,
-	    inherits = __webpack_require__(17).inherits,
-	    createHash = __webpack_require__(18),
-	    _ = __webpack_require__(20),
-	    util = __webpack_require__(15),
-	    TriggeredDispatch = util.TriggeredDispatch;
-
-	var Box = function(x, y, z, w, h, d, id, depth) {
-		this.x = x; this.y = y ; this.w = w, this.h = h;
-		this.z = z; this.d = d;
-
-		this.id = id || "R";
-		this.depth = depth || 0;
-	};
-
-	Box.prototype.subdivide = function() {
-		var x = this.x, y = this.y;
-		var w = this.w, h = this.h;
-
-		var id0 = this.id + 0;
-		var id1 = this.id + 1;
-		var id2 = this.id + 2;
-		var id3 = this.id + 3;
-
-		var d = this.depth + 1;
-
-		return [
-			new Box(x, y, this.z, w/2, h/2, this.d, id0, d), new Box(x + w/2, y, this.z, w/2, h/2, this.d, id1, d),
-			new Box(x, y + h/2, this.z, w/2, h/2, this.d, id2, d), new Box(x + w/2, y + h/2, this.z, w/2, h/2, this.d, id3, d)
-		];
-	};
-
-	var FrustumLODNodePolicy = function(
-	        loaders,
-	        renderer,
-	        bbox,
-	        closestPlaneDistance,
-	        maxDepth,
-	        imagerySource) {
-
-	    if (!loaders.point || !loaders.transform)
-	        throw new Error(
-	                "The loaders need to have point buffer and transform loaders");
-
-	    this.renderer = renderer;
-	    this.bbox = bbox;
-		this.loaders = loaders;
-		this.maxDepth = (maxDepth || 19) + 1;
-		this.closestPlaneDistance = (closestPlaneDistance || 50);
-		this.maxDepthReduction = 0;
-	    this.imagerySource = imagerySource;
-
-		this.debug = {};
-	};
-
-	var ppoint = function(data, idx) {
-	    var f = new Float32Array(data.buffer);
-	    var off = idx * 8;
-	    console.log("x:", f[0], "y:", f[1], "z:", f[2],
-	                "r:", f[3], "g:", f[4], "b:", f[5],
-	                "i:", f[6], "c:", f[7]);
-	};
-
-	inherits(FrustumLODNodePolicy, EventEmitter);
-
-	FrustumLODNodePolicy.prototype.stop = function() {
-	    this.renderer.removePropertyListener(this.propListener);
-	    this.renderer.removePropertyListener(this.cameraPropsListener);
-	};
-
-	FrustumLODNodePolicy.prototype.setImagerySource = function(imagerySource) {
-	    if (this.clearAll)
-	        this.clearAll();
-
-	    this.imagerySource = imagerySource;
-	    this.nodes = [];
-
-	    if (this.simulateVal)
-	        this.simulateVal();
-	};
-
-	FrustumLODNodePolicy.prototype._hookupDebug = function() {
-	};
-
-
-	FrustumLODNodePolicy.prototype.setDistanceHint = function(hint) {
-		this.closestPlaneDistance = hint;
-		if (this.simulateVal)
-			this.simulateVal();
-	};
-
-
-	FrustumLODNodePolicy.prototype.setMaxDepthReductionHint = function(maxDepthReduction) {
-		this.maxDepthReduction = maxDepthReduction;
-		if (this.simulateVal)
-			this.simulateVal();
-	};
-
-
-	// given a view matrix, figure out the planes in view space, puts
-	// the extracted planes in planes
-	var frustumPlanes = (function() {
-		var planes = new Array(6);
-
-		var norm = function(p) {
-			var f = vec3.length(p);
-
-			p[0] /= f;
-			p[1] /= f;
-			p[2] /= f;
-			p[3] /= f;
-		};
-
-		return function(m) {
-			planes[0] = [m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]];
-			planes[1] = [m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]];
-
-			planes[2] = [m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]];
-			planes[3] = [m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]];
-
-			planes[4] = [m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]];
-			planes[5] = [m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]];
-
-			planes.forEach(norm);
-
-			return planes;
-		};
-	})();
-
-
-	// Given the 6 frustum planes, a bbox and a viewMatrix, this function figures if the
-	// box intersects the bbox
-	//
-	function intersectFrustum(planes, box, viewMatrix) {
-		var mins = [box.x, box.z, box.y, 1], maxs = [box.x+box.w, box.z + box.d, box.y+box.h, 1];
-
-		var dist = function(p, v) {
-			return vec3.dot(p, v) + p[3];
-		};
-
-		var points = [];
-		for (var i = 0 ; i < 8 ; i ++) {
-			var b0 = i & 1, b1 = (i >> 1) & 1, b2 = (i >> 2) & 1;
-
-			var px = b0 ? mins[0] : maxs[0],
-			    py = b1 ? mins[1] : maxs[1],
-			    pz = b2 ? mins[2] : maxs[2];
-
-			points.push(vec3.transformMat4(vec4.create(), [-px, py, pz, 1], viewMatrix));
-		}
-
-		// each of the bounding box needs to be on the wrong side for the bbox to be be completely rejected
-		for (var j = 0 ; j < planes.length ; j ++) {
-			var p1 = planes[j];
-			var v = false;
-
-	        // for the first 4 planes, do regular frustum check
-	        for (var i = 0 ; i < 8 && !v ; i ++) {
-	            var d = dist(p1, points[i]);
-
-	            //console.log(p1, points[i], d);
-
-	            v = (d > 0);
-	        }
-
-			// the box is complete outside the frame of this plane
-			if (!v) return false;
-
-			// the near and far distances are what the
-		}
-
-		return true;
-	};
-
-
-	function intersectBoxToLevel(box, startDepth, level, frustum, viewMatrix) {
-		var rec = function(b, l, f) {
-			//var i = intersectsPlanes(b, planes, viewMatrix);
-			var i = intersectFrustum(frustum, b, viewMatrix);
-
-			if (i) {
-				// emit this block, include information about at which depth it intersected
-				//
-				b.depth = startDepth + l + 1;
-				f(b);
-			}
-			else return; // we're done becuase we don't intersect any further
-
-			if (l === level)
-				return; // we've gone far enough
-
-			// for each child, go further down
-			var boxes = b.subdivide();
-			boxes.forEach(function(bx) {
-				rec(bx, l+1, f);
-			});
-		};
-
-		var boxes = [];
-		rec(box, 0, function(b) {
-			boxes.push(b);
-		});
-
-		return boxes;
-	};
-
-
-	function allBoxesForThisView (box, baseDepth, clipPlanes, proj, view) {
-
-		var depth = clipPlanes.length;
-		var frustum = frustumPlanes(proj);
-
-		var nearestRegion = _.first(clipPlanes); // we need the near plane from this
-
-		var allBoxes = [];
-		for (var i = 0 ; i < depth ; i ++) {
-			var startDepth = (depth - i);
-			var planes = clipPlanes[i];
-
-			// build frustum using the four planes on the sides and our near and far planes
-			var frus = [
-				frustum[0], frustum[1], frustum[2], frustum[3],
-				nearestRegion[0], planes[1], //lastClipPlane[1]
-			];
-
-			var boxes = intersectBoxToLevel(box, baseDepth, startDepth, frus, view);
-
-			allBoxes = allBoxes.concat(boxes);
-
-	        console.log(startDepth, planes[1], boxes.length);
-		}
-
-		return allBoxes;
-	};
-
-
-	FrustumLODNodePolicy.prototype.start = function() {
-	    var o = this;
-
-	    // first things first, download the meta information file and see what
-	    // we're dealing with
-	    var bbox = o.bbox;
-	    var bb = new gh.BBox(bbox.slice(0, 3),
-	                         bbox.slice(3, 6));
-
-		// although we have bounding box here provided to us by the user, we should
-	    // always simulate this as an async thing, since certain policies will
-	    // probably fetch it from the server.
-		setTimeout(function() {
-	        o.emit("bbox", bb);
-		});
-
-	    var center = bb.center();
-		var icenter = [-center[0], -center[1], -center[2]];
-
-	    var region = { cx: bb.maxs[0] - bb.mins[0], cy: bb.maxs[1] - bb.mins[1] };
-		var startDepth = 0;
-
-		o.renderer.setRenderOptions({xyzScale: [1, 1, 1]});
-		o.nodes = [];
-
-	    var l = o.loaders;
-	    var makeId = function(node) {
-	        var id = {};
-
-		    // make sure the points are in a valid coordinate system, offset them
-	        // by the center
-		    var x = node.x + center[0],
-		        y = node.y + center[1];
-
-	        var bbox = new gh.BBox([x, y, bb.mins[2]],
-	                               [x + node.w, y + node.h, bb.maxs[2]]);
-
-	        var worldBBox = bbox.offsetBy(center);
-	        var depthEnd = node.depth;
-	        var depthBegin = (depthEnd === startDepth) ? 0 : (depthEnd - 1);
-
-		    if (l.point) {
-	            id[l.point.constructor.key] =
-	                l.point.queryFor(bbox, depthBegin, depthEnd);
-	        }
-
-		    if (l.overlay) {
-	            id[l.overlay.constructor.key] =
-	                l.overlay.queryFor(bbox, o.imagerySource);
-	        }
-
-		    if (l.transform) {
-	            id[l.transform.constructor.key] =
-	                l.transform.queryFor(worldBBox, bbox);
-	        }
-
-	        return id;
-	    };
-
-		var projectionMatrix = null;
-		var viewMatrix = null;
-
-		var planes = new Array(6);
-
-	    var trigger = new TriggeredDispatch(500, function(view) {
-		    if (!view)
-			    return;
-
-		    // figure out view and target position
-		    //
-	        var eye = view.eye;
-	        var target = view.target;
-		    var cameras = view.cameras;
-
-	        if (eye === null || target === null || cameras == null)
-	            return;
-
-		    // first find the active camera
-		    var camera = _.find(cameras, 'active');
-		    if (!camera)
-			    return;
-
-		    if (camera.type !== "perspective") {
-			    console.log(
-	                "FrustumLODNodePolicy only supports perspective cameras " +
-	                "for now");
-			    return;
-		    }
-
-			// setup current projection and view matrices
-		    var near = camera.near || 0.01;
-		    var far = camera.far || 1000.0;
-	        var baseDepth = 10; // this is always a good base depth
-	        var planesNeeded = Math.max(0, (o.maxDepth - o.maxDepthReduction) - baseDepth);
-
-	        // a 3rd of the planes from our eye will be going away in distance linearly
-	        // beyond that we start a cubic range where large steps happen
-	        //
-	        var linearNeeded = Math.floor(planesNeeded / 3);
-	        var quadNeeded = planesNeeded - linearNeeded;
-
-	        var quadraticRange = function(x) {
-	            return far * (x * x * x * x);
-	        };
-
-	        console.log("max-depth", o.maxDepth, "planesNeeded:", planesNeeded, "linearNeeded:", linearNeeded, "quadNeeded:", quadNeeded); 
-
-	        var thisSeries = [];
-
-	        /*
-	        for (var i = 0 ; i < quadNeeded ; i ++) {
-	            thisSeries.push(quadraticRange(1 / (i + 1)));
-	        }
-
-	        // now start with linear range
-	        for (var i = linearNeeded ; i > 0 ; i --) {
-	            thisSeries.push(o.closestPlaneDistance * i);
-	        }
-
-	        thisSeries.push(near);
-	        thisSeries.reverse();
-	         */
-
-	        thisSeries.push(near);
-	        for (var i = 0 ; i < linearNeeded ; i ++) {
-	            thisSeries.push(o.closestPlaneDistance * (1 << (i)));
-	        }
-
-	        var sd = thisSeries[thisSeries.length - 1];
-	        for (var i = 0 ; i < quadNeeded ; i ++) {
-	            thisSeries.push(sd + quadraticRange(1 / (quadNeeded - i)));
-	        }
-
-
-	        console.log("---------------- SERIES:", thisSeries);
-	        
-	        /*
-		    var series = function() {
-			    var c = 0;
-			    var f = far;
-			    var r = [];
-
-			    while (f > o.closestPlaneDistance) {
-				    r.push(f);
-				    c++;
-				    f /= 3;
-			    }
-
-			    r.push(near);
-
-			    console.log(c, r);
-			    r.reverse();
-
-			    return r;
-		    };
-	        */
-
-		    // generate the clip plane pairs that will determine our LOD offsets
-		    //var thisSeries = series();
-		    var clipPlanes = [];
-
-		    // add the first 4-5 planes at a good eye distance
-		    //
-		    for (var i = 0 ; i < thisSeries.length-1 ; i ++) {
-			    var dstart = thisSeries[i];
-			    var dend = thisSeries[i+1];
-
-			    clipPlanes.push([[0, 0, -1, -dstart], [0, 0, 1, dend]]);
-		    }
-
-		    startDepth = Math.max(0, o.maxDepth - thisSeries.length - o.maxDepthReduction);
-
-
-		    // now create a projection matrix
-		    var fov = camera.fov || 75;
-		    var figureAspect = function() {
-			    var width = window.innerWidth,
-			        height = window.innerHeight;
-
-			    return (width > height) ? width / height : height / width;
-		    };
-
-		    // TODO: this is need a much better way to determine what the aspect is going to be
-		    var aspect = (typeof(window) === "object") ? figureAspect() : 1.0;
-		    console.log("frustum perspective:", fov, aspect, near, far);
-		    projectionMatrix = mat4.perspective(projectionMatrix || mat4.create(), fov, aspect, near, far);
-
-
-		    // create the view matrix
-		    // since we're going to be needing it everywhere, node that we can inverse transform most stuff
-		    // out of view space into model space, but its sort of working right now with this, so I am not going
-		    // to touch it.
-		    var e = [eye[0], eye[1], eye[2]];
-		    viewMatrix = mat4.lookAt(viewMatrix || mat4.create(), e, target, [0, 1, 0]);
-
-		    // setup the base box;
-		    var baseBox = new Box(bb.mins[0] - center[0],
-		                          bb.mins[1] - center[1],
-		                          bb.mins[2] - center[2],
-		                          bb.maxs[0] - bb.mins[0],
-		                          bb.maxs[1] - bb.mins[1],
-		                          bb.maxs[2] - bb.mins[2]);
-
-		    var boxList = allBoxesForThisView(baseBox, startDepth,
-		                                      clipPlanes,
-		                                      projectionMatrix, viewMatrix);
-
-		    // make sure that only new buffers are loaded in right
-		    //
-		    var diff = function(a, b) {
-			    return _.filter(a, function(n) { return !_.findWhere(b, n); });
-		    };
-
-	        var nodes = _.uniq(boxList, function(n) { return n.id + ":" + n.depth; });
-	        var newNodes = diff(nodes, o.nodes);
-			var nodesToRemove = diff(o.nodes, nodes);
-
-			console.log('New nodes this query:', newNodes.length);
-			console.log('Nodes going away this query:', nodesToRemove.length);
-			o.nodes = _.union(_.difference(o.nodes, nodesToRemove), newNodes);
-
-			console.log('Nodes in scene:', o.nodes.length);
-		    var deepestNodeDepth = _.max(o.nodes, function(n) {
-	            return n.depth;
-	        }).depth;
-
-		    console.log('Deepest node:', deepestNodeDepth);
-
-		    console.log('Nodes at deepest:',
-	                _.filter(o.nodes, function(n) {
-	                    return n.depth === deepestNodeDepth;
-	                }).length);
-
-		    var goingDeep = _.find(o.nodes, function(n) {
-			    return n.depth > (thisSeries.length / 2);
-		    }) ? true : false;
-
-		    /*
-		    o.renderer.setRenderOptions({
-			    pointSize: 2,
-			    circularPoints: 1,
-			    pointSizeAttenuation: [1, 0.2]
-		    });
-		     */
-
-		    /*
-		    if (goingDeep) {
-		    }
-		    else {
-			    o.renderer.setRenderOptions({
-				    pointSize: 2,
-				    circularPoints: 0,
-				    pointSizeAttenuation: [1, 0]
-			    });
-		    }
-		     */
-
-	        _.forEach(newNodes, function(n) {
-	            o.renderer.addPointBuffer(makeId(n));
-	        });
-
-	        _.forEach(nodesToRemove, function(n) {
-	            o.renderer.removePointBuffer(makeId(n));
-	        });
-
-		    o.emit("view-changed", {
-			    eye: eye, target: target
-		    });
-
-		    o.simulateVal = function() {
-			    trigger.simulateVal();
-		    };
-
-	        o.clearAll = function() {
-	            _.forEach(o.nodes, function(n) {
-	                o.renderer.removePointBuffer(makeId(n));
-	            });
-	        };
-	    });
-
-		// make sure view properties are triggered through our trigger mechanism
-	    o.propListener = o.renderer.addPropertyListener(["view"], function(view) {
-	        trigger.val(view);
-	    });
-
-	    return o.propListener;
-	};
-
-
-	module.exports = {
-	    FrustumLODNodePolicy: FrustumLODNodePolicy
-	};
-
-
-/***/ },
-/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// greyhound-lod.js 
 	// Greyhound data fetch as a quadtree
 	//
 
-	var gh = __webpack_require__(19),
+	var gh = __webpack_require__(17),
 	    EventEmitter = __webpack_require__(16).EventEmitter,
 	    vec3 = __webpack_require__(21).vec3,
 	    vec2 = __webpack_require__(21).vec2,
-	    inherits = __webpack_require__(17).inherits,
-	    createHash = __webpack_require__(18),
+	    inherits = __webpack_require__(18).inherits,
+	    createHash = __webpack_require__(19),
 	    _ = __webpack_require__(20),
 	    util = __webpack_require__(15),
 	    TriggeredDispatch = util.TriggeredDispatch;
@@ -1674,265 +1132,549 @@
 
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// tile-loaders.js
-	// A whole bunch of tile loaders
+	// greyhound-lod.js
+	// Greyhound data fetch as a quadtree
 	//
 
-	var SphericalMercator = __webpack_require__(22);
+	var gh = __webpack_require__(17),
+	    EventEmitter = __webpack_require__(16).EventEmitter,
+	    vec3 = __webpack_require__(21).vec3,
+	    vec2 = __webpack_require__(21).vec2,
+		mat4 = __webpack_require__(21).mat4,
+	    inherits = __webpack_require__(18).inherits,
+	    createHash = __webpack_require__(19),
+	    _ = __webpack_require__(20),
+	    util = __webpack_require__(15),
+	    TriggeredDispatch = util.TriggeredDispatch;
 
-	var KittyLoader = function() {
+	var Box = function(x, y, z, w, h, d, id, depth) {
+		this.x = x; this.y = y ; this.w = w, this.h = h;
+		this.z = z; this.d = d;
+
+		this.id = id || "R";
+		this.depth = depth || 0;
 	};
 
-	KittyLoader.key = "kitty-loader";
-	KittyLoader.provides = "image-overlay";
+	Box.prototype.subdivide = function() {
+		var x = this.x, y = this.y;
+		var w = this.w, h = this.h;
 
+		var id0 = this.id + 0;
+		var id1 = this.id + 1;
+		var id2 = this.id + 2;
+		var id3 = this.id + 3;
 
-	KittyLoader.prototype.queryFor = function() {
-	    return {
-	        size: 512
-	    };
+		var d = this.depth + 1;
+
+		return [
+			new Box(x, y, this.z, w/2, h/2, this.d, id0, d), new Box(x + w/2, y, this.z, w/2, h/2, this.d, id1, d),
+			new Box(x, y + h/2, this.z, w/2, h/2, this.d, id2, d), new Box(x + w/2, y + h/2, this.z, w/2, h/2, this.d, id3, d)
+		];
 	};
 
-	KittyLoader.load = function(params, cb) {
-	    var s = params.size;
+	var FrustumLODNodePolicy = function(
+	        loaders,
+	        renderer,
+	        bbox,
+	        closestPlaneDistance,
+	        maxDepth,
+	        imagerySource) {
 
-	    var url = "https://placekitten.com/" + s + "/" + s;
+	    if (!loaders.point || !loaders.transform)
+	        throw new Error(
+	                "The loaders need to have point buffer and transform loaders");
 
-	    var img = new Image();
-	    img.crossOrigin = '';
-	    img.onload = function() {
-	        cb(null, img);
-	    };
+	    this.renderer = renderer;
+	    this.bbox = bbox;
+		this.loaders = loaders;
+		this.maxDepth = (maxDepth || 19) + 1;
+		this.closestPlaneDistance = (closestPlaneDistance || 50);
+		this.maxDepthReduction = 0;
+	    this.imagerySource = imagerySource;
 
-	    img.src = url;
+		this.debug = {};
 	};
 
-	var MapboxLoader = function() {
+	var ppoint = function(data, idx) {
+	    var f = new Float32Array(data.buffer);
+	    var off = idx * 8;
+	    console.log("x:", f[0], "y:", f[1], "z:", f[2],
+	                "r:", f[3], "g:", f[4], "b:", f[5],
+	                "i:", f[6], "c:", f[7]);
 	};
 
-	MapboxLoader.key = "mapbox-loader";
-	MapboxLoader.provides = "image-overlay";
+	inherits(FrustumLODNodePolicy, EventEmitter);
 
-	var detailLevel = function(s, bbox) {
-	    // convert spherical to lat long
-	    //
-	    var l = s.inverse(bbox.slice(0, 2)).concat(s.inverse(bbox.slice(2)));
-
-	    // find a zoom factor for which we have a resonable number of times to fetch
-	    var z = 20;
-	    var range = null;
-	    while(z > 0) {
-	        range = s.xyz(l, z);
-	        var c = (range.maxX - range.minX) * (range.maxY - range.minY);
-	        if (c < 10)
-	            break;
-	        z --;
-	    }
-
-	    return {
-	        region: l,
-	        zoom: z,
-	        range: range
-	    };
+	FrustumLODNodePolicy.prototype.stop = function() {
+	    this.renderer.removePropertyListener(this.propListener);
+	    this.renderer.removePropertyListener(this.cameraPropsListener);
 	};
 
-	var bboxCenter = function(b) {
-	    return [b[0] + (b[2] - b[0]) / 2, b[1] + (b[3] - b[1]) / 2];
+	FrustumLODNodePolicy.prototype.setImagerySource = function(imagerySource) {
+	    if (this.clearAll)
+	        this.clearAll();
+
+	    this.imagerySource = imagerySource;
+	    this.nodes = [];
+
+	    if (this.simulateVal)
+	        this.simulateVal();
 	};
 
-	var tilesForRegion = function(s, bbox) {
-	    // give a region, figure out all the tiles needed with their
-	    var v = detailLevel(s, bbox);
+	FrustumLODNodePolicy.prototype._hookupDebug = function() {
+	};
 
-	    var zoom  = v.zoom;
-	    var range = v.range;
-	    var region = v.region;
 
-	    var regionCenter = bboxCenter(s.forward(region.slice(0, 2)).concat(s.forward(region.slice(2, 4))));
+	FrustumLODNodePolicy.prototype.setDistanceHint = function(hint) {
+		this.closestPlaneDistance = hint;
+		if (this.simulateVal)
+			this.simulateVal();
+	};
 
-	    var tiles = [];
 
-	    for (var y = range.minY ; y <= range.maxY ; y ++) {
-	        for (var x = range.minX ; x <= range.maxX ; x++) {
-	            var b = s.bbox(x, y, zoom);
-	            var tileBBox = s.forward(b.slice(0, 2)).concat(s.forward(b.slice(2, 4)));
-	            var center = bboxCenter(tileBBox);
+	FrustumLODNodePolicy.prototype.setMaxDepthReductionHint = function(maxDepthReduction) {
+		this.maxDepthReduction = maxDepthReduction;
+		if (this.simulateVal)
+			this.simulateVal();
+	};
 
-	            tiles.push({
-	                center: center,
-	                bbox: tileBBox,
-	                x: x,
-	                y: y,
-	                zoom: zoom,
-	                offset: [regionCenter[0] - center[0], regionCenter[1] - center[1]]
-	            });
+
+	// given a view matrix, figure out the planes in view space, puts
+	// the extracted planes in planes
+	var frustumPlanes = (function() {
+		var planes = new Array(6);
+
+		var norm = function(p) {
+			var f = vec3.length(p);
+
+			p[0] /= f;
+			p[1] /= f;
+			p[2] /= f;
+			p[3] /= f;
+		};
+
+		return function(m) {
+			planes[0] = [m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]];
+			planes[1] = [m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]];
+
+			planes[2] = [m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]];
+			planes[3] = [m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]];
+
+			planes[4] = [m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]];
+			planes[5] = [m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]];
+
+			planes.forEach(norm);
+
+			return planes;
+		};
+	})();
+
+
+	// Given the 6 frustum planes, a bbox and a viewMatrix, this function figures if the
+	// box intersects the bbox
+	//
+	function intersectFrustum(planes, box, viewMatrix) {
+		var mins = [box.x, box.z, box.y, 1], maxs = [box.x+box.w, box.z + box.d, box.y+box.h, 1];
+
+		var dist = function(p, v) {
+			return vec3.dot(p, v) + p[3];
+		};
+
+		var points = [];
+		for (var i = 0 ; i < 8 ; i ++) {
+			var b0 = i & 1, b1 = (i >> 1) & 1, b2 = (i >> 2) & 1;
+
+			var px = b0 ? mins[0] : maxs[0],
+			    py = b1 ? mins[1] : maxs[1],
+			    pz = b2 ? mins[2] : maxs[2];
+
+			points.push(vec3.transformMat4(vec4.create(), [-px, py, pz, 1], viewMatrix));
+		}
+
+		// each of the bounding box needs to be on the wrong side for the bbox to be be completely rejected
+		for (var j = 0 ; j < planes.length ; j ++) {
+			var p1 = planes[j];
+			var v = false;
+
+	        // for the first 4 planes, do regular frustum check
+	        for (var i = 0 ; i < 8 && !v ; i ++) {
+	            var d = dist(p1, points[i]);
+
+	            //console.log(p1, points[i], d);
+
+	            v = (d > 0);
 	        }
-	    }
 
-	    return tiles;
-	};
+			// the box is complete outside the frame of this plane
+			if (!v) return false;
 
-	var fetchTile = function(tile, mapboxType, cb) {
-	    var url =
-	            "http://api.tiles.mapbox.com/v4/" +
-	            mapboxType + "/" +
-	            tile.zoom + "/" +
-	            tile.x + "/" +
-	            tile.y + ".jpg70" +
-	            "?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw";
+			// the near and far distances are what the
+		}
 
-	    var image = new Image();
-	    image.crossOrigin = '';
-
-	    image.onload = function() {
-	        cb(null, {tile: tile, image: image});
-	    };
-
-	    image.src= url;
-	};
-
-	var loadAllTiles = function(tiles, mapboxType, cb) {
-	    var imgs = [];
-
-	    for (var i in tiles) {
-	        var t = tiles[i];
-	        fetchTile(t, mapboxType, function(err, res) {
-	            imgs.push(res);
-	            if (imgs.length === tiles.length)
-	                cb(null, imgs);
-	        });
-	    }
-	};
-
-	var drawTilesToCanvas = function(ctx, bbox, tiles) {
-	    var rangex = bbox[2] - bbox[0];
-	    var rangey = bbox[3] - bbox[1];
-
-	    var scale = Math.max(rangex, rangey);
-
-	    var fx = 1024 / rangex;
-	    var fy = 1024 / rangey;
-
-	    for (var i in tiles) {
-	        var t = tiles[i];
-
-	        var tileWidth = t.tile.bbox[2] - t.tile.bbox[0];
-	        var tileHeight = t.tile.bbox[3] - t.tile.bbox[1];
-
-	        tileWidth *= fx;
-	        tileHeight *= fy;
-
-	        var tilex = - t.tile.offset[0] * fx;
-	        var tiley = t.tile.offset[1] * fy;
-
-	        var x = 512 + tilex - (tileWidth / 2);
-	        var y = 512 + tiley - (tileHeight / 2);
-
-	        ctx.drawImage(t.image, x, y, tileWidth, tileHeight);
-	        /*
-	        ctx.fillText(t.tile.x + ", " + t.tile.y, x + tileWidth / 2, y + tileHeight / 2);
-	        ctx.rect(x, y, tileWidth, tileHeight);
-	        ctx.stroke();
-	         */
-	    }
+		return true;
 	};
 
 
-	MapboxLoader.prototype.queryFor = function(bbox, imagerySource) {
-	    return {
-	        bbox: bbox.mins.slice(0, 2).concat(bbox.maxs.slice(0, 2)),
-	        imagerySource: imagerySource
-	    };
-	};
+	function intersectBoxToLevel(box, startDepth, level, frustum, viewMatrix) {
+		var rec = function(b, l, f) {
+			//var i = intersectsPlanes(b, planes, viewMatrix);
+			var i = intersectFrustum(frustum, b, viewMatrix);
 
-	MapboxLoader.load = function(params, cb) {
-		if (false) {
-			return setTimeout(function() {
-				var c = document.createElement("canvas");
-				c.width = 1024;
-				c.height = 1024;
+			if (i) {
+				// emit this block, include information about at which depth it intersected
+				//
+				b.depth = startDepth + l + 1;
+				f(b);
+			}
+			else return; // we're done becuase we don't intersect any further
 
-				return cb(null, { image: c, needFlip: false });
+			if (l === level)
+				return; // we've gone far enough
+
+			// for each child, go further down
+			var boxes = b.subdivide();
+			boxes.forEach(function(bx) {
+				rec(bx, l+1, f);
 			});
-	    }
+		};
 
-	    var bbox = params.bbox;
-	    var mapboxType = params.imagerySource || "hobu.l8a69jch";
-	    var s = new SphericalMercator();
+		var boxes = [];
+		rec(box, 0, function(b) {
+			boxes.push(b);
+		});
 
-	    var tiles = tilesForRegion(s, bbox);
+		return boxes;
+	};
 
-	    loadAllTiles(tiles, mapboxType, function(err, images) {
-	        var c = document.createElement("canvas");
 
-	        c.width = 1024;
-	        c.height = 1024;
+	function allBoxesForThisView (box, baseDepth, clipPlanes, proj, view) {
 
-	        var ctx = c.getContext("2d");
-	        drawTilesToCanvas(ctx, bbox, images);
+		var depth = clipPlanes.length;
+		var frustum = frustumPlanes(proj);
 
+		var nearestRegion = _.first(clipPlanes); // we need the near plane from this
+
+		var allBoxes = [];
+		for (var i = 0 ; i < depth ; i ++) {
+			var startDepth = (depth - i);
+			var planes = clipPlanes[i];
+
+			// build frustum using the four planes on the sides and our near and far planes
+			var frus = [
+				frustum[0], frustum[1], frustum[2], frustum[3],
+				nearestRegion[0], planes[1], //lastClipPlane[1]
+			];
+
+			var boxes = intersectBoxToLevel(box, baseDepth, startDepth, frus, view);
+
+			allBoxes = allBoxes.concat(boxes);
+
+	        console.log(startDepth, planes[1], boxes.length);
+		}
+
+		return allBoxes;
+	};
+
+
+	FrustumLODNodePolicy.prototype.start = function() {
+	    var o = this;
+
+	    // first things first, download the meta information file and see what
+	    // we're dealing with
+	    var bbox = o.bbox;
+	    var bb = new gh.BBox(bbox.slice(0, 3),
+	                         bbox.slice(3, 6));
+
+		// although we have bounding box here provided to us by the user, we should
+	    // always simulate this as an async thing, since certain policies will
+	    // probably fetch it from the server.
+		setTimeout(function() {
+	        o.emit("bbox", bb);
+		});
+
+	    var center = bb.center();
+		var icenter = [-center[0], -center[1], -center[2]];
+
+	    var region = { cx: bb.maxs[0] - bb.mins[0], cy: bb.maxs[1] - bb.mins[1] };
+		var startDepth = 0;
+
+		o.renderer.setRenderOptions({xyzScale: [1, 1, 1]});
+		o.nodes = [];
+
+	    var l = o.loaders;
+	    var makeId = function(node) {
+	        var id = {};
+
+		    // make sure the points are in a valid coordinate system, offset them
+	        // by the center
+		    var x = node.x + center[0],
+		        y = node.y + center[1];
+
+	        var bbox = new gh.BBox([x, y, bb.mins[2]],
+	                               [x + node.w, y + node.h, bb.maxs[2]]);
+
+	        var worldBBox = bbox.offsetBy(center);
+	        var depthEnd = node.depth;
+	        var depthBegin = (depthEnd === startDepth) ? 0 : (depthEnd - 1);
+
+		    if (l.point) {
+	            id[l.point.constructor.key] =
+	                l.point.queryFor(bbox, depthBegin, depthEnd);
+	        }
+
+		    if (l.overlay) {
+	            id[l.overlay.constructor.key] =
+	                l.overlay.queryFor(bbox, o.imagerySource);
+	        }
+
+		    if (l.transform) {
+	            id[l.transform.constructor.key] =
+	                l.transform.queryFor(worldBBox, bbox);
+	        }
+
+	        return id;
+	    };
+
+		var projectionMatrix = null;
+		var viewMatrix = null;
+
+		var planes = new Array(6);
+
+	    var trigger = new TriggeredDispatch(500, function(view) {
+		    if (!view)
+			    return;
+
+		    // figure out view and target position
+		    //
+	        var eye = view.eye;
+	        var target = view.target;
+		    var cameras = view.cameras;
+
+	        if (eye === null || target === null || cameras == null)
+	            return;
+
+		    // first find the active camera
+		    var camera = _.find(cameras, 'active');
+		    if (!camera)
+			    return;
+
+		    if (camera.type !== "perspective") {
+			    console.log(
+	                "FrustumLODNodePolicy only supports perspective cameras " +
+	                "for now");
+			    return;
+		    }
+
+			// setup current projection and view matrices
+		    var near = camera.near || 0.01;
+		    var far = camera.far || 1000.0;
+	        var baseDepth = 10; // this is always a good base depth
+	        var planesNeeded = Math.max(0, (o.maxDepth - o.maxDepthReduction) - baseDepth);
+
+	        // a 3rd of the planes from our eye will be going away in distance linearly
+	        // beyond that we start a cubic range where large steps happen
+	        //
+	        var linearNeeded = Math.floor(planesNeeded / 3);
+	        var quadNeeded = planesNeeded - linearNeeded;
+
+	        var quadraticRange = function(x) {
+	            return far * (x * x * x * x);
+	        };
+
+	        console.log("max-depth", o.maxDepth, "planesNeeded:", planesNeeded, "linearNeeded:", linearNeeded, "quadNeeded:", quadNeeded); 
+
+	        var thisSeries = [];
 
 	        /*
-	        c.style.position = "absolute";
-	        c.style.left = 0;
-	        c.style.top = 0;
-	        c.style.width = 256;
-	        c.style.height = 256;
+	        for (var i = 0 ; i < quadNeeded ; i ++) {
+	            thisSeries.push(quadraticRange(1 / (i + 1)));
+	        }
 
-	        document.body.appendChild(c);
+	        // now start with linear range
+	        for (var i = linearNeeded ; i > 0 ; i --) {
+	            thisSeries.push(o.closestPlaneDistance * i);
+	        }
+
+	        thisSeries.push(near);
+	        thisSeries.reverse();
 	         */
 
-	        cb(null, {
-	            image: c,
-	            needFlip: false
+	        thisSeries.push(near);
+	        for (var i = 0 ; i < linearNeeded ; i ++) {
+	            thisSeries.push(o.closestPlaneDistance * (1 << (i)));
+	        }
+
+	        var sd = thisSeries[thisSeries.length - 1];
+	        for (var i = 0 ; i < quadNeeded ; i ++) {
+	            thisSeries.push(sd + quadraticRange(1 / (quadNeeded - i)));
+	        }
+
+
+	        console.log("---------------- SERIES:", thisSeries);
+	        
+	        /*
+		    var series = function() {
+			    var c = 0;
+			    var f = far;
+			    var r = [];
+
+			    while (f > o.closestPlaneDistance) {
+				    r.push(f);
+				    c++;
+				    f /= 3;
+			    }
+
+			    r.push(near);
+
+			    console.log(c, r);
+			    r.reverse();
+
+			    return r;
+		    };
+	        */
+
+		    // generate the clip plane pairs that will determine our LOD offsets
+		    //var thisSeries = series();
+		    var clipPlanes = [];
+
+		    // add the first 4-5 planes at a good eye distance
+		    //
+		    for (var i = 0 ; i < thisSeries.length-1 ; i ++) {
+			    var dstart = thisSeries[i];
+			    var dend = thisSeries[i+1];
+
+			    clipPlanes.push([[0, 0, -1, -dstart], [0, 0, 1, dend]]);
+		    }
+
+		    startDepth = Math.max(0, o.maxDepth - thisSeries.length - o.maxDepthReduction);
+
+
+		    // now create a projection matrix
+		    var fov = camera.fov || 75;
+		    var figureAspect = function() {
+			    var width = window.innerWidth,
+			        height = window.innerHeight;
+
+			    return (width > height) ? width / height : height / width;
+		    };
+
+		    // TODO: this is need a much better way to determine what the aspect is going to be
+		    var aspect = (typeof(window) === "object") ? figureAspect() : 1.0;
+		    console.log("frustum perspective:", fov, aspect, near, far);
+		    projectionMatrix = mat4.perspective(projectionMatrix || mat4.create(), fov, aspect, near, far);
+
+
+		    // create the view matrix
+		    // since we're going to be needing it everywhere, node that we can inverse transform most stuff
+		    // out of view space into model space, but its sort of working right now with this, so I am not going
+		    // to touch it.
+		    var e = [eye[0], eye[1], eye[2]];
+		    viewMatrix = mat4.lookAt(viewMatrix || mat4.create(), e, target, [0, 1, 0]);
+
+		    // setup the base box;
+		    var baseBox = new Box(bb.mins[0] - center[0],
+		                          bb.mins[1] - center[1],
+		                          bb.mins[2] - center[2],
+		                          bb.maxs[0] - bb.mins[0],
+		                          bb.maxs[1] - bb.mins[1],
+		                          bb.maxs[2] - bb.mins[2]);
+
+		    var boxList = allBoxesForThisView(baseBox, startDepth,
+		                                      clipPlanes,
+		                                      projectionMatrix, viewMatrix);
+
+		    // make sure that only new buffers are loaded in right
+		    //
+		    var diff = function(a, b) {
+			    return _.filter(a, function(n) { return !_.findWhere(b, n); });
+		    };
+
+	        var nodes = _.uniq(boxList, function(n) { return n.id + ":" + n.depth; });
+	        var newNodes = diff(nodes, o.nodes);
+			var nodesToRemove = diff(o.nodes, nodes);
+
+			console.log('New nodes this query:', newNodes.length);
+			console.log('Nodes going away this query:', nodesToRemove.length);
+			o.nodes = _.union(_.difference(o.nodes, nodesToRemove), newNodes);
+
+			console.log('Nodes in scene:', o.nodes.length);
+		    var deepestNodeDepth = _.max(o.nodes, function(n) {
+	            return n.depth;
+	        }).depth;
+
+		    console.log('Deepest node:', deepestNodeDepth);
+
+		    console.log('Nodes at deepest:',
+	                _.filter(o.nodes, function(n) {
+	                    return n.depth === deepestNodeDepth;
+	                }).length);
+
+		    var goingDeep = _.find(o.nodes, function(n) {
+			    return n.depth > (thisSeries.length / 2);
+		    }) ? true : false;
+
+		    /*
+		    o.renderer.setRenderOptions({
+			    pointSize: 2,
+			    circularPoints: 1,
+			    pointSizeAttenuation: [1, 0.2]
+		    });
+		     */
+
+		    /*
+		    if (goingDeep) {
+		    }
+		    else {
+			    o.renderer.setRenderOptions({
+				    pointSize: 2,
+				    circularPoints: 0,
+				    pointSizeAttenuation: [1, 0]
+			    });
+		    }
+		     */
+
+	        _.forEach(newNodes, function(n) {
+	            o.renderer.addPointBuffer(makeId(n));
 	        });
+
+	        _.forEach(nodesToRemove, function(n) {
+	            o.renderer.removePointBuffer(makeId(n));
+	        });
+
+		    o.emit("view-changed", {
+			    eye: eye, target: target
+		    });
+
+		    o.simulateVal = function() {
+			    trigger.simulateVal();
+		    };
+
+	        o.clearAll = function() {
+	            _.forEach(o.nodes, function(n) {
+	                o.renderer.removePointBuffer(makeId(n));
+	            });
+	        };
 	    });
+
+		// make sure view properties are triggered through our trigger mechanism
+	    o.propListener = o.renderer.addPropertyListener(["view"], function(view) {
+	        trigger.val(view);
+	    });
+
+	    return o.propListener;
 	};
 
+
 	module.exports = {
-	    KittyLoader: KittyLoader,
-	    MapboxLoader: MapboxLoader
+	    FrustumLODNodePolicy: FrustumLODNodePolicy
 	};
 
 
 /***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// transform-loaders.js
-	// Loaders for different kinds of transforms
-	//
-
-	var TransformLoader = function() {
-	};
-
-	TransformLoader.key = "transform";
-	TransformLoader.provides = "transform";
-
-	TransformLoader.prototype.queryFor = function(worldBBox, regionBBox) {
-	    return {
-	        position: worldBBox.center(),
-	        offset: regionBBox.center(),
-	        mins: worldBBox.mins,
-	        maxs: worldBBox.maxs
-	    };
-	};
-
-	TransformLoader.load = function(params, cb) {
-	    // don't really need sync loading
-	    cb(null, params);
-	};
-
-	module.exports = {
-	    TransformLoader: TransformLoader
-	};
-
-
-/***/ },
-/* 10 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// buffer-loaders.js
@@ -2223,167 +1965,265 @@
 
 
 /***/ },
-/* 11 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// line-picker.js
-	// Line picker mode
+	// tile-loaders.js
+	// A whole bunch of tile loaders
 	//
 
-	var LinePicker = function(elem, renderer) {
-	    this.elem = elem;
-	    this.renderer = renderer;
-	    this.lastPickedPoint = null;
-	    this.currentLineId = null;
-	    this.lines = []; // all the points + which lines they affect
+	var SphericalMercator = __webpack_require__(22);
+
+	var KittyLoader = function() {
 	};
 
-	LinePicker.prototype.activate = function() {
-	    console.log("Activating line picker!");
-	    this._attachHandlers();
+	KittyLoader.key = "kitty-loader";
+	KittyLoader.provides = "image-overlay";
+
+
+	KittyLoader.prototype.queryFor = function() {
+	    return {
+	        size: 512
+	    };
 	};
 
-	LinePicker.prototype.deactivate = function() {
-	    console.log("Deactivating line picker!");
-	    this.lastPickedPoint = null;
-	    if (this._detachHandlers)
-	        this._detachHandlers();
+	KittyLoader.load = function(params, cb) {
+	    var s = params.size;
+
+	    var url = "https://placekitten.com/" + s + "/" + s;
+
+	    var img = new Image();
+	    img.crossOrigin = '';
+	    img.onload = function() {
+	        cb(null, img);
+	    };
+
+	    img.src = url;
 	};
 
-	LinePicker.prototype.resetState = function() {
-	    this.lastPickedPoint = null;
-	    this.renderer.removeAllLineSegments();
-	    this.lines = [];
+	var MapboxLoader = function() {
 	};
 
-	var pointInSpace = function(o, evt) {
-	    var w = o.elem.offsetWidth,
-	        h = o.elem.offsetHeight;
+	MapboxLoader.key = "mapbox-loader";
+	MapboxLoader.provides = "image-overlay";
 
-		var x = evt.offsetX==undefined?evt.layerX:evt.offsetX;
-		var y = evt.offsetY==undefined?evt.layerY:evt.offsetY;
-
-	    // pick a point in renderer
+	var detailLevel = function(s, bbox) {
+	    // convert spherical to lat long
 	    //
-	    var p = o.renderer.pickPoint(x, y);
+	    var l = s.inverse(bbox.slice(0, 2)).concat(s.inverse(bbox.slice(2)));
 
-	    if (Math.abs(p[0]) < 0.00001 &&
-	        Math.abs(p[1]) < 0.00001 &&
-	        Math.abs(p[2]) < 0.00001)
-	        return null;
-	    
-	    return p;
-	};
-
-	var randomId = function() {
-	    return Math.random().toFixed(20).substring(2);
-	};
-
-	function hslToRgb(h, s, l){
-	    var r, g, b;
-
-	    if(s == 0){
-	        r = g = b = l; // achromatic
-	    }else{
-	        var hue2rgb = function hue2rgb(p, q, t){
-	            if(t < 0) t += 1;
-	            if(t > 1) t -= 1;
-	            if(t < 1/6) return p + (q - p) * 6 * t;
-	            if(t < 1/2) return q;
-	            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-	            return p;
-	        };
-
-	        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-	        var p = 2 * l - q;
-	        r = hue2rgb(p, q, h + 1/3);
-	        g = hue2rgb(p, q, h);
-	        b = hue2rgb(p, q, h - 1/3);
+	    // find a zoom factor for which we have a resonable number of times to fetch
+	    var z = 20;
+	    var range = null;
+	    while(z > 0) {
+	        range = s.xyz(l, z);
+	        var c = (range.maxX - range.minX) * (range.maxY - range.minY);
+	        if (c < 10)
+	            break;
+	        z --;
 	    }
 
-	    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-	};
-
-	var randomColor = function() {
-	    return hslToRgb(Math.random(), 0.5, 0.7);
-	};
-
-	LinePicker.prototype._attachHandlers = function() {
-	    var o = this;
-	    
-	    var dblclick = function(e) {
-	        e.preventDefault();
-
-	        var p = pointInSpace(o, e);
-
-		    var x = e.offsetX==undefined?e.layerX:e.offsetX;
-		    var y = e.offsetY==undefined?e.layerY:e.offsetY;
-
-	        // get the screenspace point, take note of it
-	        //
-	        var sp = {x: x, y: y};
-
-	        if (!p) return;
-
-	        var id = randomId(),
-	            color = randomColor();
-
-	        o.currentLineId = id;
-	        o.currentLineColor = color;
-
-	        o.lastPickedPoint = p;
-
-	        o.lines.push([sp, id, o.lastPickedPoint, p, color]);
-	        o.renderer.addLineSegment(id, o.lastPickedPoint, p, color);
+	    return {
+	        region: l,
+	        zoom: z,
+	        range: range
 	    };
+	};
 
-	    var mouseover = function(e) {
-	        e.preventDefault();
+	var bboxCenter = function(b) {
+	    return [b[0] + (b[2] - b[0]) / 2, b[1] + (b[3] - b[1]) / 2];
+	};
 
-	        if (o.currentLineId) {
-	            var p = pointInSpace(o, e);
-	            if (!p)
-	                return;
+	var tilesForRegion = function(s, bbox) {
+	    // give a region, figure out all the tiles needed with their
+	    var v = detailLevel(s, bbox);
 
-	            // remove old and add new
-	            //
-	            o.renderer.updateLineSegment(o.currentLineId, null, p, null);
+	    var zoom  = v.zoom;
+	    var range = v.range;
+	    var region = v.region;
 
-	            /*
-	            o.renderer.removeLineSegment(o.currentLineId);
-	            o.currentLineId = randomId();
+	    var regionCenter = bboxCenter(s.forward(region.slice(0, 2)).concat(s.forward(region.slice(2, 4))));
 
-	            o.renderer.addLineSegment(o.currentLineId, o.lastPickedPoint, p, o.currentLineColor);
-	             */
+	    var tiles = [];
+
+	    for (var y = range.minY ; y <= range.maxY ; y ++) {
+	        for (var x = range.minX ; x <= range.maxX ; x++) {
+	            var b = s.bbox(x, y, zoom);
+	            var tileBBox = s.forward(b.slice(0, 2)).concat(s.forward(b.slice(2, 4)));
+	            var center = bboxCenter(tileBBox);
+
+	            tiles.push({
+	                center: center,
+	                bbox: tileBBox,
+	                x: x,
+	                y: y,
+	                zoom: zoom,
+	                offset: [regionCenter[0] - center[0], regionCenter[1] - center[1]]
+	            });
 	        }
+	    }
+
+	    return tiles;
+	};
+
+	var fetchTile = function(tile, mapboxType, cb) {
+	    var url =
+	            "http://api.tiles.mapbox.com/v4/" +
+	            mapboxType + "/" +
+	            tile.zoom + "/" +
+	            tile.x + "/" +
+	            tile.y + ".jpg70" +
+	            "?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw";
+
+	    var image = new Image();
+	    image.crossOrigin = '';
+
+	    image.onload = function() {
+	        cb(null, {tile: tile, image: image});
 	    };
 
-	    o.elem.addEventListener("click", dblclick);
-	    o.elem.addEventListener("mousemove", mouseover);
+	    image.src= url;
+	};
 
-	    this._detachHandlers = function() {
-	        o.elem.removeEventListener("click", dblclick);
-	        o.elem.removeEventListener("mousemove", mouseover);
+	var loadAllTiles = function(tiles, mapboxType, cb) {
+	    var imgs = [];
 
-	        o._detachHandlers = null;
+	    for (var i in tiles) {
+	        var t = tiles[i];
+	        fetchTile(t, mapboxType, function(err, res) {
+	            imgs.push(res);
+	            if (imgs.length === tiles.length)
+	                cb(null, imgs);
+	        });
+	    }
+	};
 
-	        // also remove last added line
-	        //
-	        if (o.currentLineId)
-	            o.renderer.removeLineSegment(o.currentLineId);
+	var drawTilesToCanvas = function(ctx, bbox, tiles) {
+	    var rangex = bbox[2] - bbox[0];
+	    var rangey = bbox[3] - bbox[1];
 
-	        o.currentLineId = o.lastPickedPoint = null;
-	            
+	    var scale = Math.max(rangex, rangey);
+
+	    var fx = 1024 / rangex;
+	    var fy = 1024 / rangey;
+
+	    for (var i in tiles) {
+	        var t = tiles[i];
+
+	        var tileWidth = t.tile.bbox[2] - t.tile.bbox[0];
+	        var tileHeight = t.tile.bbox[3] - t.tile.bbox[1];
+
+	        tileWidth *= fx;
+	        tileHeight *= fy;
+
+	        var tilex = - t.tile.offset[0] * fx;
+	        var tiley = t.tile.offset[1] * fy;
+
+	        var x = 512 + tilex - (tileWidth / 2);
+	        var y = 512 + tiley - (tileHeight / 2);
+
+	        ctx.drawImage(t.image, x, y, tileWidth, tileHeight);
+	        /*
+	        ctx.fillText(t.tile.x + ", " + t.tile.y, x + tileWidth / 2, y + tileHeight / 2);
+	        ctx.rect(x, y, tileWidth, tileHeight);
+	        ctx.stroke();
+	         */
+	    }
+	};
+
+
+	MapboxLoader.prototype.queryFor = function(bbox, imagerySource) {
+	    return {
+	        bbox: bbox.mins.slice(0, 2).concat(bbox.maxs.slice(0, 2)),
+	        imagerySource: imagerySource
 	    };
+	};
+
+	MapboxLoader.load = function(params, cb) {
+		if (false) {
+			return setTimeout(function() {
+				var c = document.createElement("canvas");
+				c.width = 1024;
+				c.height = 1024;
+
+				return cb(null, { image: c, needFlip: false });
+			});
+	    }
+
+	    var bbox = params.bbox;
+	    var mapboxType = params.imagerySource || "hobu.l8a69jch";
+	    var s = new SphericalMercator();
+
+	    var tiles = tilesForRegion(s, bbox);
+
+	    loadAllTiles(tiles, mapboxType, function(err, images) {
+	        var c = document.createElement("canvas");
+
+	        c.width = 1024;
+	        c.height = 1024;
+
+	        var ctx = c.getContext("2d");
+	        drawTilesToCanvas(ctx, bbox, images);
+
+
+	        /*
+	        c.style.position = "absolute";
+	        c.style.left = 0;
+	        c.style.top = 0;
+	        c.style.width = 256;
+	        c.style.height = 256;
+
+	        document.body.appendChild(c);
+	         */
+
+	        cb(null, {
+	            image: c,
+	            needFlip: false
+	        });
+	    });
 	};
 
 	module.exports = {
-	    LinePicker: LinePicker
+	    KittyLoader: KittyLoader,
+	    MapboxLoader: MapboxLoader
 	};
 
 
 /***/ },
-/* 12 */
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// transform-loaders.js
+	// Loaders for different kinds of transforms
+	//
+
+	var TransformLoader = function() {
+	};
+
+	TransformLoader.key = "transform";
+	TransformLoader.provides = "transform";
+
+	TransformLoader.prototype.queryFor = function(worldBBox, regionBBox) {
+	    return {
+	        position: worldBBox.center(),
+	        offset: regionBBox.center(),
+	        mins: worldBBox.mins,
+	        maxs: worldBBox.maxs
+	    };
+	};
+
+	TransformLoader.load = function(params, cb) {
+	    // don't really need sync loading
+	    cb(null, params);
+	};
+
+	module.exports = {
+	    TransformLoader: TransformLoader
+	};
+
+
+/***/ },
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// orbital.js
@@ -2896,6 +2736,170 @@
 
 
 /***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// line-picker.js
+	// Line picker mode
+	//
+
+	var LinePicker = function(elem, renderer) {
+	    this.elem = elem;
+	    this.renderer = renderer;
+	    this.lastPickedPoint = null;
+	    this.currentLineId = null;
+	    this.lines = []; // all the points + which lines they affect
+	};
+
+	LinePicker.prototype.activate = function() {
+	    console.log("Activating line picker!");
+	    // always make sure things are detached before we start attaching
+	    if (this._detachHandlers) {
+	        this._detachHandlers();
+	    }
+	    this._attachHandlers();
+	};
+
+	LinePicker.prototype.deactivate = function() {
+	    console.log("Deactivating line picker!");
+	    this.lastPickedPoint = null;
+	    if (this._detachHandlers)
+	        this._detachHandlers();
+	};
+
+	LinePicker.prototype.resetState = function() {
+	    this.lastPickedPoint = null;
+	    this.renderer.removeAllLineSegments();
+	    this.lines = [];
+	};
+
+	var pointInSpace = function(o, evt) {
+	    var w = o.elem.offsetWidth,
+	        h = o.elem.offsetHeight;
+
+		var x = evt.offsetX==undefined?evt.layerX:evt.offsetX;
+		var y = evt.offsetY==undefined?evt.layerY:evt.offsetY;
+
+	    // pick a point in renderer
+	    //
+	    var p = o.renderer.pickPoint(x, y);
+
+	    if (Math.abs(p[0]) < 0.00001 &&
+	        Math.abs(p[1]) < 0.00001 &&
+	        Math.abs(p[2]) < 0.00001)
+	        return null;
+	    
+	    return p;
+	};
+
+	var randomId = function() {
+	    return Math.random().toFixed(20).substring(2);
+	};
+
+	function hslToRgb(h, s, l){
+	    var r, g, b;
+
+	    if(s == 0){
+	        r = g = b = l; // achromatic
+	    }else{
+	        var hue2rgb = function hue2rgb(p, q, t){
+	            if(t < 0) t += 1;
+	            if(t > 1) t -= 1;
+	            if(t < 1/6) return p + (q - p) * 6 * t;
+	            if(t < 1/2) return q;
+	            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+	            return p;
+	        };
+
+	        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+	        var p = 2 * l - q;
+	        r = hue2rgb(p, q, h + 1/3);
+	        g = hue2rgb(p, q, h);
+	        b = hue2rgb(p, q, h - 1/3);
+	    }
+
+	    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+	};
+
+	var randomColor = function() {
+	    return hslToRgb(Math.random(), 0.5, 0.7);
+	};
+
+	LinePicker.prototype._attachHandlers = function() {
+	    var o = this;
+	    
+	    var dblclick = function(e) {
+	        e.preventDefault();
+
+	        var p = pointInSpace(o, e);
+
+		    var x = e.offsetX==undefined?e.layerX:e.offsetX;
+		    var y = e.offsetY==undefined?e.layerY:e.offsetY;
+
+	        // get the screenspace point, take note of it
+	        //
+	        var sp = {x: x, y: y};
+
+	        if (!p) return;
+
+	        var id = randomId(),
+	            color = randomColor();
+
+	        o.currentLineId = id;
+	        o.currentLineColor = color;
+
+	        o.lastPickedPoint = p;
+
+	        o.lines.push([sp, id, o.lastPickedPoint, p, color]);
+	        o.renderer.addLineSegment(id, o.lastPickedPoint, p, color);
+	    };
+
+	    var mouseover = function(e) {
+	        e.preventDefault();
+
+	        if (o.currentLineId) {
+	            var p = pointInSpace(o, e);
+	            if (!p)
+	                return;
+
+	            // remove old and add new
+	            //
+	            o.renderer.updateLineSegment(o.currentLineId, null, p, null);
+
+	            /*
+	            o.renderer.removeLineSegment(o.currentLineId);
+	            o.currentLineId = randomId();
+
+	            o.renderer.addLineSegment(o.currentLineId, o.lastPickedPoint, p, o.currentLineColor);
+	             */
+	        }
+	    };
+
+	    o.elem.addEventListener("click", dblclick);
+	    o.elem.addEventListener("mousemove", mouseover);
+
+	    this._detachHandlers = function() {
+	        o.elem.removeEventListener("click", dblclick);
+	        o.elem.removeEventListener("mousemove", mouseover);
+
+	        o._detachHandlers = null;
+
+	        // also remove last added line
+	        //
+	        if (o.currentLineId)
+	            o.renderer.removeLineSegment(o.currentLineId);
+
+	        o.currentLineId = o.lastPickedPoint = null;
+	            
+	    };
+	};
+
+	module.exports = {
+	    LinePicker: LinePicker
+	};
+
+
+/***/ },
 /* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -3182,7 +3186,7 @@
 	var Peer = __webpack_require__(23);
 	var EventEmitter = __webpack_require__(16).EventEmitter;
 	var util = __webpack_require__(15);
-	var u = __webpack_require__(17);
+	var u = __webpack_require__(18);
 
 	var baseUrl = "http://thor.udayv.com:2379/v2/keys/";
 
@@ -3696,7 +3700,7 @@
 	    TriggeredDispatch: TriggeredDispatch
 	};
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(30)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(25)))
 
 /***/ },
 /* 16 */
@@ -4007,6 +4011,17 @@
 
 /***/ },
 /* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// index.js
+	// Entry point for node module
+	//
+
+	module.exports = __webpack_require__(24);
+
+
+/***/ },
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {// Copyright Joyent, Inc. and other Node contributors.
@@ -4596,10 +4611,10 @@
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(30)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(25)))
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var exports = module.exports = function (alg) {
@@ -4609,22 +4624,11 @@
 	}
 
 
-	exports.sha1 = __webpack_require__(25)
+	exports.sha1 = __webpack_require__(26)
 	exports.sha224 = __webpack_require__(27)
-	exports.sha256 = __webpack_require__(24)
-	exports.sha384 = __webpack_require__(26)
-	exports.sha512 = __webpack_require__(28)
-
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// index.js
-	// Entry point for node module
-	//
-
-	module.exports = __webpack_require__(29);
+	exports.sha256 = __webpack_require__(28)
+	exports.sha384 = __webpack_require__(29)
+	exports.sha512 = __webpack_require__(30)
 
 
 /***/ },
@@ -20621,639 +20625,6 @@
 /* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
-	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
-	 * in FIPS 180-2
-	 * Version 2.2-beta Copyright Angel Marin, Paul Johnston 2000 - 2009.
-	 * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
-	 *
-	 */
-
-	var inherits = __webpack_require__(43)
-	var Hash = __webpack_require__(37)
-
-	var K = [
-	  0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
-	  0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
-	  0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3,
-	  0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
-	  0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC,
-	  0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
-	  0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7,
-	  0xC6E00BF3, 0xD5A79147, 0x06CA6351, 0x14292967,
-	  0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13,
-	  0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85,
-	  0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3,
-	  0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
-	  0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5,
-	  0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
-	  0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208,
-	  0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2
-	]
-
-	var W = new Array(64)
-
-	function Sha256() {
-	  this.init()
-
-	  this._w = W // new Array(64)
-
-	  Hash.call(this, 64, 56)
-	}
-
-	inherits(Sha256, Hash)
-
-	Sha256.prototype.init = function () {
-	  this._a = 0x6a09e667|0
-	  this._b = 0xbb67ae85|0
-	  this._c = 0x3c6ef372|0
-	  this._d = 0xa54ff53a|0
-	  this._e = 0x510e527f|0
-	  this._f = 0x9b05688c|0
-	  this._g = 0x1f83d9ab|0
-	  this._h = 0x5be0cd19|0
-
-	  return this
-	}
-
-	function S (X, n) {
-	  return (X >>> n) | (X << (32 - n));
-	}
-
-	function R (X, n) {
-	  return (X >>> n);
-	}
-
-	function Ch (x, y, z) {
-	  return ((x & y) ^ ((~x) & z));
-	}
-
-	function Maj (x, y, z) {
-	  return ((x & y) ^ (x & z) ^ (y & z));
-	}
-
-	function Sigma0256 (x) {
-	  return (S(x, 2) ^ S(x, 13) ^ S(x, 22));
-	}
-
-	function Sigma1256 (x) {
-	  return (S(x, 6) ^ S(x, 11) ^ S(x, 25));
-	}
-
-	function Gamma0256 (x) {
-	  return (S(x, 7) ^ S(x, 18) ^ R(x, 3));
-	}
-
-	function Gamma1256 (x) {
-	  return (S(x, 17) ^ S(x, 19) ^ R(x, 10));
-	}
-
-	Sha256.prototype._update = function(M) {
-	  var W = this._w
-
-	  var a = this._a | 0
-	  var b = this._b | 0
-	  var c = this._c | 0
-	  var d = this._d | 0
-	  var e = this._e | 0
-	  var f = this._f | 0
-	  var g = this._g | 0
-	  var h = this._h | 0
-
-	  var j = 0
-
-	  function calcW() { return Gamma1256(W[j - 2]) + W[j - 7] + Gamma0256(W[j - 15]) + W[j - 16] }
-	  function loop(w) {
-	    W[j] = w
-
-	    var T1 = h + Sigma1256(e) + Ch(e, f, g) + K[j] + w
-	    var T2 = Sigma0256(a) + Maj(a, b, c);
-
-	    h = g;
-	    g = f;
-	    f = e;
-	    e = d + T1;
-	    d = c;
-	    c = b;
-	    b = a;
-	    a = T1 + T2;
-
-	    j++
-	  }
-
-	  while (j < 16) loop(M.readInt32BE(j * 4))
-	  while (j < 64) loop(calcW())
-
-	  this._a = (a + this._a) | 0
-	  this._b = (b + this._b) | 0
-	  this._c = (c + this._c) | 0
-	  this._d = (d + this._d) | 0
-	  this._e = (e + this._e) | 0
-	  this._f = (f + this._f) | 0
-	  this._g = (g + this._g) | 0
-	  this._h = (h + this._h) | 0
-	};
-
-	Sha256.prototype._hash = function () {
-	  var H = new Buffer(32)
-
-	  H.writeInt32BE(this._a,  0)
-	  H.writeInt32BE(this._b,  4)
-	  H.writeInt32BE(this._c,  8)
-	  H.writeInt32BE(this._d, 12)
-	  H.writeInt32BE(this._e, 16)
-	  H.writeInt32BE(this._f, 20)
-	  H.writeInt32BE(this._g, 24)
-	  H.writeInt32BE(this._h, 28)
-
-	  return H
-	}
-
-	module.exports = Sha256
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
-
-/***/ },
-/* 25 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
-	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
-	 * in FIPS PUB 180-1
-	 * Version 2.1a Copyright Paul Johnston 2000 - 2002.
-	 * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
-	 * Distributed under the BSD License
-	 * See http://pajhome.org.uk/crypt/md5 for details.
-	 */
-
-	var inherits = __webpack_require__(43)
-	var Hash = __webpack_require__(37)
-
-	var W = new Array(80)
-
-	function Sha1() {
-	  this.init()
-	  this._w = W
-
-	  Hash.call(this, 64, 56)
-	}
-
-	inherits(Sha1, Hash)
-
-	Sha1.prototype.init = function () {
-	  this._a = 0x67452301
-	  this._b = 0xefcdab89
-	  this._c = 0x98badcfe
-	  this._d = 0x10325476
-	  this._e = 0xc3d2e1f0
-
-	  return this
-	}
-
-	/*
-	 * Bitwise rotate a 32-bit number to the left.
-	 */
-	function rol(num, cnt) {
-	  return (num << cnt) | (num >>> (32 - cnt));
-	}
-
-	Sha1.prototype._update = function (M) {
-	  var W = this._w
-
-	  var a = this._a
-	  var b = this._b
-	  var c = this._c
-	  var d = this._d
-	  var e = this._e
-
-	  var j = 0, k
-
-	  function calcW() { return rol(W[j - 3] ^ W[j -  8] ^ W[j - 14] ^ W[j - 16], 1) }
-	  function loop(w, f) {
-	    W[j] = w
-
-	    var t = rol(a, 5) + f + e + w + k
-
-	    e = d
-	    d = c
-	    c = rol(b, 30)
-	    b = a
-	    a = t
-	    j++
-	  }
-
-	  k = 1518500249
-	  while (j < 16) loop(M.readInt32BE(j * 4), (b & c) | ((~b) & d))
-	  while (j < 20) loop(calcW(), (b & c) | ((~b) & d))
-	  k = 1859775393
-	  while (j < 40) loop(calcW(), b ^ c ^ d)
-	  k = -1894007588
-	  while (j < 60) loop(calcW(), (b & c) | (b & d) | (c & d))
-	  k = -899497514
-	  while (j < 80) loop(calcW(), b ^ c ^ d)
-
-	  this._a = (a + this._a) | 0
-	  this._b = (b + this._b) | 0
-	  this._c = (c + this._c) | 0
-	  this._d = (d + this._d) | 0
-	  this._e = (e + this._e) | 0
-	}
-
-	Sha1.prototype._hash = function () {
-	  var H = new Buffer(20)
-
-	  H.writeInt32BE(this._a|0, 0)
-	  H.writeInt32BE(this._b|0, 4)
-	  H.writeInt32BE(this._c|0, 8)
-	  H.writeInt32BE(this._d|0, 12)
-	  H.writeInt32BE(this._e|0, 16)
-
-	  return H
-	}
-
-	module.exports = Sha1
-
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
-
-/***/ },
-/* 26 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(43)
-	var SHA512 = __webpack_require__(28);
-	var Hash = __webpack_require__(37)
-
-	var W = new Array(160)
-
-	function Sha384() {
-	  this.init()
-	  this._w = W
-
-	  Hash.call(this, 128, 112)
-	}
-
-	inherits(Sha384, SHA512)
-
-	Sha384.prototype.init = function () {
-	  this._a = 0xcbbb9d5d|0
-	  this._b = 0x629a292a|0
-	  this._c = 0x9159015a|0
-	  this._d = 0x152fecd8|0
-	  this._e = 0x67332667|0
-	  this._f = 0x8eb44a87|0
-	  this._g = 0xdb0c2e0d|0
-	  this._h = 0x47b5481d|0
-
-	  this._al = 0xc1059ed8|0
-	  this._bl = 0x367cd507|0
-	  this._cl = 0x3070dd17|0
-	  this._dl = 0xf70e5939|0
-	  this._el = 0xffc00b31|0
-	  this._fl = 0x68581511|0
-	  this._gl = 0x64f98fa7|0
-	  this._hl = 0xbefa4fa4|0
-
-	  return this
-	}
-
-	Sha384.prototype._hash = function () {
-	  var H = new Buffer(48)
-
-	  function writeInt64BE(h, l, offset) {
-	    H.writeInt32BE(h, offset)
-	    H.writeInt32BE(l, offset + 4)
-	  }
-
-	  writeInt64BE(this._a, this._al, 0)
-	  writeInt64BE(this._b, this._bl, 8)
-	  writeInt64BE(this._c, this._cl, 16)
-	  writeInt64BE(this._d, this._dl, 24)
-	  writeInt64BE(this._e, this._el, 32)
-	  writeInt64BE(this._f, this._fl, 40)
-
-	  return H
-	}
-
-	module.exports = Sha384
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
-
-/***/ },
-/* 27 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
-	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
-	 * in FIPS 180-2
-	 * Version 2.2-beta Copyright Angel Marin, Paul Johnston 2000 - 2009.
-	 * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
-	 *
-	 */
-
-	var inherits = __webpack_require__(43)
-	var SHA256 = __webpack_require__(24)
-	var Hash = __webpack_require__(37)
-
-	var W = new Array(64)
-
-	function Sha224() {
-	  this.init()
-
-	  this._w = W // new Array(64)
-
-	  Hash.call(this, 64, 56)
-	}
-
-	inherits(Sha224, SHA256)
-
-	Sha224.prototype.init = function () {
-	  this._a = 0xc1059ed8|0
-	  this._b = 0x367cd507|0
-	  this._c = 0x3070dd17|0
-	  this._d = 0xf70e5939|0
-	  this._e = 0xffc00b31|0
-	  this._f = 0x68581511|0
-	  this._g = 0x64f98fa7|0
-	  this._h = 0xbefa4fa4|0
-
-	  return this
-	}
-
-	Sha224.prototype._hash = function () {
-	  var H = new Buffer(28)
-
-	  H.writeInt32BE(this._a,  0)
-	  H.writeInt32BE(this._b,  4)
-	  H.writeInt32BE(this._c,  8)
-	  H.writeInt32BE(this._d, 12)
-	  H.writeInt32BE(this._e, 16)
-	  H.writeInt32BE(this._f, 20)
-	  H.writeInt32BE(this._g, 24)
-
-	  return H
-	}
-
-	module.exports = Sha224
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
-
-/***/ },
-/* 28 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(43)
-	var Hash = __webpack_require__(37)
-
-	var K = [
-	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
-	  0xb5c0fbcf, 0xec4d3b2f, 0xe9b5dba5, 0x8189dbbc,
-	  0x3956c25b, 0xf348b538, 0x59f111f1, 0xb605d019,
-	  0x923f82a4, 0xaf194f9b, 0xab1c5ed5, 0xda6d8118,
-	  0xd807aa98, 0xa3030242, 0x12835b01, 0x45706fbe,
-	  0x243185be, 0x4ee4b28c, 0x550c7dc3, 0xd5ffb4e2,
-	  0x72be5d74, 0xf27b896f, 0x80deb1fe, 0x3b1696b1,
-	  0x9bdc06a7, 0x25c71235, 0xc19bf174, 0xcf692694,
-	  0xe49b69c1, 0x9ef14ad2, 0xefbe4786, 0x384f25e3,
-	  0x0fc19dc6, 0x8b8cd5b5, 0x240ca1cc, 0x77ac9c65,
-	  0x2de92c6f, 0x592b0275, 0x4a7484aa, 0x6ea6e483,
-	  0x5cb0a9dc, 0xbd41fbd4, 0x76f988da, 0x831153b5,
-	  0x983e5152, 0xee66dfab, 0xa831c66d, 0x2db43210,
-	  0xb00327c8, 0x98fb213f, 0xbf597fc7, 0xbeef0ee4,
-	  0xc6e00bf3, 0x3da88fc2, 0xd5a79147, 0x930aa725,
-	  0x06ca6351, 0xe003826f, 0x14292967, 0x0a0e6e70,
-	  0x27b70a85, 0x46d22ffc, 0x2e1b2138, 0x5c26c926,
-	  0x4d2c6dfc, 0x5ac42aed, 0x53380d13, 0x9d95b3df,
-	  0x650a7354, 0x8baf63de, 0x766a0abb, 0x3c77b2a8,
-	  0x81c2c92e, 0x47edaee6, 0x92722c85, 0x1482353b,
-	  0xa2bfe8a1, 0x4cf10364, 0xa81a664b, 0xbc423001,
-	  0xc24b8b70, 0xd0f89791, 0xc76c51a3, 0x0654be30,
-	  0xd192e819, 0xd6ef5218, 0xd6990624, 0x5565a910,
-	  0xf40e3585, 0x5771202a, 0x106aa070, 0x32bbd1b8,
-	  0x19a4c116, 0xb8d2d0c8, 0x1e376c08, 0x5141ab53,
-	  0x2748774c, 0xdf8eeb99, 0x34b0bcb5, 0xe19b48a8,
-	  0x391c0cb3, 0xc5c95a63, 0x4ed8aa4a, 0xe3418acb,
-	  0x5b9cca4f, 0x7763e373, 0x682e6ff3, 0xd6b2b8a3,
-	  0x748f82ee, 0x5defb2fc, 0x78a5636f, 0x43172f60,
-	  0x84c87814, 0xa1f0ab72, 0x8cc70208, 0x1a6439ec,
-	  0x90befffa, 0x23631e28, 0xa4506ceb, 0xde82bde9,
-	  0xbef9a3f7, 0xb2c67915, 0xc67178f2, 0xe372532b,
-	  0xca273ece, 0xea26619c, 0xd186b8c7, 0x21c0c207,
-	  0xeada7dd6, 0xcde0eb1e, 0xf57d4f7f, 0xee6ed178,
-	  0x06f067aa, 0x72176fba, 0x0a637dc5, 0xa2c898a6,
-	  0x113f9804, 0xbef90dae, 0x1b710b35, 0x131c471b,
-	  0x28db77f5, 0x23047d84, 0x32caab7b, 0x40c72493,
-	  0x3c9ebe0a, 0x15c9bebc, 0x431d67c4, 0x9c100d4c,
-	  0x4cc5d4be, 0xcb3e42b6, 0x597f299c, 0xfc657e2a,
-	  0x5fcb6fab, 0x3ad6faec, 0x6c44198c, 0x4a475817
-	]
-
-	var W = new Array(160)
-
-	function Sha512() {
-	  this.init()
-	  this._w = W
-
-	  Hash.call(this, 128, 112)
-	}
-
-	inherits(Sha512, Hash)
-
-	Sha512.prototype.init = function () {
-	  this._a = 0x6a09e667|0
-	  this._b = 0xbb67ae85|0
-	  this._c = 0x3c6ef372|0
-	  this._d = 0xa54ff53a|0
-	  this._e = 0x510e527f|0
-	  this._f = 0x9b05688c|0
-	  this._g = 0x1f83d9ab|0
-	  this._h = 0x5be0cd19|0
-
-	  this._al = 0xf3bcc908|0
-	  this._bl = 0x84caa73b|0
-	  this._cl = 0xfe94f82b|0
-	  this._dl = 0x5f1d36f1|0
-	  this._el = 0xade682d1|0
-	  this._fl = 0x2b3e6c1f|0
-	  this._gl = 0xfb41bd6b|0
-	  this._hl = 0x137e2179|0
-
-	  return this
-	}
-
-	function S (X, Xl, n) {
-	  return (X >>> n) | (Xl << (32 - n))
-	}
-
-	function Ch (x, y, z) {
-	  return ((x & y) ^ ((~x) & z));
-	}
-
-	function Maj (x, y, z) {
-	  return ((x & y) ^ (x & z) ^ (y & z));
-	}
-
-	Sha512.prototype._update = function(M) {
-	  var W = this._w
-
-	  var a = this._a | 0
-	  var b = this._b | 0
-	  var c = this._c | 0
-	  var d = this._d | 0
-	  var e = this._e | 0
-	  var f = this._f | 0
-	  var g = this._g | 0
-	  var h = this._h | 0
-
-	  var al = this._al | 0
-	  var bl = this._bl | 0
-	  var cl = this._cl | 0
-	  var dl = this._dl | 0
-	  var el = this._el | 0
-	  var fl = this._fl | 0
-	  var gl = this._gl | 0
-	  var hl = this._hl | 0
-
-	  var i = 0, j = 0
-	  var Wi, Wil
-	  function calcW() {
-	    var x  = W[j - 15*2]
-	    var xl = W[j - 15*2 + 1]
-	    var gamma0  = S(x, xl, 1) ^ S(x, xl, 8) ^ (x >>> 7)
-	    var gamma0l = S(xl, x, 1) ^ S(xl, x, 8) ^ S(xl, x, 7)
-
-	    x  = W[j - 2*2]
-	    xl = W[j - 2*2 + 1]
-	    var gamma1  = S(x, xl, 19) ^ S(xl, x, 29) ^ (x >>> 6)
-	    var gamma1l = S(xl, x, 19) ^ S(x, xl, 29) ^ S(xl, x, 6)
-
-	    // W[i] = gamma0 + W[i - 7] + gamma1 + W[i - 16]
-	    var Wi7  = W[j - 7*2]
-	    var Wi7l = W[j - 7*2 + 1]
-
-	    var Wi16  = W[j - 16*2]
-	    var Wi16l = W[j - 16*2 + 1]
-
-	    Wil = gamma0l + Wi7l
-	    Wi  = gamma0  + Wi7 + ((Wil >>> 0) < (gamma0l >>> 0) ? 1 : 0)
-	    Wil = Wil + gamma1l
-	    Wi  = Wi  + gamma1  + ((Wil >>> 0) < (gamma1l >>> 0) ? 1 : 0)
-	    Wil = Wil + Wi16l
-	    Wi  = Wi  + Wi16 + ((Wil >>> 0) < (Wi16l >>> 0) ? 1 : 0)
-	  }
-
-	  function loop() {
-	    W[j] = Wi
-	    W[j + 1] = Wil
-
-	    var maj = Maj(a, b, c)
-	    var majl = Maj(al, bl, cl)
-
-	    var sigma0h = S(a, al, 28) ^ S(al, a, 2) ^ S(al, a, 7)
-	    var sigma0l = S(al, a, 28) ^ S(a, al, 2) ^ S(a, al, 7)
-	    var sigma1h = S(e, el, 14) ^ S(e, el, 18) ^ S(el, e, 9)
-	    var sigma1l = S(el, e, 14) ^ S(el, e, 18) ^ S(e, el, 9)
-
-	    // t1 = h + sigma1 + ch + K[i] + W[i]
-	    var Ki = K[j]
-	    var Kil = K[j + 1]
-
-	    var ch = Ch(e, f, g)
-	    var chl = Ch(el, fl, gl)
-
-	    var t1l = hl + sigma1l
-	    var t1 = h + sigma1h + ((t1l >>> 0) < (hl >>> 0) ? 1 : 0)
-	    t1l = t1l + chl
-	    t1 = t1 + ch + ((t1l >>> 0) < (chl >>> 0) ? 1 : 0)
-	    t1l = t1l + Kil
-	    t1 = t1 + Ki + ((t1l >>> 0) < (Kil >>> 0) ? 1 : 0)
-	    t1l = t1l + Wil
-	    t1 = t1 + Wi + ((t1l >>> 0) < (Wil >>> 0) ? 1 : 0)
-
-	    // t2 = sigma0 + maj
-	    var t2l = sigma0l + majl
-	    var t2 = sigma0h + maj + ((t2l >>> 0) < (sigma0l >>> 0) ? 1 : 0)
-
-	    h  = g
-	    hl = gl
-	    g  = f
-	    gl = fl
-	    f  = e
-	    fl = el
-	    el = (dl + t1l) | 0
-	    e  = (d + t1 + ((el >>> 0) < (dl >>> 0) ? 1 : 0)) | 0
-	    d  = c
-	    dl = cl
-	    c  = b
-	    cl = bl
-	    b  = a
-	    bl = al
-	    al = (t1l + t2l) | 0
-	    a  = (t1 + t2 + ((al >>> 0) < (t1l >>> 0) ? 1 : 0)) | 0
-
-	    i++
-	    j += 2
-	  }
-
-	  while (i < 16) {
-	    Wi = M.readInt32BE(j * 4)
-	    Wil = M.readInt32BE(j * 4 + 4)
-
-	    loop()
-	  }
-
-	  while (i < 80) {
-	    calcW()
-	    loop()
-	  }
-
-	  this._al = (this._al + al) | 0
-	  this._bl = (this._bl + bl) | 0
-	  this._cl = (this._cl + cl) | 0
-	  this._dl = (this._dl + dl) | 0
-	  this._el = (this._el + el) | 0
-	  this._fl = (this._fl + fl) | 0
-	  this._gl = (this._gl + gl) | 0
-	  this._hl = (this._hl + hl) | 0
-
-	  this._a = (this._a + a + ((this._al >>> 0) < (al >>> 0) ? 1 : 0)) | 0
-	  this._b = (this._b + b + ((this._bl >>> 0) < (bl >>> 0) ? 1 : 0)) | 0
-	  this._c = (this._c + c + ((this._cl >>> 0) < (cl >>> 0) ? 1 : 0)) | 0
-	  this._d = (this._d + d + ((this._dl >>> 0) < (dl >>> 0) ? 1 : 0)) | 0
-	  this._e = (this._e + e + ((this._el >>> 0) < (el >>> 0) ? 1 : 0)) | 0
-	  this._f = (this._f + f + ((this._fl >>> 0) < (fl >>> 0) ? 1 : 0)) | 0
-	  this._g = (this._g + g + ((this._gl >>> 0) < (gl >>> 0) ? 1 : 0)) | 0
-	  this._h = (this._h + h + ((this._hl >>> 0) < (hl >>> 0) ? 1 : 0)) | 0
-	}
-
-	Sha512.prototype._hash = function () {
-	  var H = new Buffer(64)
-
-	  function writeInt64BE(h, l, offset) {
-	    H.writeInt32BE(h, offset)
-	    H.writeInt32BE(l, offset + 4)
-	  }
-
-	  writeInt64BE(this._a, this._al, 0)
-	  writeInt64BE(this._b, this._bl, 8)
-	  writeInt64BE(this._c, this._cl, 16)
-	  writeInt64BE(this._d, this._dl, 24)
-	  writeInt64BE(this._e, this._el, 32)
-	  writeInt64BE(this._f, this._fl, 40)
-	  writeInt64BE(this._g, this._gl, 48)
-	  writeInt64BE(this._h, this._hl, 56)
-
-	  return H
-	}
-
-	module.exports = Sha512
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
-
-/***/ },
-/* 29 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/**
 	 * @fileOverview
 	 * @name Greyhound Reader
@@ -21267,7 +20638,7 @@
 
 	var WebSocket = __webpack_require__(44);
 	var Buffer = __webpack_require__(40).Buffer;
-	var _ = __webpack_require__(45);
+	var _ = __webpack_require__(43);
 	var EventEmitter = __webpack_require__(16).EventEmitter;
 
 	/**
@@ -21977,7 +21348,7 @@
 
 
 /***/ },
-/* 30 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// shim for using process in browser
@@ -22067,6 +21438,639 @@
 	    throw new Error('process.chdir is not supported');
 	};
 
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
+	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
+	 * in FIPS PUB 180-1
+	 * Version 2.1a Copyright Paul Johnston 2000 - 2002.
+	 * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+	 * Distributed under the BSD License
+	 * See http://pajhome.org.uk/crypt/md5 for details.
+	 */
+
+	var inherits = __webpack_require__(45)
+	var Hash = __webpack_require__(37)
+
+	var W = new Array(80)
+
+	function Sha1() {
+	  this.init()
+	  this._w = W
+
+	  Hash.call(this, 64, 56)
+	}
+
+	inherits(Sha1, Hash)
+
+	Sha1.prototype.init = function () {
+	  this._a = 0x67452301
+	  this._b = 0xefcdab89
+	  this._c = 0x98badcfe
+	  this._d = 0x10325476
+	  this._e = 0xc3d2e1f0
+
+	  return this
+	}
+
+	/*
+	 * Bitwise rotate a 32-bit number to the left.
+	 */
+	function rol(num, cnt) {
+	  return (num << cnt) | (num >>> (32 - cnt));
+	}
+
+	Sha1.prototype._update = function (M) {
+	  var W = this._w
+
+	  var a = this._a
+	  var b = this._b
+	  var c = this._c
+	  var d = this._d
+	  var e = this._e
+
+	  var j = 0, k
+
+	  function calcW() { return rol(W[j - 3] ^ W[j -  8] ^ W[j - 14] ^ W[j - 16], 1) }
+	  function loop(w, f) {
+	    W[j] = w
+
+	    var t = rol(a, 5) + f + e + w + k
+
+	    e = d
+	    d = c
+	    c = rol(b, 30)
+	    b = a
+	    a = t
+	    j++
+	  }
+
+	  k = 1518500249
+	  while (j < 16) loop(M.readInt32BE(j * 4), (b & c) | ((~b) & d))
+	  while (j < 20) loop(calcW(), (b & c) | ((~b) & d))
+	  k = 1859775393
+	  while (j < 40) loop(calcW(), b ^ c ^ d)
+	  k = -1894007588
+	  while (j < 60) loop(calcW(), (b & c) | (b & d) | (c & d))
+	  k = -899497514
+	  while (j < 80) loop(calcW(), b ^ c ^ d)
+
+	  this._a = (a + this._a) | 0
+	  this._b = (b + this._b) | 0
+	  this._c = (c + this._c) | 0
+	  this._d = (d + this._d) | 0
+	  this._e = (e + this._e) | 0
+	}
+
+	Sha1.prototype._hash = function () {
+	  var H = new Buffer(20)
+
+	  H.writeInt32BE(this._a|0, 0)
+	  H.writeInt32BE(this._b|0, 4)
+	  H.writeInt32BE(this._c|0, 8)
+	  H.writeInt32BE(this._d|0, 12)
+	  H.writeInt32BE(this._e|0, 16)
+
+	  return H
+	}
+
+	module.exports = Sha1
+
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
+	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
+	 * in FIPS 180-2
+	 * Version 2.2-beta Copyright Angel Marin, Paul Johnston 2000 - 2009.
+	 * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+	 *
+	 */
+
+	var inherits = __webpack_require__(45)
+	var SHA256 = __webpack_require__(28)
+	var Hash = __webpack_require__(37)
+
+	var W = new Array(64)
+
+	function Sha224() {
+	  this.init()
+
+	  this._w = W // new Array(64)
+
+	  Hash.call(this, 64, 56)
+	}
+
+	inherits(Sha224, SHA256)
+
+	Sha224.prototype.init = function () {
+	  this._a = 0xc1059ed8|0
+	  this._b = 0x367cd507|0
+	  this._c = 0x3070dd17|0
+	  this._d = 0xf70e5939|0
+	  this._e = 0xffc00b31|0
+	  this._f = 0x68581511|0
+	  this._g = 0x64f98fa7|0
+	  this._h = 0xbefa4fa4|0
+
+	  return this
+	}
+
+	Sha224.prototype._hash = function () {
+	  var H = new Buffer(28)
+
+	  H.writeInt32BE(this._a,  0)
+	  H.writeInt32BE(this._b,  4)
+	  H.writeInt32BE(this._c,  8)
+	  H.writeInt32BE(this._d, 12)
+	  H.writeInt32BE(this._e, 16)
+	  H.writeInt32BE(this._f, 20)
+	  H.writeInt32BE(this._g, 24)
+
+	  return H
+	}
+
+	module.exports = Sha224
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
+	 * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
+	 * in FIPS 180-2
+	 * Version 2.2-beta Copyright Angel Marin, Paul Johnston 2000 - 2009.
+	 * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+	 *
+	 */
+
+	var inherits = __webpack_require__(45)
+	var Hash = __webpack_require__(37)
+
+	var K = [
+	  0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
+	  0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
+	  0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3,
+	  0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
+	  0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC,
+	  0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
+	  0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7,
+	  0xC6E00BF3, 0xD5A79147, 0x06CA6351, 0x14292967,
+	  0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13,
+	  0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85,
+	  0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3,
+	  0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
+	  0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5,
+	  0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
+	  0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208,
+	  0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2
+	]
+
+	var W = new Array(64)
+
+	function Sha256() {
+	  this.init()
+
+	  this._w = W // new Array(64)
+
+	  Hash.call(this, 64, 56)
+	}
+
+	inherits(Sha256, Hash)
+
+	Sha256.prototype.init = function () {
+	  this._a = 0x6a09e667|0
+	  this._b = 0xbb67ae85|0
+	  this._c = 0x3c6ef372|0
+	  this._d = 0xa54ff53a|0
+	  this._e = 0x510e527f|0
+	  this._f = 0x9b05688c|0
+	  this._g = 0x1f83d9ab|0
+	  this._h = 0x5be0cd19|0
+
+	  return this
+	}
+
+	function S (X, n) {
+	  return (X >>> n) | (X << (32 - n));
+	}
+
+	function R (X, n) {
+	  return (X >>> n);
+	}
+
+	function Ch (x, y, z) {
+	  return ((x & y) ^ ((~x) & z));
+	}
+
+	function Maj (x, y, z) {
+	  return ((x & y) ^ (x & z) ^ (y & z));
+	}
+
+	function Sigma0256 (x) {
+	  return (S(x, 2) ^ S(x, 13) ^ S(x, 22));
+	}
+
+	function Sigma1256 (x) {
+	  return (S(x, 6) ^ S(x, 11) ^ S(x, 25));
+	}
+
+	function Gamma0256 (x) {
+	  return (S(x, 7) ^ S(x, 18) ^ R(x, 3));
+	}
+
+	function Gamma1256 (x) {
+	  return (S(x, 17) ^ S(x, 19) ^ R(x, 10));
+	}
+
+	Sha256.prototype._update = function(M) {
+	  var W = this._w
+
+	  var a = this._a | 0
+	  var b = this._b | 0
+	  var c = this._c | 0
+	  var d = this._d | 0
+	  var e = this._e | 0
+	  var f = this._f | 0
+	  var g = this._g | 0
+	  var h = this._h | 0
+
+	  var j = 0
+
+	  function calcW() { return Gamma1256(W[j - 2]) + W[j - 7] + Gamma0256(W[j - 15]) + W[j - 16] }
+	  function loop(w) {
+	    W[j] = w
+
+	    var T1 = h + Sigma1256(e) + Ch(e, f, g) + K[j] + w
+	    var T2 = Sigma0256(a) + Maj(a, b, c);
+
+	    h = g;
+	    g = f;
+	    f = e;
+	    e = d + T1;
+	    d = c;
+	    c = b;
+	    b = a;
+	    a = T1 + T2;
+
+	    j++
+	  }
+
+	  while (j < 16) loop(M.readInt32BE(j * 4))
+	  while (j < 64) loop(calcW())
+
+	  this._a = (a + this._a) | 0
+	  this._b = (b + this._b) | 0
+	  this._c = (c + this._c) | 0
+	  this._d = (d + this._d) | 0
+	  this._e = (e + this._e) | 0
+	  this._f = (f + this._f) | 0
+	  this._g = (g + this._g) | 0
+	  this._h = (h + this._h) | 0
+	};
+
+	Sha256.prototype._hash = function () {
+	  var H = new Buffer(32)
+
+	  H.writeInt32BE(this._a,  0)
+	  H.writeInt32BE(this._b,  4)
+	  H.writeInt32BE(this._c,  8)
+	  H.writeInt32BE(this._d, 12)
+	  H.writeInt32BE(this._e, 16)
+	  H.writeInt32BE(this._f, 20)
+	  H.writeInt32BE(this._g, 24)
+	  H.writeInt32BE(this._h, 28)
+
+	  return H
+	}
+
+	module.exports = Sha256
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
+
+/***/ },
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(45)
+	var SHA512 = __webpack_require__(30);
+	var Hash = __webpack_require__(37)
+
+	var W = new Array(160)
+
+	function Sha384() {
+	  this.init()
+	  this._w = W
+
+	  Hash.call(this, 128, 112)
+	}
+
+	inherits(Sha384, SHA512)
+
+	Sha384.prototype.init = function () {
+	  this._a = 0xcbbb9d5d|0
+	  this._b = 0x629a292a|0
+	  this._c = 0x9159015a|0
+	  this._d = 0x152fecd8|0
+	  this._e = 0x67332667|0
+	  this._f = 0x8eb44a87|0
+	  this._g = 0xdb0c2e0d|0
+	  this._h = 0x47b5481d|0
+
+	  this._al = 0xc1059ed8|0
+	  this._bl = 0x367cd507|0
+	  this._cl = 0x3070dd17|0
+	  this._dl = 0xf70e5939|0
+	  this._el = 0xffc00b31|0
+	  this._fl = 0x68581511|0
+	  this._gl = 0x64f98fa7|0
+	  this._hl = 0xbefa4fa4|0
+
+	  return this
+	}
+
+	Sha384.prototype._hash = function () {
+	  var H = new Buffer(48)
+
+	  function writeInt64BE(h, l, offset) {
+	    H.writeInt32BE(h, offset)
+	    H.writeInt32BE(l, offset + 4)
+	  }
+
+	  writeInt64BE(this._a, this._al, 0)
+	  writeInt64BE(this._b, this._bl, 8)
+	  writeInt64BE(this._c, this._cl, 16)
+	  writeInt64BE(this._d, this._dl, 24)
+	  writeInt64BE(this._e, this._el, 32)
+	  writeInt64BE(this._f, this._fl, 40)
+
+	  return H
+	}
+
+	module.exports = Sha384
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(45)
+	var Hash = __webpack_require__(37)
+
+	var K = [
+	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
+	  0xb5c0fbcf, 0xec4d3b2f, 0xe9b5dba5, 0x8189dbbc,
+	  0x3956c25b, 0xf348b538, 0x59f111f1, 0xb605d019,
+	  0x923f82a4, 0xaf194f9b, 0xab1c5ed5, 0xda6d8118,
+	  0xd807aa98, 0xa3030242, 0x12835b01, 0x45706fbe,
+	  0x243185be, 0x4ee4b28c, 0x550c7dc3, 0xd5ffb4e2,
+	  0x72be5d74, 0xf27b896f, 0x80deb1fe, 0x3b1696b1,
+	  0x9bdc06a7, 0x25c71235, 0xc19bf174, 0xcf692694,
+	  0xe49b69c1, 0x9ef14ad2, 0xefbe4786, 0x384f25e3,
+	  0x0fc19dc6, 0x8b8cd5b5, 0x240ca1cc, 0x77ac9c65,
+	  0x2de92c6f, 0x592b0275, 0x4a7484aa, 0x6ea6e483,
+	  0x5cb0a9dc, 0xbd41fbd4, 0x76f988da, 0x831153b5,
+	  0x983e5152, 0xee66dfab, 0xa831c66d, 0x2db43210,
+	  0xb00327c8, 0x98fb213f, 0xbf597fc7, 0xbeef0ee4,
+	  0xc6e00bf3, 0x3da88fc2, 0xd5a79147, 0x930aa725,
+	  0x06ca6351, 0xe003826f, 0x14292967, 0x0a0e6e70,
+	  0x27b70a85, 0x46d22ffc, 0x2e1b2138, 0x5c26c926,
+	  0x4d2c6dfc, 0x5ac42aed, 0x53380d13, 0x9d95b3df,
+	  0x650a7354, 0x8baf63de, 0x766a0abb, 0x3c77b2a8,
+	  0x81c2c92e, 0x47edaee6, 0x92722c85, 0x1482353b,
+	  0xa2bfe8a1, 0x4cf10364, 0xa81a664b, 0xbc423001,
+	  0xc24b8b70, 0xd0f89791, 0xc76c51a3, 0x0654be30,
+	  0xd192e819, 0xd6ef5218, 0xd6990624, 0x5565a910,
+	  0xf40e3585, 0x5771202a, 0x106aa070, 0x32bbd1b8,
+	  0x19a4c116, 0xb8d2d0c8, 0x1e376c08, 0x5141ab53,
+	  0x2748774c, 0xdf8eeb99, 0x34b0bcb5, 0xe19b48a8,
+	  0x391c0cb3, 0xc5c95a63, 0x4ed8aa4a, 0xe3418acb,
+	  0x5b9cca4f, 0x7763e373, 0x682e6ff3, 0xd6b2b8a3,
+	  0x748f82ee, 0x5defb2fc, 0x78a5636f, 0x43172f60,
+	  0x84c87814, 0xa1f0ab72, 0x8cc70208, 0x1a6439ec,
+	  0x90befffa, 0x23631e28, 0xa4506ceb, 0xde82bde9,
+	  0xbef9a3f7, 0xb2c67915, 0xc67178f2, 0xe372532b,
+	  0xca273ece, 0xea26619c, 0xd186b8c7, 0x21c0c207,
+	  0xeada7dd6, 0xcde0eb1e, 0xf57d4f7f, 0xee6ed178,
+	  0x06f067aa, 0x72176fba, 0x0a637dc5, 0xa2c898a6,
+	  0x113f9804, 0xbef90dae, 0x1b710b35, 0x131c471b,
+	  0x28db77f5, 0x23047d84, 0x32caab7b, 0x40c72493,
+	  0x3c9ebe0a, 0x15c9bebc, 0x431d67c4, 0x9c100d4c,
+	  0x4cc5d4be, 0xcb3e42b6, 0x597f299c, 0xfc657e2a,
+	  0x5fcb6fab, 0x3ad6faec, 0x6c44198c, 0x4a475817
+	]
+
+	var W = new Array(160)
+
+	function Sha512() {
+	  this.init()
+	  this._w = W
+
+	  Hash.call(this, 128, 112)
+	}
+
+	inherits(Sha512, Hash)
+
+	Sha512.prototype.init = function () {
+	  this._a = 0x6a09e667|0
+	  this._b = 0xbb67ae85|0
+	  this._c = 0x3c6ef372|0
+	  this._d = 0xa54ff53a|0
+	  this._e = 0x510e527f|0
+	  this._f = 0x9b05688c|0
+	  this._g = 0x1f83d9ab|0
+	  this._h = 0x5be0cd19|0
+
+	  this._al = 0xf3bcc908|0
+	  this._bl = 0x84caa73b|0
+	  this._cl = 0xfe94f82b|0
+	  this._dl = 0x5f1d36f1|0
+	  this._el = 0xade682d1|0
+	  this._fl = 0x2b3e6c1f|0
+	  this._gl = 0xfb41bd6b|0
+	  this._hl = 0x137e2179|0
+
+	  return this
+	}
+
+	function S (X, Xl, n) {
+	  return (X >>> n) | (Xl << (32 - n))
+	}
+
+	function Ch (x, y, z) {
+	  return ((x & y) ^ ((~x) & z));
+	}
+
+	function Maj (x, y, z) {
+	  return ((x & y) ^ (x & z) ^ (y & z));
+	}
+
+	Sha512.prototype._update = function(M) {
+	  var W = this._w
+
+	  var a = this._a | 0
+	  var b = this._b | 0
+	  var c = this._c | 0
+	  var d = this._d | 0
+	  var e = this._e | 0
+	  var f = this._f | 0
+	  var g = this._g | 0
+	  var h = this._h | 0
+
+	  var al = this._al | 0
+	  var bl = this._bl | 0
+	  var cl = this._cl | 0
+	  var dl = this._dl | 0
+	  var el = this._el | 0
+	  var fl = this._fl | 0
+	  var gl = this._gl | 0
+	  var hl = this._hl | 0
+
+	  var i = 0, j = 0
+	  var Wi, Wil
+	  function calcW() {
+	    var x  = W[j - 15*2]
+	    var xl = W[j - 15*2 + 1]
+	    var gamma0  = S(x, xl, 1) ^ S(x, xl, 8) ^ (x >>> 7)
+	    var gamma0l = S(xl, x, 1) ^ S(xl, x, 8) ^ S(xl, x, 7)
+
+	    x  = W[j - 2*2]
+	    xl = W[j - 2*2 + 1]
+	    var gamma1  = S(x, xl, 19) ^ S(xl, x, 29) ^ (x >>> 6)
+	    var gamma1l = S(xl, x, 19) ^ S(x, xl, 29) ^ S(xl, x, 6)
+
+	    // W[i] = gamma0 + W[i - 7] + gamma1 + W[i - 16]
+	    var Wi7  = W[j - 7*2]
+	    var Wi7l = W[j - 7*2 + 1]
+
+	    var Wi16  = W[j - 16*2]
+	    var Wi16l = W[j - 16*2 + 1]
+
+	    Wil = gamma0l + Wi7l
+	    Wi  = gamma0  + Wi7 + ((Wil >>> 0) < (gamma0l >>> 0) ? 1 : 0)
+	    Wil = Wil + gamma1l
+	    Wi  = Wi  + gamma1  + ((Wil >>> 0) < (gamma1l >>> 0) ? 1 : 0)
+	    Wil = Wil + Wi16l
+	    Wi  = Wi  + Wi16 + ((Wil >>> 0) < (Wi16l >>> 0) ? 1 : 0)
+	  }
+
+	  function loop() {
+	    W[j] = Wi
+	    W[j + 1] = Wil
+
+	    var maj = Maj(a, b, c)
+	    var majl = Maj(al, bl, cl)
+
+	    var sigma0h = S(a, al, 28) ^ S(al, a, 2) ^ S(al, a, 7)
+	    var sigma0l = S(al, a, 28) ^ S(a, al, 2) ^ S(a, al, 7)
+	    var sigma1h = S(e, el, 14) ^ S(e, el, 18) ^ S(el, e, 9)
+	    var sigma1l = S(el, e, 14) ^ S(el, e, 18) ^ S(e, el, 9)
+
+	    // t1 = h + sigma1 + ch + K[i] + W[i]
+	    var Ki = K[j]
+	    var Kil = K[j + 1]
+
+	    var ch = Ch(e, f, g)
+	    var chl = Ch(el, fl, gl)
+
+	    var t1l = hl + sigma1l
+	    var t1 = h + sigma1h + ((t1l >>> 0) < (hl >>> 0) ? 1 : 0)
+	    t1l = t1l + chl
+	    t1 = t1 + ch + ((t1l >>> 0) < (chl >>> 0) ? 1 : 0)
+	    t1l = t1l + Kil
+	    t1 = t1 + Ki + ((t1l >>> 0) < (Kil >>> 0) ? 1 : 0)
+	    t1l = t1l + Wil
+	    t1 = t1 + Wi + ((t1l >>> 0) < (Wil >>> 0) ? 1 : 0)
+
+	    // t2 = sigma0 + maj
+	    var t2l = sigma0l + majl
+	    var t2 = sigma0h + maj + ((t2l >>> 0) < (sigma0l >>> 0) ? 1 : 0)
+
+	    h  = g
+	    hl = gl
+	    g  = f
+	    gl = fl
+	    f  = e
+	    fl = el
+	    el = (dl + t1l) | 0
+	    e  = (d + t1 + ((el >>> 0) < (dl >>> 0) ? 1 : 0)) | 0
+	    d  = c
+	    dl = cl
+	    c  = b
+	    cl = bl
+	    b  = a
+	    bl = al
+	    al = (t1l + t2l) | 0
+	    a  = (t1 + t2 + ((al >>> 0) < (t1l >>> 0) ? 1 : 0)) | 0
+
+	    i++
+	    j += 2
+	  }
+
+	  while (i < 16) {
+	    Wi = M.readInt32BE(j * 4)
+	    Wil = M.readInt32BE(j * 4 + 4)
+
+	    loop()
+	  }
+
+	  while (i < 80) {
+	    calcW()
+	    loop()
+	  }
+
+	  this._al = (this._al + al) | 0
+	  this._bl = (this._bl + bl) | 0
+	  this._cl = (this._cl + cl) | 0
+	  this._dl = (this._dl + dl) | 0
+	  this._el = (this._el + el) | 0
+	  this._fl = (this._fl + fl) | 0
+	  this._gl = (this._gl + gl) | 0
+	  this._hl = (this._hl + hl) | 0
+
+	  this._a = (this._a + a + ((this._al >>> 0) < (al >>> 0) ? 1 : 0)) | 0
+	  this._b = (this._b + b + ((this._bl >>> 0) < (bl >>> 0) ? 1 : 0)) | 0
+	  this._c = (this._c + c + ((this._cl >>> 0) < (cl >>> 0) ? 1 : 0)) | 0
+	  this._d = (this._d + d + ((this._dl >>> 0) < (dl >>> 0) ? 1 : 0)) | 0
+	  this._e = (this._e + e + ((this._el >>> 0) < (el >>> 0) ? 1 : 0)) | 0
+	  this._f = (this._f + f + ((this._fl >>> 0) < (fl >>> 0) ? 1 : 0)) | 0
+	  this._g = (this._g + g + ((this._gl >>> 0) < (gl >>> 0) ? 1 : 0)) | 0
+	  this._h = (this._h + h + ((this._hl >>> 0) < (hl >>> 0) ? 1 : 0)) | 0
+	}
+
+	Sha512.prototype._hash = function () {
+	  var H = new Buffer(64)
+
+	  function writeInt64BE(h, l, offset) {
+	    H.writeInt32BE(h, offset)
+	    H.writeInt32BE(l, offset + 4)
+	  }
+
+	  writeInt64BE(this._a, this._al, 0)
+	  writeInt64BE(this._b, this._bl, 8)
+	  writeInt64BE(this._c, this._cl, 16)
+	  writeInt64BE(this._d, this._dl, 24)
+	  writeInt64BE(this._e, this._el, 32)
+	  writeInt64BE(this._f, this._fl, 40)
+	  writeInt64BE(this._g, this._gl, 48)
+	  writeInt64BE(this._h, this._hl, 56)
+
+	  return H
+	}
+
+	module.exports = Sha512
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(40).Buffer))
 
 /***/ },
 /* 31 */
@@ -23360,9 +23364,9 @@
 	 * @license  MIT
 	 */
 
-	var base64 = __webpack_require__(52)
-	var ieee754 = __webpack_require__(48)
-	var isArray = __webpack_require__(49)
+	var base64 = __webpack_require__(50)
+	var ieee754 = __webpack_require__(49)
+	var isArray = __webpack_require__(48)
 
 	exports.Buffer = Buffer
 	exports.SlowBuffer = Buffer
@@ -24735,84 +24739,6 @@
 
 /***/ },
 /* 43 */
-/***/ function(module, exports, __webpack_require__) {
-
-	if (typeof Object.create === 'function') {
-	  // implementation from standard node.js 'util' module
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  };
-	} else {
-	  // old school shim for old browsers
-	  module.exports = function inherits(ctor, superCtor) {
-	    ctor.super_ = superCtor
-	    var TempCtor = function () {}
-	    TempCtor.prototype = superCtor.prototype
-	    ctor.prototype = new TempCtor()
-	    ctor.prototype.constructor = ctor
-	  }
-	}
-
-
-/***/ },
-/* 44 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	/**
-	 * Module dependencies.
-	 */
-
-	var global = (function() { return this; })();
-
-	/**
-	 * WebSocket constructor.
-	 */
-
-	var WebSocket = global.WebSocket || global.MozWebSocket;
-
-	/**
-	 * Module exports.
-	 */
-
-	module.exports = WebSocket ? ws : null;
-
-	/**
-	 * WebSocket constructor.
-	 *
-	 * The third `opts` options object gets ignored in web browsers, since it's
-	 * non-standard, and throws a TypeError if passed to the constructor.
-	 * See: https://github.com/einaros/ws/issues/227
-	 *
-	 * @param {String} uri
-	 * @param {Array} protocols (optional)
-	 * @param {Object) opts (optional)
-	 * @api public
-	 */
-
-	function ws(uri, protocols, opts) {
-	  var instance;
-	  if (protocols) {
-	    instance = new WebSocket(uri, protocols);
-	  } else {
-	    instance = new WebSocket(uri);
-	  }
-	  return instance;
-	}
-
-	if (WebSocket) ws.prototype = WebSocket.prototype;
-
-
-/***/ },
-/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -31976,11 +31902,89 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(36)(module), (function() { return this; }())))
 
 /***/ },
+/* 44 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	/**
+	 * Module dependencies.
+	 */
+
+	var global = (function() { return this; })();
+
+	/**
+	 * WebSocket constructor.
+	 */
+
+	var WebSocket = global.WebSocket || global.MozWebSocket;
+
+	/**
+	 * Module exports.
+	 */
+
+	module.exports = WebSocket ? ws : null;
+
+	/**
+	 * WebSocket constructor.
+	 *
+	 * The third `opts` options object gets ignored in web browsers, since it's
+	 * non-standard, and throws a TypeError if passed to the constructor.
+	 * See: https://github.com/einaros/ws/issues/227
+	 *
+	 * @param {String} uri
+	 * @param {Array} protocols (optional)
+	 * @param {Object) opts (optional)
+	 * @api public
+	 */
+
+	function ws(uri, protocols, opts) {
+	  var instance;
+	  if (protocols) {
+	    instance = new WebSocket(uri, protocols);
+	  } else {
+	    instance = new WebSocket(uri);
+	  }
+	  return instance;
+	}
+
+	if (WebSocket) ws.prototype = WebSocket.prototype;
+
+
+/***/ },
+/* 45 */
+/***/ function(module, exports, __webpack_require__) {
+
+	if (typeof Object.create === 'function') {
+	  // implementation from standard node.js 'util' module
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  };
+	} else {
+	  // old school shim for old browsers
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor
+	    var TempCtor = function () {}
+	    TempCtor.prototype = superCtor.prototype
+	    ctor.prototype = new TempCtor()
+	    ctor.prototype.constructor = ctor
+	  }
+	}
+
+
+/***/ },
 /* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BufferBuilder = __webpack_require__(50).BufferBuilder;
-	var binaryFeatures = __webpack_require__(50).binaryFeatures;
+	var BufferBuilder = __webpack_require__(52).BufferBuilder;
+	var binaryFeatures = __webpack_require__(52).binaryFeatures;
 
 	var BinaryPack = {
 	  unpack: function(data){
@@ -32828,6 +32832,45 @@
 /* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
+	
+	/**
+	 * isArray
+	 */
+
+	var isArray = Array.isArray;
+
+	/**
+	 * toString
+	 */
+
+	var str = Object.prototype.toString;
+
+	/**
+	 * Whether or not the given `val`
+	 * is an array.
+	 *
+	 * example:
+	 *
+	 *        isArray([]);
+	 *        // > true
+	 *        isArray(arguments);
+	 *        // > false
+	 *        isArray('');
+	 *        // > false
+	 *
+	 * @param {mixed} val
+	 * @return {bool}
+	 */
+
+	module.exports = isArray || function (val) {
+	  return !! val && '[object Array]' == str.call(val);
+	};
+
+
+/***/ },
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
 	exports.read = function(buffer, offset, isLE, mLen, nBytes) {
 	  var e, m,
 	      eLen = nBytes * 8 - mLen - 1,
@@ -32915,217 +32958,7 @@
 
 
 /***/ },
-/* 49 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	/**
-	 * isArray
-	 */
-
-	var isArray = Array.isArray;
-
-	/**
-	 * toString
-	 */
-
-	var str = Object.prototype.toString;
-
-	/**
-	 * Whether or not the given `val`
-	 * is an array.
-	 *
-	 * example:
-	 *
-	 *        isArray([]);
-	 *        // > true
-	 *        isArray(arguments);
-	 *        // > false
-	 *        isArray('');
-	 *        // > false
-	 *
-	 * @param {mixed} val
-	 * @return {bool}
-	 */
-
-	module.exports = isArray || function (val) {
-	  return !! val && '[object Array]' == str.call(val);
-	};
-
-
-/***/ },
 /* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var binaryFeatures = {};
-	binaryFeatures.useBlobBuilder = (function(){
-	  try {
-	    new Blob([]);
-	    return false;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
-	  try {
-	    return (new Blob([new Uint8Array([])])).size === 0;
-	  } catch (e) {
-	    return true;
-	  }
-	})();
-
-	module.exports.binaryFeatures = binaryFeatures;
-	var BlobBuilder = module.exports.BlobBuilder;
-	if (typeof window != 'undefined') {
-	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
-	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
-	}
-
-	function BufferBuilder(){
-	  this._pieces = [];
-	  this._parts = [];
-	}
-
-	BufferBuilder.prototype.append = function(data) {
-	  if(typeof data === 'number') {
-	    this._pieces.push(data);
-	  } else {
-	    this.flush();
-	    this._parts.push(data);
-	  }
-	};
-
-	BufferBuilder.prototype.flush = function() {
-	  if (this._pieces.length > 0) {
-	    var buf = new Uint8Array(this._pieces);
-	    if(!binaryFeatures.useArrayBufferView) {
-	      buf = buf.buffer;
-	    }
-	    this._parts.push(buf);
-	    this._pieces = [];
-	  }
-	};
-
-	BufferBuilder.prototype.getBuffer = function() {
-	  this.flush();
-	  if(binaryFeatures.useBlobBuilder) {
-	    var builder = new BlobBuilder();
-	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
-	      builder.append(this._parts[i]);
-	    }
-	    return builder.getBlob();
-	  } else {
-	    return new Blob(this._parts);
-	  }
-	};
-
-	module.exports.BufferBuilder = BufferBuilder;
-
-
-/***/ },
-/* 51 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var BinaryPack = __webpack_require__(46);
-
-	var util = {
-	  debug: false,
-	  
-	  inherits: function(ctor, superCtor) {
-	    ctor.super_ = superCtor;
-	    ctor.prototype = Object.create(superCtor.prototype, {
-	      constructor: {
-	        value: ctor,
-	        enumerable: false,
-	        writable: true,
-	        configurable: true
-	      }
-	    });
-	  },
-	  extend: function(dest, source) {
-	    for(var key in source) {
-	      if(source.hasOwnProperty(key)) {
-	        dest[key] = source[key];
-	      }
-	    }
-	    return dest;
-	  },
-	  pack: BinaryPack.pack,
-	  unpack: BinaryPack.unpack,
-	  
-	  log: function () {
-	    if (util.debug) {
-	      var copy = [];
-	      for (var i = 0; i < arguments.length; i++) {
-	        copy[i] = arguments[i];
-	      }
-	      copy.unshift('Reliable: ');
-	      console.log.apply(console, copy);
-	    }
-	  },
-
-	  setZeroTimeout: (function(global) {
-	    var timeouts = [];
-	    var messageName = 'zero-timeout-message';
-
-	    // Like setTimeout, but only takes a function argument.	 There's
-	    // no time argument (always zero) and no arguments (you have to
-	    // use a closure).
-	    function setZeroTimeoutPostMessage(fn) {
-	      timeouts.push(fn);
-	      global.postMessage(messageName, '*');
-	    }		
-
-	    function handleMessage(event) {
-	      if (event.source == global && event.data == messageName) {
-	        if (event.stopPropagation) {
-	          event.stopPropagation();
-	        }
-	        if (timeouts.length) {
-	          timeouts.shift()();
-	        }
-	      }
-	    }
-	    if (global.addEventListener) {
-	      global.addEventListener('message', handleMessage, true);
-	    } else if (global.attachEvent) {
-	      global.attachEvent('onmessage', handleMessage);
-	    }
-	    return setZeroTimeoutPostMessage;
-	  }(this)),
-	  
-	  blobToArrayBuffer: function(blob, cb){
-	    var fr = new FileReader();
-	    fr.onload = function(evt) {
-	      cb(evt.target.result);
-	    };
-	    fr.readAsArrayBuffer(blob);
-	  },
-	  blobToBinaryString: function(blob, cb){
-	    var fr = new FileReader();
-	    fr.onload = function(evt) {
-	      cb(evt.target.result);
-	    };
-	    fr.readAsBinaryString(blob);
-	  },
-	  binaryStringToArrayBuffer: function(binary) {
-	    var byteArray = new Uint8Array(binary.length);
-	    for (var i = 0; i < binary.length; i++) {
-	      byteArray[i] = binary.charCodeAt(i) & 0xff;
-	    }
-	    return byteArray.buffer;
-	  },
-	  randomToken: function () {
-	    return Math.random().toString(36).substr(2);
-	  }
-	};
-
-	module.exports = util;
-
-
-/***/ },
-/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -33248,6 +33081,177 @@
 		exports.toByteArray = b64ToByteArray
 		exports.fromByteArray = uint8ToBase64
 	}(false ? (this.base64js = {}) : exports))
+
+
+/***/ },
+/* 51 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var BinaryPack = __webpack_require__(46);
+
+	var util = {
+	  debug: false,
+	  
+	  inherits: function(ctor, superCtor) {
+	    ctor.super_ = superCtor;
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  },
+	  extend: function(dest, source) {
+	    for(var key in source) {
+	      if(source.hasOwnProperty(key)) {
+	        dest[key] = source[key];
+	      }
+	    }
+	    return dest;
+	  },
+	  pack: BinaryPack.pack,
+	  unpack: BinaryPack.unpack,
+	  
+	  log: function () {
+	    if (util.debug) {
+	      var copy = [];
+	      for (var i = 0; i < arguments.length; i++) {
+	        copy[i] = arguments[i];
+	      }
+	      copy.unshift('Reliable: ');
+	      console.log.apply(console, copy);
+	    }
+	  },
+
+	  setZeroTimeout: (function(global) {
+	    var timeouts = [];
+	    var messageName = 'zero-timeout-message';
+
+	    // Like setTimeout, but only takes a function argument.	 There's
+	    // no time argument (always zero) and no arguments (you have to
+	    // use a closure).
+	    function setZeroTimeoutPostMessage(fn) {
+	      timeouts.push(fn);
+	      global.postMessage(messageName, '*');
+	    }		
+
+	    function handleMessage(event) {
+	      if (event.source == global && event.data == messageName) {
+	        if (event.stopPropagation) {
+	          event.stopPropagation();
+	        }
+	        if (timeouts.length) {
+	          timeouts.shift()();
+	        }
+	      }
+	    }
+	    if (global.addEventListener) {
+	      global.addEventListener('message', handleMessage, true);
+	    } else if (global.attachEvent) {
+	      global.attachEvent('onmessage', handleMessage);
+	    }
+	    return setZeroTimeoutPostMessage;
+	  }(this)),
+	  
+	  blobToArrayBuffer: function(blob, cb){
+	    var fr = new FileReader();
+	    fr.onload = function(evt) {
+	      cb(evt.target.result);
+	    };
+	    fr.readAsArrayBuffer(blob);
+	  },
+	  blobToBinaryString: function(blob, cb){
+	    var fr = new FileReader();
+	    fr.onload = function(evt) {
+	      cb(evt.target.result);
+	    };
+	    fr.readAsBinaryString(blob);
+	  },
+	  binaryStringToArrayBuffer: function(binary) {
+	    var byteArray = new Uint8Array(binary.length);
+	    for (var i = 0; i < binary.length; i++) {
+	      byteArray[i] = binary.charCodeAt(i) & 0xff;
+	    }
+	    return byteArray.buffer;
+	  },
+	  randomToken: function () {
+	    return Math.random().toString(36).substr(2);
+	  }
+	};
+
+	module.exports = util;
+
+
+/***/ },
+/* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var binaryFeatures = {};
+	binaryFeatures.useBlobBuilder = (function(){
+	  try {
+	    new Blob([]);
+	    return false;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	binaryFeatures.useArrayBufferView = !binaryFeatures.useBlobBuilder && (function(){
+	  try {
+	    return (new Blob([new Uint8Array([])])).size === 0;
+	  } catch (e) {
+	    return true;
+	  }
+	})();
+
+	module.exports.binaryFeatures = binaryFeatures;
+	var BlobBuilder = module.exports.BlobBuilder;
+	if (typeof window != 'undefined') {
+	  BlobBuilder = module.exports.BlobBuilder = window.WebKitBlobBuilder ||
+	    window.MozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+	}
+
+	function BufferBuilder(){
+	  this._pieces = [];
+	  this._parts = [];
+	}
+
+	BufferBuilder.prototype.append = function(data) {
+	  if(typeof data === 'number') {
+	    this._pieces.push(data);
+	  } else {
+	    this.flush();
+	    this._parts.push(data);
+	  }
+	};
+
+	BufferBuilder.prototype.flush = function() {
+	  if (this._pieces.length > 0) {
+	    var buf = new Uint8Array(this._pieces);
+	    if(!binaryFeatures.useArrayBufferView) {
+	      buf = buf.buffer;
+	    }
+	    this._parts.push(buf);
+	    this._pieces = [];
+	  }
+	};
+
+	BufferBuilder.prototype.getBuffer = function() {
+	  this.flush();
+	  if(binaryFeatures.useBlobBuilder) {
+	    var builder = new BlobBuilder();
+	    for(var i = 0, ii = this._parts.length; i < ii; i++) {
+	      builder.append(this._parts[i]);
+	    }
+	    return builder.getBlob();
+	  } else {
+	    return new Blob(this._parts);
+	  }
+	};
+
+	module.exports.BufferBuilder = BufferBuilder;
 
 
 /***/ }
