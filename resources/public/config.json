@@ -1,8 +1,8 @@
 {
     "brand": "Iowa-Lidar",
     "sub-brand": "Statewide Point Cloud Renderer",
-    "server": "data-link.iowalidar.com",
-    "pipeline": "data-dyn",
+    "server": "data-dyn.iowalidar.com",
+    "pipeline": "iowa-dyn",
     "imagery-sources": [
         ["mapbox.satellite", "Satellite"],
         ["mapbox.pencil", "Pencil"],

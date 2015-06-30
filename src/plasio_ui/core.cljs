@@ -218,7 +218,8 @@
   "Instantiate all modes that we know of, we should be doing lazy instantiate here,
   but screw that"
   [{:keys [target-element renderer]}]
-  {:line-picker (js/PlasioLib.Modes.LinePicker. target-element renderer)})
+  {:line-picker (js/PlasioLib.Modes.LinePicker. target-element renderer)
+   :line-of-sight-picker (js/PlasioLib.Modes.LineOfSightPicker. target-element renderer)})
 
 (defn render-target []
   (let [this (reagent/current-component)]
@@ -268,6 +269,21 @@
                    lines (range))))
     (post-message :error "Cannot create profile, no line segments available.")))
 
+#_(defn do-line-of-sight []
+  (if-let [lines (-> @app-state-lines seq)]
+    (let [renderer (get-in @app-state [:comps :renderer])
+          bounds (apply array (:bounds @app-state))
+          origin (->> lines
+                     (map (fn [[_ start end _]] (array start end)))
+                     (apply array))
+          result (.profileLines (js/PlasioLib.Features.Profiler. renderer) pairs bounds 256)]
+      (js/console.log result)
+
+      (swap! app-state assoc :profile-series
+             (mapv (fn [[id _ _ color] i]
+                     [id color (aget result i)])
+                   lines (range))))
+    (post-message :error "Cannot create profile, no line segments available.")))
 
 (defn format-dist [[x1 y1 z1] [x2 y2 z2]]
   (let [dx (- x2 x1)
@@ -277,6 +293,8 @@
         js/Math.sqrt
         (.toFixed 4))))
 
+(defn format-point [[x y z]]
+  (str (.toFixed x 2) ", " (.toFixed y 2) ", " (.toFixed z 2)))
 
 (defn- index-information []
   (let [num-points (:num-points @app-state)
@@ -323,14 +341,14 @@
 
        ;; hud elements
        (hud-left
-        
+
         ;; show app brand
         [:div
          [:div#brand (or (:brand @app-state)
                          "Plasio-UI")
           [:div#sub-brand (or (:sub-brand @app-state)
                               "Dynamic Point Cloud Renderer")]]
-         
+
 
          ;; Dataset info
          (let [[points size] (index-information)]
@@ -345,7 +363,7 @@
                (swap! app-state assoc :active-primary-mode kind)
                )
              [:point-rendering :cogs "Point Rendering Configuration" (and (= primary-mode :point-rendering) :active)]
-             [:point-loading :cloud-download "Point Loading" (and (= primary-mode :point-loading) :active)]
+             [:point-loading :tachometer "Point Loading" (and (= primary-mode :point-loading) :active)]
              [:point-manipulation :magic "Point Manipulation" (and (= primary-mode :point-manipulation) :active)]
              [:point-information :info-circle "Point Source Information" (and (= primary-mode :point-information) :active)]
              ]])]
@@ -432,7 +450,6 @@
                   ["Caching" "Amazon CloudFront"]
                   ["Backend" "Amazon EC2"]]])
 
-
               nil)
             {:key mode})))
 
@@ -451,59 +468,125 @@
                        (println mode kind)
                        (when-not (= mode kind)
                          kind))))
-            [:line-picker :map-marker "Line Picking" (and (= current-mode :line-picker) :active)]
+            [:line-picker :map-marker "Line Picking"
+             (and (= current-mode :line-picker) :active)]
+            [:line-of-sight-picker :bullseye "Line of Sight"
+             (and (= current-mode :line-of-sight-picker) :active)]
             [:follow-path :video-camera "Follow Path" :disabled]
-            [:tag-regions :tags "Tag Regions" :disabled]
+            ; [:tag-regions :tags "Tag Regions" :disabled]
             [:bookmarks :bookmark-o "Bookmarks" :disabled]
             [:search :search "Search" :disabled]
             #_[:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
 
-           [w/panel "Visibility Tools"
-            [w/panel-section
-             [w/desc "Use one of the tools to extract useful information"]
+           (case current-mode
+             :line-picker
+             [w/panel "Line Picking"
+              [w/desc "Hold shift, then click multiple times to draw points.  Release shift when complete"]
+              [w/panel "Elevation profile mapping"
 
-             ;; wrap our tool bar into a div element so that we can push it right a bit
-             [:div {:style {:margin-left "5px"}}
-              [w/toolbar
-               (fn [tool]
-                 (case tool
-                   :profile (do-profile)))
-               [:profile :area-chart "Profile" (and (not (seq @app-state-lines)) :disabled)]]]]]])
+               ;; wrap our tool bar into a div element so that we can push it right a bit
+               [:div {:style {:margin-left "5px"}}
+                [w/toolbar
+                 (fn [tool]
+                   (case tool
+                     :profile (do-profile)))
+                 [:profile :area-chart "Profile" (and (not (seq @app-state-lines))
+                                                      :disabled)]]]]]
+
+             :line-of-sight-picker
+             [w/panel "Line of Sight"
+              [w/desc "Hold shift, then click to run a line-of-sight estimation"]
+              [w/panel "Visibility Parameters"
+               [w/panel-section
+                [w/desc "Origin height"]
+                [w/slider 2 1 50 #(do
+                                    (when-let
+                                      [los-picker (get-in
+                                                    @app-state
+                                                    [:modes
+                                                     :line-of-sight-picker])]
+                                      (.setHeight los-picker %)))]]
+               [w/panel-section
+                [w/desc "Traversal radius"]
+                [w/slider 200 100 500 #(do
+                                         (when-let
+                                           [los-picker (get-in
+                                                         @app-state
+                                                         [:modes
+                                                          :line-of-sight-picker])]
+                                    (.setRadius los-picker %)))]]
+
+               [:div {:style {:margin-left "5px"}}
+                [w/toolbar
+                 #(do-profile)]]]]
+
+             [w/panel "Modal Tools"
+              [w/panel-section
+               [w/desc "Select an operational mode above to display additional tools"]]])])
 
         ;; if there are any line segments available, so the tools to play with them
         ;;
-        (when-let [lines (some-> @app-state-lines
-                                 seq
-                                 js->clj
-                                 reverse)]
-          [w/panel-with-close "Line Segments"
-           ;; when the close button is hit on line-segments, we need to reset the picker state
-           ;; the state will propagate down to making sure that no lines exist in our app state
-           ;;
-           #(do
-              ;; reset line picker
-              (when-let [line-picker (get-in @app-state [:modes :line-picker])]
-                (js/console.log line-picker)
-                (.resetState line-picker))
+        (let [segments (some-> @app-state-lines
+                               seq
+                               js->clj
+                               reverse)
+              line-prefix "line"
+              point-prefix "point"
+              los-prefix "los"
+              starts-with (fn [s prefix]
+                            (and (>= (count s) (count prefix))
+                                 (= (subs s 0 (count prefix)) prefix)))]
+          [:div
+            (when-let [lines (seq (remove
+                                    #(not (starts-with (nth % 0) line-prefix))
+                                    segments))]
+              [w/panel-with-close "Line Segments"
+               ;; when the close button is hit on line-segments, we need to
+               ;; reset the picker state the state will propagate down to making
+               ;; sure that no lines exist in our app state
+               #(do
+                  ;; reset line picker
+                  (when-let [line-picker (get-in @app-state [:modes :line-picker])]
+                    (js/console.log line-picker)
+                    (.resetState line-picker))
 
-              ;; reset any profiles which are active
-              (swap! app-state dissoc :profile-series))
+                  ;; reset any profiles which are active
+                  (swap! app-state dissoc :profile-series))
 
-           [w/panel-section
-            [w/desc "All line segments in scene, lengths in data units."]
-            (for [[id start end [r g b]] lines]
-              ^{:key id} [:div.line-info {:style {:color (str "rgb(" r "," g "," b ")")}}
-                          (format-dist end start)])]]))
+               [w/panel-section
+                [w/desc "All line segments in scene, lengths in data units."]
+                (for [[id start end [r g b]] lines]
+                  ^{:key id} [:div.line-info
+                              {:style {:color (str "rgb(" r "," g "," b ")")}}
+                              (format-dist end start)])]])
 
+            (when-let [los (seq (remove
+                                  #(not (starts-with (nth % 0) los-prefix))
+                                  segments))]
+              [w/panel-with-close "Line of Sight Origin"
+               ;; when the close button is hit on line-segments, we need to
+               ;; reset the picker state the state will propagate down to making
+               ;; sure that no lines exist in our app state
+               #(do
+                  ;; reset line picker
+                  (when-let [los-picker (get-in @app-state
+                                                [:modes :line-of-sight-picker])]
+                    (.resetState los-picker)))
 
-       ;; if we have any profile views to show, show them
-       (when-let [series (:profile-series @app-state)]
-         [w/profile-view series #(swap! app-state dissoc :profile-series)])
+               [w/panel-section
+                (for [[id start end [r g b]] los]
+                  ^{:key id} [:div.line-info
+                              {:style {:color (str "rgb(200,200,200)")}}
+                              (str (format-point start))])]])]))
 
-       ;; the element which shows us all the system messages
-       ;;
-       (when-let [status (:status-message @app-state)]
-         [w/status (:type status) (:message status)])])}))
+         ;; if we have any profile views to show, show them
+         (when-let [series (:profile-series @app-state)]
+           [w/profile-view series #(swap! app-state dissoc :profile-series)])
+
+         ;; the element which shows us all the system messages
+         ;;
+         (when-let [status (:status-message @app-state)]
+           [w/status (:type status) (:message status)])])}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
