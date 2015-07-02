@@ -481,7 +481,7 @@
            (case current-mode
              :line-picker
              [w/panel "Line Picking"
-              [w/desc "Hold shift, then click multiple times to draw points.  Release shift when complete"]
+              [w/desc "Hold shift and click to draw lines.  Release shift to finish"]
               [w/panel "Elevation profile mapping"
 
                ;; wrap our tool bar into a div element so that we can push it right a bit
@@ -495,10 +495,10 @@
 
              :line-of-sight-picker
              [w/panel "Line of Sight"
-              [w/desc "Hold shift, then click to run a line-of-sight estimation"]
+              [w/desc "Shift-click to estimate line-of-sight"]
               [w/panel "Visibility Parameters"
                [w/panel-section
-                [w/desc "Origin height"]
+                [w/desc "Elevation of origin point"]
                 [w/slider 2 1 50 #(do
                                     (when-let
                                       [los-picker (get-in
@@ -508,21 +508,17 @@
                                       (.setHeight los-picker %)))]]
                [w/panel-section
                 [w/desc "Traversal radius"]
-                [w/slider 200 100 500 #(do
+                [w/slider 250 100 500 #(do
                                          (when-let
                                            [los-picker (get-in
                                                          @app-state
                                                          [:modes
                                                           :line-of-sight-picker])]
-                                    (.setRadius los-picker %)))]]
-
-               [:div {:style {:margin-left "5px"}}
-                [w/toolbar
-                 #(do-profile)]]]]
+                                    (.setRadius los-picker %)))]]]]
 
              [w/panel "Modal Tools"
               [w/panel-section
-               [w/desc "Select an operational mode above to display additional tools"]]])])
+               [w/desc "Select a mode above to display additional tools"]]])])
 
         ;; if there are any line segments available, so the tools to play with them
         ;;
