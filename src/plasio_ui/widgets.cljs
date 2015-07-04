@@ -29,8 +29,9 @@
 
 (defn slider
   "An abstracted jQuery slider control"
-  ([start min max f] (slider start min max true f))
-  ([start min max enable? f]
+  ([start min max f] (slider start min max (/ (- max min) 1024) true f))
+  ([start min max enable? f] (slider start min max (/ (- max min) 1024) enable? f))
+  ([start min max step enable? f]
    (let [this (reagent/current-component)]
      (reagent/create-class
        {:component-did-mount
@@ -52,6 +53,7 @@
                          (js-obj
                            "start" start
                            "connect" (if single? "lower" true)
+                           "step" step
                            "range" (js-obj "min" min
                                            "max" max)))))
 

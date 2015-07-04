@@ -508,13 +508,14 @@
                                       (.setHeight los-picker %)))]]
                [w/panel-section
                 [w/desc "Traversal radius"]
-                [w/slider 250 100 500 #(do
-                                         (when-let
-                                           [los-picker (get-in
-                                                         @app-state
-                                                         [:modes
-                                                          :line-of-sight-picker])]
-                                    (.setRadius los-picker %)))]]]]
+                [w/slider 8 6 10 1 true #(do
+                                    (when-let
+                                      [los-picker (get-in
+                                                    @app-state
+                                                    [:modes
+                                                     :line-of-sight-picker])]
+                                      (.setRadius los-picker
+                                                  (js/Math.pow 2 %))))]]]]
 
              [w/panel "Modal Tools"
               [w/panel-section
