@@ -3332,53 +3332,18 @@
 	var mat4 = __webpack_require__(24).mat4;
 	var vec3 = __webpack_require__(24).vec3;
 
-	var debug = false;
 	var losId = 'line-of-sight-overlay';
+	var visible = 'rgba(0,0,0,0)';
+	var occluded = 'rgba(0,0,0,.8)';
 
 	var LineOfSight = function(renderer) {
 	    this.renderer = renderer;
-	}
-
-	var addDebuggerCanvas = function(buf, res) {
-	    var canvas = document.createElement('canvas');
-	    canvas.width = res;
-	    canvas.height = res;
-	    canvas.style.cssText = "position:absolute;left:5px;top:5px;";
-	    var context = canvas.getContext('2d');
-
-	    var zmin = Number.MAX_VALUE;
-	    var zmax = Number.MIN_VALUE;
-	    for (var i = 0, il = res * res; i < il; ++i) {
-	        if (Math.abs(buf[i]) > 0.00001) {
-	            zmin = Math.min(zmin, buf[i]);
-	            zmax = Math.max(zmax, buf[i]);
-	        }
-	    }
-
-	    for (var i = 0; i < res * res; ++i) {
-	        var scale = 0;
-
-	        if (Math.abs(buf[i]) > 0.00001) {
-	            scale = Math.floor((buf[i] - zmin) / (zmax - zmin) * 255.0);
-	        }
-
-	        var x = Math.floor(i % res);
-	        var y = Math.floor(i / res);
-
-	        context.fillStyle = 'rgb(' + scale + ',' + scale + ',' + scale + ')';
-	        context.fillRect(res - x, y, 1, 1);
-	    }
-
-	    context.stroke();
-	    document.body.appendChild(canvas);
-	    return canvas;
 	}
 
 	var getTexture = function(buf, res) {
 	    var canvas = document.createElement('canvas');
 	    canvas.width = res;
 	    canvas.height = res;
-	    // canvas.style.cssText = "position:absolute;left:5px;top:5px;opacity:.4";
 	    var context = canvas.getContext('2d');
 
 	    for (var i = 0; i < res * res; ++i) {
@@ -3387,12 +3352,11 @@
 	        var x = Math.floor(i % res);
 	        var y = Math.floor(i / res);
 
-	        context.fillStyle = buf[i] ? '#0F0' : '#000';
+	        context.fillStyle = buf[i] ? visible : occluded;
 	        context.fillRect(x, y, 1, 1);
 	    }
 
 	    context.stroke();
-	    // document.body.appendChild(canvas);
 	    return canvas.toDataURL('image/png');
 	}
 
@@ -3402,7 +3366,7 @@
 	    mat4.rotateX(view, view, 1.5705);
 
 	    var wlower = [p.x - radius, p.z - radius, p.y - radius];
-	    var wupper = [p.x + radius, p.x + radius, p.y + radius];
+	    var wupper = [p.x + radius, p.z + radius, p.y + radius];
 
 	    var lower = vec3.transformMat4(vec3.create(), wlower, view);
 	    var upper = vec3.transformMat4(vec3.create(), wupper, view);
@@ -3445,12 +3409,9 @@
 	    var xStep = diam * xSign / res;
 	    var yStep = diam * ySign / res;
 
-	    var elev, slope;
-	    var current, index;
-	    var pre, alt;
-	    var ratio, interp;
-	    var xDist, yDist;
-	    var xNorm, yNorm;
+	    var elev, slope, current, index;
+	    var pre, alt, ratio, interp;
+	    var xDist, yDist, xNorm, yNorm;
 
 	    for (var y = yStart; Math.abs(y - yStart) < radius; y += ySign) {
 	        for (var x = xStart; Math.abs(x - xStart) < radius; x += xSign) {
@@ -3508,9 +3469,16 @@
 	                // On x-axis.
 	                if (x != xStart) {
 	                    // Off of y-axis.
-	                    pre = slopes[indexAt(x - xSign, y, diam)];
-	                    output[index] = slope >= pre;
-	                    slopes[index] = Math.max(slope, pre);
+	                    if (Math.abs(heightmap[index]) > .00001) {
+	                        pre = slopes[indexAt(x - xSign, y, diam)];
+
+	                        output[index] = slope >= pre;
+	                        slopes[index] = Math.max(slope, pre);
+	                    }
+	                    else {
+	                        slopes[index] = slopes[indexAt(x - xSign, y, diam)];
+	                        output[index] = output[indexAt(x - xSign, y, diam)];
+	                    }
 	                }
 	                else {
 	                    // Origin point.
@@ -3523,8 +3491,6 @@
 	}
 
 	LineOfSight.prototype.go = function(origin, radius) {
-	    console.log('RADIUS:', radius);
-
 	    // XZY due to renderer's view of the world.
 	    var p = { x: origin[0], z: origin[1], y: origin[2] };
 
@@ -3532,8 +3498,6 @@
 	    var res = diam;
 
 	    var heightmap = this.getHeightMap(p, radius, res);
-
-	    if (debug) addDebuggerCanvas(heightmap, res);
 
 	    var essBuf = new ArrayBuffer(res * res * 4);
 	    var slopes = new Float32Array(essBuf);
@@ -3547,12 +3511,11 @@
 	        }
 	    }
 
-	    var o = this;
-
 	    var bounds = [p.x - radius, p.y - radius, p.x + radius, p.y + radius];
 	    var output = getTexture(output, res);
 
 	    var image = new Image();
+	    var o = this;
 	    image.onload = function() {
 	        o.renderer.addOverlay(losId, bounds, image);
 	    };
@@ -3562,7 +3525,6 @@
 	}
 
 	LineOfSight.prototype.resetState = function() {
-	    console.log('Removing LoS texture...');
 	    this.renderer.removeOverlay(losId);
 	}
 
