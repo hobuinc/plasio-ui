@@ -1,13 +1,16 @@
 {
-    "brand": "Iowa-Lidar",
+    "brand": "Nepal",
     "sub-brand": "Statewide Point Cloud Renderer",
-    "server": "data-dyn.iowalidar.com",
-    "pipeline": "iowa-dyn",
+    "server": "misc.greyhound.io",
+    "pipeline": "nepal-oct",
     "imagery-sources": [
         ["mapbox.satellite", "Satellite"],
         ["mapbox.pencil", "Pencil"],
         ["mapbox.comic", "Comic"],
         ["mapbox.wheatpaste", "Wheatpaste"]
-    ]
+    ],
+    "render-hints" : {
+        "max-color-component": 65536
+    }
 }
 

@@ -236,6 +236,7 @@
                                               :color?     (:color? @app-state)
                                               :intensity? (:intensity? @app-state)
                                               :ro         (:ro @app-state)
+                                              :render-hints (:render-hints @app-state)
                                               :init-params init-state})
               modes (initialize-modes comps)]
           (swap! app-state assoc
@@ -587,13 +588,22 @@
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
+                                         render-hints
                                          init-params]}]
+  (println "render-hints:" render-hints)
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
+        _ (println "bbox" bbox)
+        bbox [(nth bbox 0) (nth bbox 2) (nth bbox 1)
+              (nth bbox 3) (nth bbox 5) (nth bbox 4)]
+
+        _ (println "bbox" bbox)
         loaders (merge
-                 {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
-                              server pipeline max-depth compress? color? intensity?)
-                  :transform (js/PlasioLib.Loaders.TransformLoader.)}
+                  {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
+                                server (apply js/Array bbox)
+                                pipeline max-depth
+                                compress? color? intensity?)
+                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
                   (when (not color?)
                     {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
         policy (js/PlasioLib.FrustumLODNodePolicy.
@@ -665,7 +675,7 @@
                                "intensity_f" 1
                                "clampLower" (nth (:intensity-clamps ro) 0)
                                "clampHigher" (nth (:intensity-clamps ro) 1)
-                               "maxColorComponent" 255
+                               "maxColorComponent" (get render-hints :max-color-component 255)
                                "pointSize" (:point-size ro)
                                "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
                                "intensityBlend" (:intensity-blend ro)
@@ -754,26 +764,28 @@
                       js/Math.floor)})))
 
 (defn enable-secondary-mode! []
-  (swap! app-state assoc :secondary-mode-enabled? true)
-  ;; when the secondar mode is applied, make sure we disable all camera interactions
-  ;;
-  (when-let [camera (get-in @app-state [:comps :camera])]
-    (.enableControls camera false))
+  (when-not (:secondary-mode-enabled? @app-state)
+    (swap! app-state assoc :secondary-mode-enabled? true)
+    ;; when the secondar mode is applied, make sure we disable all camera interactions
+    ;;
+    (when-let [camera (get-in @app-state [:comps :camera])]
+      (.enableControls camera false))
 
-  (when-let [active-mode (:active-secondary-mode @app-state)]
-    (when-let [mode (get-in @app-state [:modes active-mode])]
-      (.activate mode))))
+    (when-let [active-mode (:active-secondary-mode @app-state)]
+      (when-let [mode (get-in @app-state [:modes active-mode])]
+        (.activate mode)))))
 
 (defn disable-secondary-mode! []
-  (swap! app-state assoc :secondary-mode-enabled? false)
+  (when (:secondary-mode-enabled? @app-state)
+    (swap! app-state assoc :secondary-mode-enabled? false)
 
-  ;; make sure camera controls are re-enabled
-  (when-let [camera (get-in @app-state [:comps :camera])]
-    (.enableControls camera true))
+    ;; make sure camera controls are re-enabled
+    (when-let [camera (get-in @app-state [:comps :camera])]
+      (.enableControls camera true))
 
-  (when-let [active-mode (:active-secondary-mode @app-state)]
-    (if-let [mode (get-in @app-state [:modes active-mode])]
-      (.deactivate mode))))
+    (when-let [active-mode (:active-secondary-mode @app-state)]
+      (if-let [mode (get-in @app-state [:modes active-mode])]
+        (.deactivate mode)))))
 
 
 (defn toggle-huds! []

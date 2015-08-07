@@ -4,10 +4,10 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-3211"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/clojurescript "1.7.28"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [reagent "0.5.0-alpha3"]
+                 [reagent "0.5.0"]
                  [cljsjs/gl-matrix "2.3.0-jenanwise-0"]
                  [cljs-http "0.1.31"]]
 
