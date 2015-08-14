@@ -605,7 +605,8 @@
                                 compress? color? intensity?)
                    :transform (js/PlasioLib.Loaders.TransformLoader.)}
                   (when (not color?)
-                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.)}))
+                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.
+                                (apply js/Array bbox))}))
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (clj->js loaders)
                  renderer
