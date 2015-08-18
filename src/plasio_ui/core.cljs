@@ -719,11 +719,15 @@
                        urlify)
           ;; get the bounds for the given pipeline
           ;;
-          bounds (-> base-url
-                     (str "/bounds")
+          info (-> base-url
+                     (str "/info")
                      (http/get {:with-credentials? false})
                      <!
                      :body)
+
+          bounds (:bounds info)
+          num-points (:numPoints info)
+          schema (:schema info)
 
           ;; if bounds are 4 in count, that means that we don't have z stuff
           ;; in which case we just give it a range
@@ -732,21 +736,6 @@
                           0
                           (conj (subvec bounds 2 4) 520))
                    bounds)
-
-          ;; get the total number of points
-          num-points (-> base-url
-                         (str "/numpoints")
-                         (http/get {:with-credentials? false})
-                         <!
-                         :body)
-
-          ;; fetch the native resource schema to figure out what dimensions we
-          ;; are working with
-          schema (-> base-url
-                     (str "/schema")
-                     (http/get {:with-credentials? false})
-                     <!
-                     :body)
 
           point-size 28 #_(reduce + (mapv :size schema))
           dim-names (set (mapv :name schema))
