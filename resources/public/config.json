@@ -1,8 +1,8 @@
 {
-    "brand": "Nepal",
-    "sub-brand": "Statewide Point Cloud Renderer",
-    "server": "misc.greyhound.io",
-    "pipeline": "nepal-oct",
+    "brand": "NYC",
+    "sub-brand": "Plasio Point Cloud Renderer",
+    "server": "data.greyhound.io",
+    "pipeline": "nyc-g",
     "imagery-sources": [
         ["mapbox.satellite", "Satellite"],
         ["mapbox.pencil", "Pencil"],
