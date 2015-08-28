@@ -194,16 +194,16 @@ select:disabled {
     right: 20px;
 }
 
-.panel {
+.app-panel {
     position: relative;
     padding: 5px;
 }
 
-.panel .panel-section {
+.app-panel .panel-section {
     margin-bottom: 5px;
 }
 
-.panel .title {
+.app-panel .title {
     border-bottom: 1px solid #ddd;
     padding-bottom: 2px;
     margin-bottom: 3px;
@@ -211,7 +211,7 @@ select:disabled {
     color: RGBA(172, 240, 242, 1);
 }
 
-.panel .close-button {
+.app-panel .close-button {
     position: absolute;
     right: 5px;
     top: 5px;

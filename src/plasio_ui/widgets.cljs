@@ -5,7 +5,7 @@
 (defn panel
   "A simple widget which shows a panel with title and children"
   [title & children]
-  [:div.panel
+  [:div.app-panel
    [:div.title title]
    (into [:div.contents] children)])
 

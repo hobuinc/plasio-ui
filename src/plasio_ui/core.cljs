@@ -21,8 +21,8 @@
                           :active-secondary-mode nil
                           :window {:width 0
                                    :height 0}
-                          :ro {:point-size 2
-                               :point-size-attenuation 1
+                          :ro {:point-size 1
+                               :point-size-attenuation 0.1
                                :intensity-blend 0
                                :intensity-clamps [0 255]}
                           :po {:distance-hint 50
@@ -204,7 +204,7 @@
                            "pointSize" (:point-size ro)
                            "pointSizeAttenuation"
                              (array 1 (:point-size-attenuation ro))
-                           "xyzScale" (array 1 1 (get-in n [:pm :z-exaggeration]))
+                           "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)
                            "intensityBlend" (:intensity-blend ro)
                            "clampLower" (nth (:intensity-clamps ro) 0)
                            "clampHigher" (nth (:intensity-clamps ro) 1)))
@@ -336,7 +336,7 @@
       ;; get the left and right hud's up
       ;; we need these to place our controls and other fancy things
       ;;
-      [:div.container
+      [:div.app-container
        ;; This is going to be where we render stuff
        [render-target]
 
@@ -472,7 +472,8 @@
             [:line-picker :map-marker "Line Picking"
              (and (= current-mode :line-picker) :active)]
             [:line-of-sight-picker :bullseye "Line of Sight"
-             (and (= current-mode :line-of-sight-picker) :active)]
+             :disabled
+             #_(and (= current-mode :line-of-sight-picker) :active)]
             [:follow-path :video-camera "Follow Path" :disabled]
             ; [:tag-regions :tags "Tag Regions" :disabled]
             [:bookmarks :bookmark-o "Bookmarks" :disabled]
@@ -483,6 +484,10 @@
              :line-picker
              [w/panel "Line Picking"
               [w/desc "Hold shift and click to draw lines.  Release shift to finish"]
+              [:div {:style {:margin "5px 0 0 5px"}}
+               [:button.btn.btn-sm.btn-default
+                {:on-click #(when-let [line-picker (get-in @app-state [:modes :line-picker])]
+                             (.resetState line-picker))} "Clear All Lines"]]
               [w/panel "Elevation profile mapping"
 
                ;; wrap our tool bar into a div element so that we can push it right a bit
@@ -670,7 +675,7 @@
     ;; set some default render state
     ;;
     (.setRenderOptions renderer
-                       (js-obj "circularPoints" 1
+                       (js-obj "circularPoints" 0
                                "overlay_f" (if color? 0 1)
                                "rgb_f" (if color? 1 0)
                                "intensity_f" 1
