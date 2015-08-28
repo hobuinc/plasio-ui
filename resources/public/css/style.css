@@ -200,6 +200,7 @@ select:disabled {
 }
 
 .app-panel .panel-section {
+    padding-bottom: 5px;
     margin-bottom: 5px;
 }
 
@@ -443,4 +444,13 @@ table.key-val td:last-child {
 
 .c3-axis-y .domain {
     stroke: white;
+}
+
+
+.point-type label {
+    margin-right: 15px;
+}
+
+.point-type input[type="radio"] {
+    margin: 0 3px 0 0;
 }
