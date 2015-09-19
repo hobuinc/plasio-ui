@@ -24,7 +24,7 @@ lein cljsbuild once min
 echo ":: staging resources..."
 cp -R "$CWD/resources/public/." $DEPLOY_DIR/
 
-ID=`uuid`
+ID=`uuidgen`
 
 echo ":: build id is: $ID, applying..."
 mv $DEPLOY_DIR/css/style.css $DEPLOY_DIR/css/style-$ID.css

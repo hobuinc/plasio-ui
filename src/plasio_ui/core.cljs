@@ -225,34 +225,42 @@
 (defn render-target []
   (let [this (reagent/current-component)]
     (reagent/create-class
-     {:component-did-mount
-      (fn []
-        (let [init-state (history/current-state-from-query-string)
-              comps (initialize-for-pipeline (reagent/dom-node this)
-                                             {:server     (:server @app-state)
-                                              :pipeline   (:pipeline @app-state)
-                                              :max-depth  (:max-depth @app-state)
-                                              :compress?  true
-                                              :bbox       (:bounds @app-state)
-                                              :color?     (:color? @app-state)
-                                              :intensity? (:intensity? @app-state)
-                                              :ro         (:ro @app-state)
-                                              :render-hints (:render-hints @app-state)
-                                              :init-params init-state})
-              modes (initialize-modes comps)]
-          (swap! app-state assoc
-                 :comps comps
-                 :modes modes
-                 :active-primary-mode :point-rendering))
+      {:component-did-mount
+       (fn []
+         (let [init-state (history/current-state-from-query-string)
+               comps (initialize-for-pipeline (reagent/dom-node this)
+                                              {:server       (:server @app-state)
+                                               :pipeline     (:pipeline @app-state)
+                                               :max-depth    (:max-depth @app-state)
+                                               :compress?    true
+                                               :bbox         (:bounds @app-state)
+                                               :color?       (:color? @app-state)
+                                               :intensity?   (:intensity? @app-state)
+                                               :ro           (:ro @app-state)
+                                               :render-hints (:render-hints @app-state)
+                                               :init-params  init-state})
+               modes (initialize-modes comps)]
+           (swap! app-state assoc
+                  :comps comps
+                  :modes modes
+                  :active-primary-mode :point-rendering)
 
-        ;; listen to changes to history
-        (history/listen (fn [st]
-                          (println "apply" st)
-                          (apply-state! st))))
+           ;; also expose these components to the user so they can directly manipulate it
+           ;; if need be
+           (let [{:keys [renderer camera policy]} comps
+                 obj (js-obj "renderer" renderer
+                             "camera" camera
+                             "policy" policy)]
+             (set! (.-plasio js/window) obj)))
 
-      :reagent-render
-      (fn []
-        [:div#render-target])})))
+         ;; listen to changes to history
+         (history/listen (fn [st]
+                           (println "apply" st)
+                           (apply-state! st))))
+
+       :reagent-render
+       (fn []
+         [:div#render-target])})))
 
 (defn do-profile []
   (if-let [lines (-> @app-state-lines
@@ -653,9 +661,8 @@
                     (do-save-current-snapshot))
 
                   ;; go ahead and update the renderer
-                  (doto renderer
-                    (.setEyePosition eye)
-                    (.setTargetPosition target)))
+                  (.setEyeTargetPosition renderer
+                                         eye target))
                 ;; if there are any init-params to the camera, specify them here
                 ;;
                 (when (-> init-params :camera seq)
