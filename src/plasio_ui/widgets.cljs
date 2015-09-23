@@ -1,5 +1,6 @@
 (ns plasio-ui.widgets
-  (:require [reagent.core :as reagent :refer [atom]]
+  (:require [plasio-ui.state :as plasio-state]
+            [reagent.core :as reagent :refer [atom]]
             [clojure.string :as string]))
 
 (defn panel
@@ -88,7 +89,7 @@
          [:table.key-val
           [:tbody
            (for [[k v] data]
-             [:tr {:key k} [:td k][:td v]])]])})))
+             ^{:key k} [:tr [:td k][:td v]])]])})))
 
 (defn icon [& parts] [:i {:class (str "fa " (string/join " "
                                       (map #(str "fa-" (name %)) parts)))}])
@@ -226,3 +227,124 @@
 (defn status [type text]
   [:div.status-message {:class (name type)} text])
 
+(defn action [ic name f]
+  [:button {:class "btn"
+            :title name
+            :on-click f}
+   (icon ic)])
+
+(defn app-toolbar [& icons]
+  [:div.toolbar
+   icons])
+
+(defn application-bar [& options]
+  [:div.app-bar
+   [:div.title "plasio"]
+   [app-toolbar
+    (for [[icon name f] options]
+      ^{:key name} [action icon name f])]])
+
+(defn mouse-pos [e]
+  [(.-pageX e) (.-pageY e)])
+
+(defn element-pos [e]
+  (let [r (.getBoundingClientRect e)]
+    [(.-left r) (.-top r)]))
+
+(defn pos-diff [[a b] [c d]]
+  [(- a c) (- b d)])
+
+(defn pos-add [[a b] [c d]]
+  [(+ a c) (+ b d)])
+
+(let [index (atom 0)]
+  (defn next-z-index []
+    (swap! index inc)))
+
+(let [lst (cycle [{:left 10 :top 40}
+                  {:left 30 :top 60}
+                  {:left 50 :top 80}
+                  {:left 70 :top 100}])
+      st (atom lst)]
+  (defn next-window-default-location []
+    (let [v (first @st)]
+      (swap! st rest)
+      v)))
+
+
+(defn floating-panel [title ico f-dismiss & children]
+  (let [state (atom (merge (next-window-default-location)
+                           (plasio-state/get-location title)))
+        drag-start
+        (fn [e]
+          (println "starting drag!")
+          ;; we need to determine our detach handlers
+          ;; and trigger them when the mouse is released
+          ;;
+          (let [drag-move (fn [e]
+                            (let [mp (mouse-pos e)
+                                  off (:widget-offset @state)
+                                  [left top] (pos-add mp off)]
+                              (swap! state assoc
+                                     :left left
+                                     :top  top)))
+                drag-end (fn [e]
+                           (when-let [f (:mousemove-handler @state)]
+                             (.removeEventListener js/document "mousemove" f))
+                           (when-let [f (:mouseup-handler @state)]
+                             (.removeEventListener js/document "mouseup" f))
+
+                           (swap! state
+                                  (fn [st]
+                                    (-> st
+                                        (dissoc :mouseup-handler
+                                                :mousemove-handler
+                                                :dragging?)
+                                        (assoc :z-index (next-z-index)))))
+
+                           ;; save the final location for this window
+                           (let [mp (mouse-pos e)
+                                 off (:widget-offset @state)
+                                 [left top] (pos-add mp off)]
+                             (plasio-state/save-location!
+                               title {:left left :top top})))]
+            (let [mp (mouse-pos e)
+                  elem (.. e -target -parentNode)
+                  elem-pos (element-pos elem)]
+              (println elem-pos)
+              (swap! state assoc
+                     :widget-offset (pos-diff elem-pos mp)
+                     :mousemove-handler drag-move
+                     :mouseup-handler drag-end
+                     :dragging? true)
+
+              (js/console.log elem)
+              (.addEventListener js/document "mousemove" drag-move)
+              (.addEventListener js/document "mouseup" drag-end))))]
+    (reagent/create-class
+      {:reagent-render
+       (fn []
+         (println "icon is:" ico)
+         [:div.floating-panel
+          {:class (str (when (:collapsed? @state)
+                         "collapsed")
+                       " "
+                       (when (:dragging? @state)
+                         "dragging"))
+           :style {:left    (:left @state)
+                   :top     (:top @state)
+                   :z-index (if (:dragging? @state)
+                              1000000
+                              (or (:z-index @state)
+                                  0))}}
+          [:div.title
+           {:on-mouse-down drag-start}
+           (icon ico)
+           title]
+          [:a.toggle {:href     "javascript:"
+                      :on-click #(swap! state update :collapsed? not)}
+           (icon (if (:collapsed? @state) :chevron-down :chevron-up))]
+          [:a.close {:href     "javascript:"
+                     :on-click f-dismiss}
+           (icon :times)]
+          [:div.floating-panel-body children]])})))

@@ -8,11 +8,55 @@ html, body {
 
 body {
     font-family: 'Lato', sans-serif;
-    background-color: #333;
+    background-color: #001D21;
     color: #999;
     margin: 0px;
     padding: 0px;
     overflow: hidden;
+}
+
+.app-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 30px;
+    background-color: #00BCD6;
+}
+
+.app-bar .title {
+    color: white;
+    line-height: 28px;
+    padding-left: 10px;
+    font-weight: 700;
+    float: left;
+}
+
+
+.app-bar .toolbar {
+    float: right;
+    margin-right: 10px;
+    margin-top: 3px;
+}
+
+.app-bar .toolbar .btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.0em;
+}
+
+
+.mui-app-bar {
+    min-height: 50px;
+}
+
+.mui-app-bar .mui-icon-button {
+    margin-top: 1px;
+}
+
+.mui-app-bar .mui-app-bar-title {
+    line-height: 45px;
 }
 
 
@@ -83,8 +127,8 @@ select:disabled {
 }
 
 #render-target {
-    position: absolute;
-    left: 0px; top: 0px; right: 0px; bottom: 0px;
+    position: fixed;
+    left: 0px; top: 30px; right: 0px; bottom: 0px;
 }
 #brand {
     font-size: 3em;
@@ -219,6 +263,10 @@ select:disabled {
     font-size: 10px;
 }
 
+.slider-text .text {
+    margin-right: 20px;
+}
+
 .desc {
     color: #ddd;
     font-size: 0.9em;
@@ -228,13 +276,12 @@ select:disabled {
 
 table.key-val {
   width: 100%;
-  color: #ddd;
+  color: #999;
   border-collapse: collapse;
 }
 
 table.key-val tr {
-    border-bottom: 1px dotted #555;
-    font-size: 0.9em;
+    border-bottom: 1px dotted #ddd;
 }
 
 table.key-val tr:last-child {
@@ -259,11 +306,15 @@ table.key-val td:last-child {
 }
 
 .noUi-connect {
-    background: RGBA(235, 127, 0, 1);
+    background: #eee;
 }
 
 .noUi-background {
-    background: RGBA(172, 240, 242, 1);
+    background: #eee;
+}
+
+.noUi-target.noUi-connect {
+    box-shadow: none;
 }
 
 .noUi-target[disabled="disabled"] .noUi-background {
@@ -277,29 +328,25 @@ table.key-val td:last-child {
 }
 
 .noUi-handle {
-    background: RGBA(235, 127, 0, 1);
-    box-shadow: inset 0 0 1px #FFF,inset 0 1px 1px #EBEBEB,0 3px 6px -3px #BBB;
+    box-shadow: none;
+    border: none;
+    background-color: #00BBD7;
 }
 
 .noUi-horizontal {
-    height: 10px;
+    height: 2px;
 }
 
 .noUi-horizontal .noUi-handle {
-    width: 20px;
-    height: 25px;
+    width: 10px;
+    height: 15px;
     left: -10px;
     top: -8px;
 }
 
-.noUi-handle:after {
-    top: 5px;
-    left: 7px;
-}
-
+.noUi-handle:after,
 .noUi-handle:before {
-    top: 5px;
-    left: 10px;
+    display: none;
 }
 
 .compass {
@@ -453,4 +500,64 @@ table.key-val td:last-child {
 
 .point-type input[type="radio"] {
     margin: 0 3px 0 0;
+}
+
+.floating-panel {
+    position: fixed;
+    left: 120px;
+    top: 50px;
+    min-width: 250px;
+    max-width: 250px;
+    min-height: 50px;
+    background-color: rgba(255,255,255,0.95);
+    box-shadow: 0px 0px 1px #222;
+}
+
+.floating-panel.collapsed {
+    max-height: 27px;
+    min-height: 0px;
+    overflow: hidden;
+}
+
+.floating-panel.dragging {
+    z-index: 100000;
+}
+
+.floating-panel .close {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    color: #eee;
+    font-size: 0.8em;
+}
+
+.floating-panel .toggle {
+    position: absolute;
+    right: 20px;
+    top: 5px;
+    color: #eee;
+    font-size: 0.8em;
+}
+
+.floating-panel .title {
+    font-size: 0.8em;
+    padding: 5px 3px;
+    background-color: #00BBD7;
+    color: #eee;
+    cursor: default;
+    box-shadow: 0px 0px 1px #666;
+    height: 15px;
+}
+
+
+.floating-panel .title .fa {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.floating-panel .floating-panel-body {
+    padding: 5px;
+    margin: 3px;
+    border: 1px solid #eee;
+    font-size: 0.7em;
 }

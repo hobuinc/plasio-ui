@@ -19,6 +19,7 @@
                           :secondary-mode-enabled? false
                           :active-primary-mode nil
                           :active-secondary-mode nil
+                          :open-panes #{}
                           :window {:width 0
                                    :height 0}
                           :ro {:circular? false
@@ -328,6 +329,64 @@
                                      (/ size-bytes (get scales mem-type))
                                      mem-type)]))
 
+(defn labeled-slider [text state path min max]
+  [:div.slider-text
+   [:div.text text]
+   [w/slider (get-in @state path) min max
+    (fn [new-val]
+      (swap! state assoc-in path new-val))]])
+
+(defn render-options-pane [state]
+  [w/floating-panel
+   "Rendering Options"
+   :cogs
+   #(swap! app-state update-in [:open-panes] disj :rendering-options)
+   ^{:key :point-size}
+   [labeled-slider "Point Size" state
+    [:ro :point-size] 1 10]
+
+   ^{:key :point-size-attenuation}
+   [labeled-slider "Point Size Attenuation" state
+    [:ro :point-size-attenuation] 0 5]
+
+   ^{:key :intensity-blend}
+   [labeled-slider "Intensity" state
+    [:ro :intensity-blend] 0 1]
+
+   ^{:key :intensity-clamps}
+   [labeled-slider "Intensity scaling, narrow down range of intensity values."
+    state
+    [:ro :intensity-clamps] 0 256]])
+
+
+(defn information-pane [state]
+  [w/floating-panel "Pipeline Information"
+   :info-circle
+   #(swap! app-state update-in [:open-panes] disj :information)
+   (let [[points size] (index-information)]
+     [w/key-val-table
+      ["Point Count" points]
+      ["Uncompressed Index Size" size]
+      ["Powered By" "entwine"]
+      ["Caching" "Amazon CloudFront"]
+      ["Backend" "Amazon EC2"]])])
+
+(defn point-manipulation-pane [state]
+  [w/floating-panel "Point Manipulation"
+   :magic
+   #(swap! app-state update-in [:open-panes] disj :point-manipulation)
+   [labeled-slider "Z-exaggeration.  Higher values stretch out elevation deltas more significantly"
+    state
+    [:pm :z-exaggeration] 1 12]])
+
+(defn toggler [view]
+  (fn []
+    (swap! app-state update-in [:open-panes]
+           (fn [panes]
+             (if (panes view)
+               (disj panes view)
+               (conj panes view))))))
+
 (defn hud []
   (reagent/create-class
     {:component-did-mount
@@ -345,282 +404,39 @@
        ;; get the left and right hud's up
        ;; we need these to place our controls and other fancy things
        ;;
-       [:div.app-container
-        ;; This is going to be where we render stuff
-        [render-target]
-
-        ;; hud elements
-        (hud-left
-
-          ;; show app brand
+       (let [open-panes (:open-panes @app-state)]
+         [:div.app-container
+          ;; the application app bar
           [:div
-           [:div#brand (or (:brand @app-state)
-                           "Plasio-UI")
-            [:div#sub-brand (or (:sub-brand @app-state)
-                                "Dynamic Point Cloud Renderer")]]
+           [w/application-bar
+            [:cogs "Rendering Options" (toggler :rendering-options)]
+            [:magic "Point Manipulation" (toggler :point-manipulation)]
+            [:info-circle "Information" (toggler :information)]]]
 
+          ;; This is going to be where we render stuff
+          [render-target]
 
-           ;; Dataset info
-           (let [[points size] (index-information)]
-             [:div.dataset-info
-              [:p.points points]
-              #_[:p.index-size (str size " uncompressed")]])
+          ;; compass
+          [compass]
 
-           (let [primary-mode (:active-primary-mode @app-state)]
-             [:div {:style {:margin "15px"}}
-              [w/toolbar
-               (fn [kind]
-                 (swap! app-state assoc :active-primary-mode kind)
-                 )
-               [:point-rendering :cogs "Point Rendering Configuration" (and (= primary-mode :point-rendering) :active)]
-               [:point-loading :tachometer "Point Loading" (and (= primary-mode :point-loading) :active)]
-               [:point-manipulation :magic "Point Manipulation" (and (= primary-mode :point-manipulation) :active)]
-               [:point-information :info-circle "Point Source Information" (and (= primary-mode :point-information) :active)]
-               ]])]
+          ;; any overlaying panes
+          (when (open-panes :rendering-options)
+            [render-options-pane app-state])
 
-          ;; Point appearance
-          (let [mode (:active-primary-mode @app-state)]
-            (with-meta
-              (case mode
-                :point-rendering
-                [w/panel "Point Rendering"
+          (when (open-panes :point-manipulation)
+            [point-manipulation-pane app-state])
 
-                 ;; imagery tile source
-                 [w/panel-section
-                  [w/desc "Imagery tile source"]
-                  [w/dropdown
-                   (get-in @app-state [:imagery-sources])
-                   (get-in @app-state [:ro :imagery-source])
-                   (not (:color? @app-state))
-                   #(let [source %
-                          policy (get-in @app-state [:comps :policy])]
-                     (swap! app-state assoc-in [:ro :imagery-source] source)
-                     (.setImagerySource policy source))]]
+          (when (open-panes :information)
+            [information-pane app-state])
 
-                 ;; point type
-                 [w/panel-section
-                  [w/desc "Circular or Square point rendering"]
-                  [:div.point-type {:style {:margin-left "5px"}}
-                   [:label
-                    [:input.radio-inline
-                     {:type    "radio"
-                      :name    "pointType"
-                      :checked (get-in @app-state [:ro :circular?])
-                      :on-change #(swap! app-state assoc-in [:ro :circular?] true)
-                      :value   "circular"}]
-                    "Circular"]
-                   [:label
-                    [:input.radio-inline
-                     {:type    "radio"
-                      :name    "pointType"
-                      :checked (not (get-in @app-state [:ro :circular?]))
-                      :on-change #(swap! app-state assoc-in [:ro :circular?] false)
-                      :value   "square"}]
-                    "Square"]
-                   ]]
+          ;; if we have any profile views to show, show them
+          (when-let [series (:profile-series @app-state)]
+            [w/profile-view series #(swap! app-state dissoc :profile-series)])
 
-                 ;; base point size
-                 [w/panel-section
-                  [w/desc "Base point size"]
-                  [w/slider (get-in @app-state [:ro :point-size]) 1 10
-                   #(swap! app-state assoc-in [:ro :point-size] %)]]
-
-                 ;; point attenuation factor
-                 [w/panel-section
-                  [w/desc "Attenuation factor, points closer to you are bloated more"]
-                  [w/slider (get-in @app-state [:ro :point-size-attenuation]) 0 5
-                   #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]
-
-                 ;; intensity blending factor
-                 [w/panel-section
-                  [w/desc "Intensity blending, how much of intensity to blend with color"]
-                  [w/slider
-                   (get-in @app-state [:ro :intensity-blend])
-                   0
-                   1
-                   (:intensity? @app-state)
-                   #(swap! app-state assoc-in [:ro :intensity-blend] %)]]
-
-                 ;; intensity scaling clamp
-                 [w/panel-section
-                  [w/desc "Intensity scaling, narrow down range of intensity values"]
-                  [w/slider
-                   (get-in @app-state [:ro :intensity-clamps])
-                   0
-                   255
-                   (:intensity? @app-state)
-                   #(swap! app-state assoc-in [:ro :intensity-clamps] (vec (seq %)))]]]
-
-                :point-loading
-                [w/panel "Point Loading"
-
-                 ;; How close the first splitting plane is
-                 [w/panel-section
-                  [w/desc "Distance for highest resolution data.  Farther it is, more points get loaded."]
-                  [w/slider (get-in @app-state [:po :distance-hint]) 10 70
-                   #(swap! app-state assoc-in [:po :distance-hint] %)]]
-
-                 [w/panel-section
-                  [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
-                  [w/slider (get-in @app-state [:po :max-depth-reduction-hint]) 0 5
-                   #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]]
-
-                :point-manipulation
-                [w/panel "Point Manipulation"
-                 [w/panel-section
-                  [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
-                  [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
-                   #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]]
-
-                :point-information
-                (let [[points size] (index-information)]
-                  [w/panel "Point Source Information"
-                   [w/key-val-table
-                    ["Point Count" points]
-                    ["Uncompressed Index Size" size]
-                    ["Powered By" "entwine"]
-                    ["Caching" "Amazon CloudFront"]
-                    ["Backend" "Amazon EC2"]]])
-
-                nil)
-              {:key mode})))
-
-        [compass]
-
-        (hud-right
-          ;; display action buttons on the top
-          #_[:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
-
-          (let [current-mode (:active-secondary-mode @app-state)]
-            [:div {}
-             [w/toolbar
-              (fn [kind]
-                (swap! app-state update-in [:active-secondary-mode]
-                       (fn [mode]
-                         (println mode kind)
-                         (when-not (= mode kind)
-                           kind))))
-              [:line-picker :map-marker "Line Picking"
-               (and (= current-mode :line-picker) :active)]
-              [:line-of-sight-picker :bullseye "Line of Sight"
-               :disabled
-               #_(and (= current-mode :line-of-sight-picker) :active)]
-              [:follow-path :video-camera "Follow Path" :disabled]
-              ; [:tag-regions :tags "Tag Regions" :disabled]
-              [:bookmarks :bookmark-o "Bookmarks" :disabled]
-              [:search :search "Search" :disabled]
-              #_[:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
-
-             (case current-mode
-               :line-picker
-               [w/panel "Line Picking"
-                [w/desc "Hold shift and click to draw lines.  Release shift to finish"]
-                [:div {:style {:margin "5px 0 0 5px"}}
-                 [:button.btn.btn-sm.btn-default
-                  {:on-click #(when-let [line-picker (get-in @app-state [:modes :line-picker])]
-                               (.resetState line-picker))} "Clear All Lines"]]
-                [w/panel "Elevation profile mapping"
-
-                 ;; wrap our tool bar into a div element so that we can push it right a bit
-                 [:div {:style {:margin-left "5px"}}
-                  [w/toolbar
-                   (fn [tool]
-                     (case tool
-                       :profile (do-profile)))
-                   [:profile :area-chart "Profile" (and (not (seq @app-state-lines))
-                                                        :disabled)]]]]]
-
-               :line-of-sight-picker
-               [w/panel "Line of Sight"
-                [w/desc "Shift-click to estimate line-of-sight"]
-                [w/panel "Visibility Parameters"
-                 [w/panel-section
-                  [w/desc "Elevation of origin point"]
-                  [w/slider 2 1 50 #(do
-                                     (when-let
-                                       [los-picker (get-in
-                                                     @app-state
-                                                     [:modes
-                                                      :line-of-sight-picker])]
-                                       (.setHeight los-picker %)))]]
-                 [w/panel-section
-                  [w/desc "Traversal radius"]
-                  [w/slider 8 6 10 1 true #(do
-                                            (when-let
-                                              [los-picker (get-in
-                                                            @app-state
-                                                            [:modes
-                                                             :line-of-sight-picker])]
-                                              (.setRadius los-picker
-                                                          (js/Math.pow 2 %))))]]]]
-
-               [w/panel "Modal Tools"
-                [w/panel-section
-                 [w/desc "Select a mode above to display additional tools"]]])])
-
-          ;; if there are any line segments available, so the tools to play with them
+          ;; the element which shows us all the system messages
           ;;
-          (let [segments (some-> @app-state-lines
-                                 seq
-                                 js->clj
-                                 reverse)
-                line-prefix "line"
-                point-prefix "point"
-                los-prefix "los"
-                starts-with (fn [s prefix]
-                              (and (>= (count s) (count prefix))
-                                   (= (subs s 0 (count prefix)) prefix)))]
-            [:div
-             (when-let [lines (seq (remove
-                                     #(not (starts-with (nth % 0) line-prefix))
-                                     segments))]
-               [w/panel-with-close "Line Segments"
-                ;; when the close button is hit on line-segments, we need to
-                ;; reset the picker state the state will propagate down to making
-                ;; sure that no lines exist in our app state
-                #(do
-                  ;; reset line picker
-                  (when-let [line-picker (get-in @app-state [:modes :line-picker])]
-                    (js/console.log line-picker)
-                    (.resetState line-picker))
-
-                  ;; reset any profiles which are active
-                  (swap! app-state dissoc :profile-series))
-
-                [w/panel-section
-                 [w/desc "All line segments in scene, lengths in data units."]
-                 (for [[id start end [r g b]] lines]
-                   ^{:key id} [:div.line-info
-                               {:style {:color (str "rgb(" r "," g "," b ")")}}
-                               (format-dist end start)])]])
-
-             (when-let [los (seq (remove
-                                   #(not (starts-with (nth % 0) los-prefix))
-                                   segments))]
-               [w/panel-with-close "Line of Sight Origin"
-                ;; when the close button is hit on line-segments, we need to
-                ;; reset the picker state the state will propagate down to making
-                ;; sure that no lines exist in our app state
-                #(do
-                  ;; reset line picker
-                  (when-let [los-picker (get-in @app-state
-                                                [:modes :line-of-sight-picker])]
-                    (.resetState los-picker)))
-
-                [w/panel-section
-                 (for [[id start end [r g b]] los]
-                   ^{:key id} [:div.line-info
-                               {:style {:color (str "rgb(200,200,200)")}}
-                               (str (format-point start))])]])]))
-
-        ;; if we have any profile views to show, show them
-        (when-let [series (:profile-series @app-state)]
-          [w/profile-view series #(swap! app-state dissoc :profile-series)])
-
-        ;; the element which shows us all the system messages
-        ;;
-        (when-let [status (:status-message @app-state)]
-          [w/status (:type status) (:message status)])])}))
+          (when-let [status (:status-message @app-state)]
+            [w/status (:type status) (:message status)])]))}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
@@ -716,7 +532,7 @@
                                "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
                                "intensityBlend" (:intensity-blend ro)
                                "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
-    (.setClearColor renderer 0.1 0 0)
+    (.setClearColor renderer 0 (/ 29 256) (/ 33 256))
 
     (.start policy)
 
@@ -902,3 +718,283 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
+#_(fn []
+    ;; get the left and right hud's up
+    ;; we need these to place our controls and other fancy things
+    ;;
+    [:div.app-container
+     ;; This is going to be where we render stuff
+     [render-target]
+
+     ;; hud elements
+     (hud-left
+
+       ;; show app brand
+       [:div
+        [:div#brand (or (:brand @app-state)
+                        "Plasio-UI")
+         [:div#sub-brand (or (:sub-brand @app-state)
+                             "Dynamic Point Cloud Renderer")]]
+
+
+        ;; Dataset info
+        (let [[points size] (index-information)]
+          [:div.dataset-info
+           [:p.points points]
+           #_[:p.index-size (str size " uncompressed")]])
+
+        (let [primary-mode (:active-primary-mode @app-state)]
+          [:div {:style {:margin "15px"}}
+           [w/toolbar
+            (fn [kind]
+              (swap! app-state assoc :active-primary-mode kind)
+              )
+            [:point-rendering :cogs "Point Rendering Configuration" (and (= primary-mode :point-rendering) :active)]
+            [:point-loading :tachometer "Point Loading" (and (= primary-mode :point-loading) :active)]
+            [:point-manipulation :magic "Point Manipulation" (and (= primary-mode :point-manipulation) :active)]
+            [:point-information :info-circle "Point Source Information" (and (= primary-mode :point-information) :active)]
+            ]])]
+
+       ;; Point appearance
+       (let [mode (:active-primary-mode @app-state)]
+         (with-meta
+           (case mode
+             :point-rendering
+             [w/panel "Point Rendering"
+
+              ;; imagery tile source
+              [w/panel-section
+               [w/desc "Imagery tile source"]
+               [w/dropdown
+                (get-in @app-state [:imagery-sources])
+                (get-in @app-state [:ro :imagery-source])
+                (not (:color? @app-state))
+                #(let [source %
+                       policy (get-in @app-state [:comps :policy])]
+                  (swap! app-state assoc-in [:ro :imagery-source] source)
+                  (.setImagerySource policy source))]]
+
+              ;; point type
+              [w/panel-section
+               [w/desc "Circular or Square point rendering"]
+               [:div.point-type {:style {:margin-left "5px"}}
+                [:label
+                 [:input.radio-inline
+                  {:type    "radio"
+                   :name    "pointType"
+                   :checked (get-in @app-state [:ro :circular?])
+                   :on-change #(swap! app-state assoc-in [:ro :circular?] true)
+                   :value   "circular"}]
+                 "Circular"]
+                [:label
+                 [:input.radio-inline
+                  {:type    "radio"
+                   :name    "pointType"
+                   :checked (not (get-in @app-state [:ro :circular?]))
+                   :on-change #(swap! app-state assoc-in [:ro :circular?] false)
+                   :value   "square"}]
+                 "Square"]
+                ]]
+
+              ;; base point size
+              [w/panel-section
+               [w/desc "Base point size"]
+               [w/slider (get-in @app-state [:ro :point-size]) 1 10
+                #(swap! app-state assoc-in [:ro :point-size] %)]]
+
+              ;; point attenuation factor
+              [w/panel-section
+               [w/desc "Attenuation factor, points closer to you are bloated more"]
+               [w/slider (get-in @app-state [:ro :point-size-attenuation]) 0 5
+                #(swap! app-state assoc-in [:ro :point-size-attenuation] %)]]
+
+              ;; intensity blending factor
+              [w/panel-section
+               [w/desc "Intensity blending, how much of intensity to blend with color"]
+               [w/slider
+                (get-in @app-state [:ro :intensity-blend])
+                0
+                1
+                (:intensity? @app-state)
+                #(swap! app-state assoc-in [:ro :intensity-blend] %)]]
+
+              ;; intensity scaling clamp
+              [w/panel-section
+               [w/desc "Intensity scaling, narrow down range of intensity values"]
+               [w/slider
+                (get-in @app-state [:ro :intensity-clamps])
+                0
+                255
+                (:intensity? @app-state)
+                #(swap! app-state assoc-in [:ro :intensity-clamps] (vec (seq %)))]]]
+
+             :point-loading
+             [w/panel "Point Loading"
+
+              ;; How close the first splitting plane is
+              [w/panel-section
+               [w/desc "Distance for highest resolution data.  Farther it is, more points get loaded."]
+               [w/slider (get-in @app-state [:po :distance-hint]) 10 70
+                #(swap! app-state assoc-in [:po :distance-hint] %)]]
+
+              [w/panel-section
+               [w/desc "Maximum resolution reduction.  Lower values means you see more of the lower density points."]
+               [w/slider (get-in @app-state [:po :max-depth-reduction-hint]) 0 5
+                #(swap! app-state assoc-in [:po :max-depth-reduction-hint] %)]]]
+
+             :point-manipulation
+             [w/panel "Point Manipulation"
+              [w/panel-section
+               [w/desc "Z-exaggeration.  Higher values stretch out elevation deltas more significantly."]
+               [w/slider (get-in @app-state [:pm :z-exaggeration]) 1 12
+                #(swap! app-state assoc-in [:pm :z-exaggeration] %)]]]
+
+             :point-information
+             (let [[points size] (index-information)]
+               [w/panel "Point Source Information"
+                [w/key-val-table
+                 ["Point Count" points]
+                 ["Uncompressed Index Size" size]
+                 ["Powered By" "entwine"]
+                 ["Caching" "Amazon CloudFront"]
+                 ["Backend" "Amazon EC2"]]])
+
+             nil)
+           {:key mode})))
+
+     [compass]
+
+     (hud-right
+       ;; display action buttons on the top
+       #_[:div {:style {:height "40px"}}] ; just to push the toolbar down a little bt
+
+       (let [current-mode (:active-secondary-mode @app-state)]
+         [:div {}
+          [w/toolbar
+           (fn [kind]
+             (swap! app-state update-in [:active-secondary-mode]
+                    (fn [mode]
+                      (println mode kind)
+                      (when-not (= mode kind)
+                        kind))))
+           [:line-picker :map-marker "Line Picking"
+            (and (= current-mode :line-picker) :active)]
+           [:line-of-sight-picker :bullseye "Line of Sight"
+            :disabled
+            #_(and (= current-mode :line-of-sight-picker) :active)]
+           [:follow-path :video-camera "Follow Path" :disabled]
+           ; [:tag-regions :tags "Tag Regions" :disabled]
+           [:bookmarks :bookmark-o "Bookmarks" :disabled]
+           [:search :search "Search" :disabled]
+           #_[:height-map :area-chart "Heightmap Coloring" (and (= current-mode :height-map) :active)]]
+
+          (case current-mode
+            :line-picker
+            [w/panel "Line Picking"
+             [w/desc "Hold shift and click to draw lines.  Release shift to finish"]
+             [:div {:style {:margin "5px 0 0 5px"}}
+              [:button.btn.btn-sm.btn-default
+               {:on-click #(when-let [line-picker (get-in @app-state [:modes :line-picker])]
+                            (.resetState line-picker))} "Clear All Lines"]]
+             [w/panel "Elevation profile mapping"
+
+              ;; wrap our tool bar into a div element so that we can push it right a bit
+              [:div {:style {:margin-left "5px"}}
+               [w/toolbar
+                (fn [tool]
+                  (case tool
+                    :profile (do-profile)))
+                [:profile :area-chart "Profile" (and (not (seq @app-state-lines))
+                                                     :disabled)]]]]]
+
+            :line-of-sight-picker
+            [w/panel "Line of Sight"
+             [w/desc "Shift-click to estimate line-of-sight"]
+             [w/panel "Visibility Parameters"
+              [w/panel-section
+               [w/desc "Elevation of origin point"]
+               [w/slider 2 1 50 #(do
+                                  (when-let
+                                    [los-picker (get-in
+                                                  @app-state
+                                                  [:modes
+                                                   :line-of-sight-picker])]
+                                    (.setHeight los-picker %)))]]
+              [w/panel-section
+               [w/desc "Traversal radius"]
+               [w/slider 8 6 10 1 true #(do
+                                         (when-let
+                                           [los-picker (get-in
+                                                         @app-state
+                                                         [:modes
+                                                          :line-of-sight-picker])]
+                                           (.setRadius los-picker
+                                                       (js/Math.pow 2 %))))]]]]
+
+            [w/panel "Modal Tools"
+             [w/panel-section
+              [w/desc "Select a mode above to display additional tools"]]])])
+
+       ;; if there are any line segments available, so the tools to play with them
+       ;;
+       (let [segments (some-> @app-state-lines
+                              seq
+                              js->clj
+                              reverse)
+             line-prefix "line"
+             point-prefix "point"
+             los-prefix "los"
+             starts-with (fn [s prefix]
+                           (and (>= (count s) (count prefix))
+                                (= (subs s 0 (count prefix)) prefix)))]
+         [:div
+          (when-let [lines (seq (remove
+                                  #(not (starts-with (nth % 0) line-prefix))
+                                  segments))]
+            [w/panel-with-close "Line Segments"
+             ;; when the close button is hit on line-segments, we need to
+             ;; reset the picker state the state will propagate down to making
+             ;; sure that no lines exist in our app state
+             #(do
+               ;; reset line picker
+               (when-let [line-picker (get-in @app-state [:modes :line-picker])]
+                 (js/console.log line-picker)
+                 (.resetState line-picker))
+
+               ;; reset any profiles which are active
+               (swap! app-state dissoc :profile-series))
+
+             [w/panel-section
+              [w/desc "All line segments in scene, lengths in data units."]
+              (for [[id start end [r g b]] lines]
+                ^{:key id} [:div.line-info
+                            {:style {:color (str "rgb(" r "," g "," b ")")}}
+                            (format-dist end start)])]])
+
+          (when-let [los (seq (remove
+                                #(not (starts-with (nth % 0) los-prefix))
+                                segments))]
+            [w/panel-with-close "Line of Sight Origin"
+             ;; when the close button is hit on line-segments, we need to
+             ;; reset the picker state the state will propagate down to making
+             ;; sure that no lines exist in our app state
+             #(do
+               ;; reset line picker
+               (when-let [los-picker (get-in @app-state
+                                             [:modes :line-of-sight-picker])]
+                 (.resetState los-picker)))
+
+             [w/panel-section
+              (for [[id start end [r g b]] los]
+                ^{:key id} [:div.line-info
+                            {:style {:color (str "rgb(200,200,200)")}}
+                            (str (format-point start))])]])]))
+
+     ;; if we have any profile views to show, show them
+     (when-let [series (:profile-series @app-state)]
+       [w/profile-view series #(swap! app-state dissoc :profile-series)])
+
+     ;; the element which shows us all the system messages
+     ;;
+     (when-let [status (:status-message @app-state)]
+       [w/status (:type status) (:message status)])])
