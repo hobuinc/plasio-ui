@@ -62,7 +62,26 @@
        (fn [start min max f]
          [:div.slider])}))))
 
+
 (defn dropdown
+  ([options state path]
+    (dropdown options state path #()))
+  ([options state path f]
+   (let [options-map (into {} options)
+         title (get options-map (get-in @state path))
+         trigger #(do (swap! state assoc-in path %)
+                      (f %))]
+     [:div.dropdown
+      [:button.btn.btn-sm.btn-default.dropdown-toggle
+       {:type        "button"
+        :data-toggle "dropdown"} title [:span.caret]]
+      (into [:ul.dropdown-menu]
+            (for [[k v] options]
+              ^{:key k} [:li [:a {:href "javascript:"
+                                  :on-click #(trigger k)}
+                              v]]))])))
+
+#_(defn dropdown
   "A dropdown option list"
   ([choices start f] (dropdown choices start true f))
   ([choices start enable? f]
@@ -76,7 +95,7 @@
             (when (not enable?) (.attr node "disabled" "disabled"))))
         :reagent-render
         (fn [choices start enable? f]
-          [:select.dropdown {:value @selected :onChange emit}
+          [:select.form-control {:value @selected :onChange emit}
            (for [[k v] choices]
              [:option {:value k :key k} v])])}))))
 
@@ -233,6 +252,9 @@
             :on-click f}
    (icon ic)])
 
+(defn separator []
+  [:div.separator])
+
 (defn app-toolbar [& icons]
   [:div.toolbar
    icons])
@@ -242,7 +264,10 @@
    [:div.title "plasio"]
    [app-toolbar
     (for [[icon name f] options]
-      ^{:key name} [action icon name f])]])
+      ^{:key (or name icon)}
+      (if (= icon :separator)
+        [separator]
+        [action icon name f]))]])
 
 (defn mouse-pos [e]
   [(.-pageX e) (.-pageY e)])
@@ -269,58 +294,67 @@
   (defn next-window-default-location []
     (let [v (first @st)]
       (swap! st rest)
-      v)))
+      v))
+
+  (defn reset-default-location-state! []
+    (reset! st lst)))
+
+(defn reset-floating-panel-positions! []
+  (reset-default-location-state!)
+  (plasio-state/clear-locations-cache!))
 
 
-(defn floating-panel [title ico f-dismiss & children]
+(defn floating-panel [title ico f-dismiss f-dock f-undock & children]
   (let [state (atom (merge (next-window-default-location)
                            (plasio-state/get-location title)))
         drag-start
         (fn [e]
-          (println "starting drag!")
-          ;; we need to determine our detach handlers
-          ;; and trigger them when the mouse is released
-          ;;
-          (let [drag-move (fn [e]
-                            (let [mp (mouse-pos e)
-                                  off (:widget-offset @state)
-                                  [left top] (pos-add mp off)]
-                              (swap! state assoc
-                                     :left left
-                                     :top  top)))
-                drag-end (fn [e]
-                           (when-let [f (:mousemove-handler @state)]
-                             (.removeEventListener js/document "mousemove" f))
-                           (when-let [f (:mouseup-handler @state)]
-                             (.removeEventListener js/document "mouseup" f))
+          (when (zero? (.-button e))
+            (println "starting drag!")
+            ;; we need to determine our detach handlers
+            ;; and trigger them when the mouse is released
+            ;;
+            (let [drag-move (fn [e]
+                              (let [mp (mouse-pos e)
+                                    off (:widget-offset @state)
+                                    [left top] (pos-add mp off)]
+                                (swap! state assoc
+                                       :left left
+                                       :top top)))
+                  drag-end (fn [e]
+                             (when-let [f (:mousemove-handler @state)]
+                               (.removeEventListener js/document "mousemove" f))
+                             (when-let [f (:mouseup-handler @state)]
+                               (.removeEventListener js/document "mouseup" f))
 
-                           (swap! state
-                                  (fn [st]
-                                    (-> st
-                                        (dissoc :mouseup-handler
-                                                :mousemove-handler
-                                                :dragging?)
-                                        (assoc :z-index (next-z-index)))))
+                             (swap! state
+                                    (fn [st]
+                                      (-> st
+                                          (dissoc :mouseup-handler
+                                                  :mousemove-handler
+                                                  :dragging?)
+                                          (assoc :z-index (next-z-index)))))
 
-                           ;; save the final location for this window
-                           (let [mp (mouse-pos e)
-                                 off (:widget-offset @state)
-                                 [left top] (pos-add mp off)]
-                             (plasio-state/save-location!
-                               title {:left left :top top})))]
-            (let [mp (mouse-pos e)
-                  elem (.. e -target -parentNode)
-                  elem-pos (element-pos elem)]
-              (println elem-pos)
-              (swap! state assoc
-                     :widget-offset (pos-diff elem-pos mp)
-                     :mousemove-handler drag-move
-                     :mouseup-handler drag-end
-                     :dragging? true)
+                             ;; save the final location for this window
+                             (let [mp (mouse-pos e)
+                                   off (:widget-offset @state)
+                                   [left top] (pos-add mp off)]
+                               (plasio-state/save-location!
+                                 title {:left left :top top})))]
+              (let [mp (mouse-pos e)
+                    elem (.. e -target -parentNode)
+                    elem-pos (element-pos elem)]
+                (println elem-pos)
+                (swap! state assoc
+                       :widget-offset (pos-diff elem-pos mp)
+                       :mousemove-handler drag-move
+                       :mouseup-handler drag-end
+                       :dragging? true)
 
-              (js/console.log elem)
-              (.addEventListener js/document "mousemove" drag-move)
-              (.addEventListener js/document "mouseup" drag-end))))]
+                (js/console.log elem)
+                (.addEventListener js/document "mousemove" drag-move)
+                (.addEventListener js/document "mouseup" drag-end)))))]
+    (plasio-state/save-location! title @state)
     (reagent/create-class
       {:reagent-render
        (fn []
@@ -341,10 +375,28 @@
            {:on-mouse-down drag-start}
            (icon ico)
            title]
+          [:div.title-docked
+           (icon ico)
+           title]
+          [:a.pin {:href "javascript:"
+                   :on-click f-dock}
+           (icon :lock)]
+          [:a.unpin {:href "javascript:"
+                     :on-click f-undock}
+           (icon :unlock)]
           [:a.toggle {:href     "javascript:"
                       :on-click #(swap! state update :collapsed? not)}
            (icon (if (:collapsed? @state) :chevron-down :chevron-up))]
-          [:a.close {:href     "javascript:"
-                     :on-click f-dismiss}
+          [:a.close-button {:href     "javascript:"
+                            :on-click f-dismiss}
            (icon :times)]
           [:div.floating-panel-body children]])})))
+
+(let [toggle-state (atom true)]
+  (defn docker-widget [& children]
+    (into [:div.docker-widget
+           {:class (if @toggle-state "on" "off")}
+           [:a.toggle-docker {:href "javascript:"
+                              :on-click #(swap! toggle-state not)}
+            (icon (if @toggle-state :angle-double-left :angle-double-right))]]
+          children)))

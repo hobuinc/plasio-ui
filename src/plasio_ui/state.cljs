@@ -20,3 +20,18 @@
 
 (defn get-location [title]
   (get-val (loc-key title)))
+
+
+(defn -starts-with? [s p]
+  (zero?
+    (.indexOf s p)))
+
+(defn clear-locations-cache! []
+  (let [ls js/localStorage
+        len (.-length js/localStorage)
+        to-remove (vec (for [i (range len)
+                             :let [k (.key ls i)]
+                             :when (-starts-with? k "location.")]
+                         k))]
+    (doall
+      (map #(.removeItem ls %) to-remove))))

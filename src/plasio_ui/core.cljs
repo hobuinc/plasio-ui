@@ -20,6 +20,7 @@
                           :active-primary-mode nil
                           :active-secondary-mode nil
                           :open-panes #{}
+                          :docked-panes #{}
                           :window {:width 0
                                    :height 0}
                           :ro {:circular? false
@@ -56,33 +57,6 @@
                                              :message msg})
      (let [t (js/setTimeout #(swap! app-state dissoc :status-message) 5000)]
        (reset! timer t)))))
-
-;; Much code duplication here, but I don't want to over engineer this
-;;
-(defn hud-left [& children]
-  (let [is-collapsed? (:left-hud-collapsed? @app-state)]
-    [:div.hud-container.hud-left
-     {:class (when is-collapsed? " hud-collapsed")}
-     [:a.hud-collapse {:href     "javascript:"
-                       :on-click #(swap! app-state update-in [:left-hud-collapsed?] not)}
-      (if is-collapsed? "\u00BB" "\u00AB")]
-     [:div (first children)]
-     (into [:div.hud-contents.left-contents] (rest children))]))
-
-
-(defn hud-right [& children]
-  (let [is-collapsed? (:right-hud-collapsed? @app-state)
-        secondary? (and (:secondary-mode-enabled? @app-state)
-                        (:active-secondary-mode @app-state))]
-    [:div.hud-container.hud-right
-     {:class (cond->> ""
-               is-collapsed? (str "hud-collapsed ")
-               secondary? (str "active "))}
-     [:a.hud-collapse {:href     "javascript:"
-                       :on-click #(swap! app-state update-in [:right-hud-collapsed?] not)}
-      (if is-collapsed? "\u00AB" "\u00BB")]
-     (into [:div.hud-contents] children)]))
-
 
 
 (defn compass []
@@ -199,6 +173,7 @@
 
 (defn apply-ui-state!
   ([n]
+   (println n)
    (let [r (get-in n [:comps :renderer])
          ro (:ro n)
          p (get-in n [:comps :policy])]
@@ -336,11 +311,77 @@
     (fn [new-val]
       (swap! state assoc-in path new-val))]])
 
+(defn labeled-select [text options]
+  [:div.select-text
+   [:div.text text]
+   [:select.form-control
+    (for [[k v] options]
+      [:option {:value v}])]])
+
+(defn labeled-radios [text option-name selected f & radios]
+  (println "------------ selected:" selected)
+  [:div.select-radios
+   ^{:key "text"} [:div.text text]
+   ^{:key "form"} [:form.form-inline
+                   (into
+                     [:div.form-group]
+                     (for [[k v] radios]
+                       ^{:key k}
+                       [:div.radio
+                        [:label
+                         [:input {:type      "radio"
+                                  :name      option-name
+                                  :checked   (= selected k)
+                                  :on-change (partial f k)}
+                          v]]]))]])
+
+(defn labeled-bool [text state path]
+  [:div.bool-field
+   [:label
+    [:div.text text]
+    [:div.value
+     [:input.checkbox {:type      "checkbox"
+                       :on-change #(swap! state update-in path not)
+                       :checked   (get-in @state path)}]]
+    [:div.clearfix]]])
+
+(defn state-updater [f]
+  (fn []
+    (swap! app-state f)))
+
+(defn closer [key]
+  (state-updater
+   (fn [st]
+     (-> st
+         (update-in [:open-panes] disj key)
+         (update-in [:docked-panes] disj key)))))
+
+(defn docker [key]
+  (state-updater
+   (fn [st]
+     (-> st
+         (update-in [:open-panes] disj key)
+         (update-in [:docked-panes] conj key)))))
+
+(defn undocker [key]
+  (state-updater
+   (fn [st]
+     (-> st
+         (update-in [:docked-panes] disj key)
+         (update-in [:open-panes] conj key)))))
+
 (defn render-options-pane [state]
   [w/floating-panel
    "Rendering Options"
    :cogs
-   #(swap! app-state update-in [:open-panes] disj :rendering-options)
+   (closer :rendering-options)
+   (docker :rendering-options)
+   (undocker :rendering-options)
+
+   ^{:key :circular-points}
+   [labeled-bool "Circular Points?" state
+    [:ro :circular?]]
+
    ^{:key :point-size}
    [labeled-slider "Point Size" state
     [:ro :point-size] 1 10]
@@ -362,7 +403,10 @@
 (defn information-pane [state]
   [w/floating-panel "Pipeline Information"
    :info-circle
-   #(swap! app-state update-in [:open-panes] disj :information)
+   (closer :information)
+   (docker :information)
+   (undocker :information)
+
    (let [[points size] (index-information)]
      [w/key-val-table
       ["Point Count" points]
@@ -374,18 +418,79 @@
 (defn point-manipulation-pane [state]
   [w/floating-panel "Point Manipulation"
    :magic
-   #(swap! app-state update-in [:open-panes] disj :point-manipulation)
+   (closer :point-manipulation)
+   (docker :point-manipulation)
+   (undocker :point-manipulation)
+
    [labeled-slider "Z-exaggeration.  Higher values stretch out elevation deltas more significantly"
     state
     [:pm :z-exaggeration] 1 12]])
 
+(defn imagery-pane [state]
+  [w/floating-panel "Imagery"
+   :picture-o
+   (closer :imagery)
+   (docker :imagery)
+   (undocker :imagery)
+
+   [:div.imagery
+    [:div.text "Imagery source"]
+    [w/dropdown
+     (get-in @state [:imagery-sources])
+     state [:ro :imagery-source]
+     (fn [new-val]
+       (println "It changed to this!" new-val)
+       (when-let [o (get-in @app-state [:comps :loaders :point])]
+         (when-let [p (get-in @app-state [:comps :policy])]
+           (.hookedReload
+             p
+             (fn []
+               (.setColorSourceImagery o new-val))))
+         (println "changing imagery for:" o)))]
+    [:p.tip
+     [:strong "Note that: "]
+     "The current view will be re-loaded with the new imagery."]]])
+
+
+(defn logo []
+  [:div.entwine {:style {:position "fixed"
+                         :bottom "10px"
+                         :left "10px"}}])
+
 (defn toggler [view]
-  (fn []
-    (swap! app-state update-in [:open-panes]
-           (fn [panes]
-             (if (panes view)
-               (disj panes view)
-               (conj panes view))))))
+  (state-updater
+   (fn [st]
+     (let [open-panes (:open-panes st)
+           docked-panes (:docked-panes st)]
+       (if (or (open-panes view)
+               (docked-panes view))
+         (-> st
+             (update-in [:open-panes] disj view)
+             (update-in [:docked-panes] disj view))
+         (update-in st [:open-panes] conj view))))))
+
+
+(defn relayout-windows []
+  (let [current-windows (:open-panes @app-state)]
+    (println current-windows)
+    (swap! app-state assoc :open-panes #{})
+    (go
+      (async/<! (async/timeout 100))
+      (w/reset-floating-panel-positions!)
+      (swap! app-state assoc :open-panes current-windows))))
+
+(def ^:private panes
+  [[:rendering-options "Rendering Options" :cogs render-options-pane]
+   [:imagery "Imagery Options" :picture-o imagery-pane]
+   [:point-manipulation "Point Manipulation" :magic point-manipulation-pane]
+   [:information "Information" :info-circle information-pane]])
+
+(defn make-app-bar []
+  (let [all-panes (-> (mapv (fn [[a b c d]] (vector c b (toggler a))) panes)
+                      (conj [:separator]
+                            [:clone "Stack Windows" relayout-windows]))]
+    (println "all-panes:" all-panes)
+    (into [w/application-bar] all-panes)))
 
 (defn hud []
   (reagent/create-class
@@ -404,14 +509,13 @@
        ;; get the left and right hud's up
        ;; we need these to place our controls and other fancy things
        ;;
-       (let [open-panes (:open-panes @app-state)]
+       (let [open-panes (:open-panes @app-state)
+             docked-panes (:docked-panes @app-state)]
          [:div.app-container
+          {:class (when-not (empty? docked-panes) "with-dock")}
           ;; the application app bar
           [:div
-           [w/application-bar
-            [:cogs "Rendering Options" (toggler :rendering-options)]
-            [:magic "Point Manipulation" (toggler :point-manipulation)]
-            [:info-circle "Information" (toggler :information)]]]
+           (make-app-bar)]
 
           ;; This is going to be where we render stuff
           [render-target]
@@ -419,15 +523,17 @@
           ;; compass
           [compass]
 
-          ;; any overlaying panes
-          (when (open-panes :rendering-options)
-            [render-options-pane app-state])
+          ;; powered by logo
+          [logo]
 
-          (when (open-panes :point-manipulation)
-            [point-manipulation-pane app-state])
-
-          (when (open-panes :information)
-            [information-pane app-state])
+          ;; any panes which are enabled need to be rendered now
+          ;;
+          (when-not (empty? open-panes)
+            [:div.open-panes
+             (for [[id name icon widget] panes
+                   :when (open-panes id)
+                   :when widget]
+               [widget app-state])])
 
           ;; if we have any profile views to show, show them
           (when-let [series (:profile-series @app-state)]
@@ -436,29 +542,37 @@
           ;; the element which shows us all the system messages
           ;;
           (when-let [status (:status-message @app-state)]
-            [w/status (:type status) (:message status)])]))}))
+            [w/status (:type status) (:message status)])
+
+          ;; show docked wigdets
+          (when-not (empty? docked-panes)
+            [w/docker-widget
+             (for [[id name icon widget] panes
+                   :when (docked-panes id)
+                   :when widget]
+               [widget app-state])])]))}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
                                          render-hints
                                          init-params]}]
   (println "render-hints:" render-hints)
+  (println "bbox:" bbox)
   (let [create-renderer (.. js/window -renderer -core -createRenderer)
         renderer (create-renderer e)
-        _ (println "bbox" bbox)
         bbox [(nth bbox 0) (nth bbox 2) (nth bbox 1)
               (nth bbox 3) (nth bbox 5) (nth bbox 4)]
-
-        _ (println "bbox" bbox)
-        loaders (merge
-                  {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
-                                server (apply js/Array bbox)
-                                pipeline max-depth
-                                compress? color? intensity?)
-                   :transform (js/PlasioLib.Loaders.TransformLoader.)}
-                  (when (not color?)
-                    {:overlay (js/PlasioLib.Loaders.MapboxLoader.
-                                (apply js/Array bbox))}))
+        overlay (when (not color?)
+                  (js/PlasioLib.Loaders.MapboxLoader.
+                    (apply js/Array bbox)))
+        loaders {:point     (doto (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
+                                    server (apply js/Array bbox)
+                                    pipeline max-depth
+                                    compress? color? intensity?
+                                    overlay)
+                              (.setColorSourceImagery (get-in init-params
+                                                              [:ro :imagery-source])))
+                 :transform (js/PlasioLib.Loaders.TransformLoader.)}
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (clj->js loaders)
                  renderer
@@ -522,8 +636,8 @@
     ;;
     (.setRenderOptions renderer
                        (js-obj "circularPoints" 0
-                               "overlay_f" (if color? 0 1)
-                               "rgb_f" (if color? 1 0)
+                               "overlay_f" 0
+                               "rgb_f" 1
                                "intensity_f" 1
                                "clampLower" (nth (:intensity-clamps ro) 0)
                                "clampHigher" (nth (:intensity-clamps ro) 1)
@@ -553,6 +667,8 @@
     {:renderer renderer
      :target-element e
      :camera camera
+     :overlay overlay
+     :loaders loaders
      :policy policy}))
 
 (defn- urlify [s]

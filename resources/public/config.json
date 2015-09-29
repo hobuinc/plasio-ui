@@ -8,9 +8,6 @@
         ["mapbox.pencil", "Pencil"],
         ["mapbox.comic", "Comic"],
         ["mapbox.wheatpaste", "Wheatpaste"]
-    ],
-    "render-hints" : {
-        "max-color-component": 65536
-    }
+    ]
 }
 
