@@ -18,13 +18,17 @@
    [[:ro :intensity-blend] "ib"]
    [[:ro :intensity-clamps] "ic"]
    [[:ro :imagery-source] "is"]
+   [[:ro :color-ramp] "cr" keyword]
+   [[:ro :colorClampLower] "ccl"]
+   [[:ro :colorClampHigher] "cch"]
+   [[:ro :map_f] "mapf"]
    [[:pm :z-exaggeration] "ze"]
    [[:po :distance-hint] "dh"]
    [[:po :max-depth-reduction-hint] "mdr"]])
 
 
 (defn- compress [obj]
-  (let [pairs (for [[ks token] path-mappers
+  (let [pairs (for [[ks token t] path-mappers
                     :let [val (get-in obj ks)]
                     :when val]
                 [token val])]
@@ -40,15 +44,17 @@
   (let [pairs (split s #"&")
         tokens (map #(split % #"=") pairs)
         reverse-map (into {}
-                          (for [[k v] path-mappers]
-                            [v k]))]
+                          (for [[k v t] path-mappers]
+                            [v [k t]]))]
     (reduce
      (fn [acc [k v]]
-       (if-let [p (get reverse-map k)]
-         (assoc-in acc p (-> v
-                             js/decodeURIComponent
-                             js/JSON.parse
-                             js->clj))))
+       (if-let [[p t] (get reverse-map k)]
+         (let [val (-> v
+                       js/decodeURIComponent
+                       js/JSON.parse
+                       js->clj)]
+           (assoc-in acc p
+                     (if t (t val) val)))))
      {}
      tokens)))
 

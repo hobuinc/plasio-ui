@@ -228,6 +228,7 @@
                                                :render-hints (:render-hints @app-state)
                                                :init-params  init-state})
                modes (initialize-modes comps)]
+           (println "----- init-state:" init-state)
            (swap! app-state assoc
                   :comps comps
                   :modes modes
@@ -244,7 +245,11 @@
          ;; listen to changes to history
          (history/listen (fn [st]
                            (println "apply" st)
-                           (apply-state! st))))
+                           (apply-state! st)))
+
+         ;; once everything is initialized, just make sure we
+         ;; flush our UI state
+         (apply-ui-state! @app-state))
 
        :reagent-render
        (fn []

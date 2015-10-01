@@ -42,7 +42,6 @@
       [:option {:value v}])]])
 
 (defn labeled-radios [text option-name selected f & radios]
-  (println "------------ selected:" selected)
   [:div.select-radios
    ^{:key "text"} [:div.text text]
    ^{:key "form"} [:form.form-inline
@@ -238,11 +237,13 @@
   [:div.ramp-range
    [color-ramp-widget state ramp-path
     path-lower path-upper]
-   [w/slider [0 1] 0 1 #(swap! state
-                               (fn [st]
-                                 (-> st
-                                     (assoc-in path-lower (first %))
-                                     (assoc-in path-upper (second %)))))]])
+   [w/slider [(get-in @state path-lower 0)
+              (get-in @state path-upper 1)]
+    0 1 #(swap! state
+                (fn [st]
+                  (-> st
+                      (assoc-in path-lower (first %))
+                      (assoc-in path-upper (second %)))))]])
 
 
 (defn imagery-pane [state]
@@ -259,7 +260,6 @@
       (get-in @state [:imagery-sources])
       state [:ro :imagery-source]
       (fn [new-val]
-        (println "It changed to this!" new-val)
         (when-let [o (get-in @state [:comps :loaders :point])]
           (when-let [p (get-in @state [:comps :policy])]
             (.hookedReload
