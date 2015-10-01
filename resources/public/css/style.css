@@ -16,6 +16,10 @@ body {
     overflow: hidden;
 }
 
+.noUi-connect {
+    background-color: RGB(0, 187, 215);
+}
+
 .app-bar {
     position: fixed;
     top: 0;
@@ -331,49 +335,6 @@ table.key-val td:last-child {
     margin: 10px 5px 20px 5px;
 }
 
-.noUi-connect {
-    background: #eee;
-}
-
-.noUi-background {
-    background: #eee;
-}
-
-.noUi-target.noUi-connect {
-    box-shadow: none;
-}
-
-.noUi-target[disabled="disabled"] .noUi-background {
-    background: #B8B8B8;
-}
-
-.noUi-target[disabled="disabled"] .noUi-handle,
-.noUi-target[disabled="disabled"] .noUi-handle-lower,
-.noUi-target[disabled="disabled"] .noUi-handle-upper {
-    background: #444;
-}
-
-.noUi-handle {
-    box-shadow: none;
-    border: none;
-    background-color: #00BBD7;
-}
-
-.noUi-horizontal {
-    height: 2px;
-}
-
-.noUi-horizontal .noUi-handle {
-    width: 10px;
-    height: 15px;
-    left: -10px;
-    top: -8px;
-}
-
-.noUi-handle:after,
-.noUi-handle:before {
-    display: none;
-}
 
 .compass {
     width: 96px;
@@ -609,7 +570,7 @@ a:active,a:visited,a:focus {
 }
 
 .floating-panel .floating-panel-body {
-    padding: 10px;
+    padding: 20px 20px;
     margin: 3px;
     border: 1px solid #ccc;
     font-size: 0.8em;
@@ -720,6 +681,16 @@ a:active,a:visited,a:focus {
     width: 100%;
 }
 
+.imagery .ramps-container {
+    width: 100%;
+    text-align: center;
+}
+
+.imagery .ramp-range {
+    margin-top: 5px;
+    text-align: center;
+}
+
 .tip {
     padding: 10px;
     color: #aaa;
@@ -739,4 +710,12 @@ a:active,a:visited,a:focus {
     width: 100px;
     height: 30px;
     z-index: 100000;
+}
+
+.ramp-guides {
+    font-size: 0.8em;
+    margin-top: -10px;
+    text-transform: uppercase;
+    color: #ccc;
+
 }

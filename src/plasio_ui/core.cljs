@@ -1,13 +1,15 @@
 (ns ^:figwheel-always plasio-ui.core
-    (:require [plasio-ui.widgets :as w]
-              [plasio-ui.math :as math]
-              [plasio-ui.history :as history]
-              [reagent.core :as reagent :refer [atom]]
-              [cljs.core.async :as async]
-              [cljs-http.client :as http]
-              [goog.string :as gs]
-              [goog.string.format]
-              cljsjs.gl-matrix)
+  (:require [plasio-ui.widgets :as w]
+            [plasio-ui.app-widgets :as aw]
+            [plasio-ui.math :as math]
+            [plasio-ui.history :as history]
+            [reagent.core :as reagent :refer [atom]]
+            [cljs.core.async :as async]
+            [cljs-http.client :as http]
+            [goog.string :as gs]
+            [goog.string.format]
+            cljsjs.gl-matrix
+            [plasio-ui.config :as config])
     (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
@@ -27,7 +29,9 @@
                                :point-size 1
                                :point-size-attenuation 0.1
                                :intensity-blend 0
-                               :intensity-clamps [0 255]}
+                               :intensity-clamps [0 255]
+                               :color-ramp :red-to-green
+                               :zrange [0 1]}
                           :po {:distance-hint 50
                                :max-depth-reduction-hint 5}
                           :pm {:z-exaggeration 1}}))
@@ -173,10 +177,11 @@
 
 (defn apply-ui-state!
   ([n]
-   (println n)
    (let [r (get-in n [:comps :renderer])
          ro (:ro n)
+         [ramp-sc ramp-ec] (get config/color-ramps (:color-ramp ro))
          p (get-in n [:comps :policy])]
+     (println ro)
      (.setRenderOptions r (js-obj
                             "circularPoints" (if (true? (:circular? ro)) 1 0)
                             "pointSize" (:point-size ro)
@@ -184,7 +189,14 @@
                             "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)
                             "intensityBlend" (:intensity-blend ro)
                             "clampLower" (nth (:intensity-clamps ro) 0)
-                            "clampHigher" (nth (:intensity-clamps ro) 1)))
+                            "clampHigher" (nth (:intensity-clamps ro) 1)
+                            "colorClampHigher" (:colorClampHigher ro)
+                            "colorClampLower" (:colorClampLower ro)
+                            "zrange" (apply array (:zrange ro))
+                            "rgb_f" (:rgb_f ro)
+                            "map_f" (:map_f ro)
+                            "rampColorStart" (apply array ramp-sc)
+                            "rampColorEnd" (apply array ramp-ec)))
      (doto p
        (.setDistanceHint (get-in n [:po :distance-hint]))
        (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])
@@ -282,193 +294,6 @@
 (defn format-point [[x y z]]
   (str (.toFixed x 2) ", " (.toFixed y 2) ", " (.toFixed z 2)))
 
-(defn- index-information []
-  (let [num-points (:num-points @app-state)
-        size-bytes (* num-points (:point-size @app-state))
-        pow js/Math.pow
-        scales {"KB" (pow 1024 1)
-                "MB" (pow 1024 2)
-                "GB" (pow 1024 3)
-                "TB" (pow 1024 4)}
-        check-scale #(> (/ size-bytes %) 1)
-        mem-type (cond
-                   (check-scale (get scales "TB")) "TB"
-                   (check-scale (get scales "GB")) "GB"
-                   (check-scale (get scales "MB")) "MB"
-                   :else "KB")
-        comma-regex (js/RegExp. "\\B(?=(\\d{3})+(?!\\d))" "g")
-        commify (fn [n]
-                  (let [regex (js/RegExp."\\B(?=(\\d{3})+(?!\\d))" "g")]
-                    (.replace (.toString n) regex ",")))]
-    [(commify num-points) (gs/format "%.2f %s"
-                                     (/ size-bytes (get scales mem-type))
-                                     mem-type)]))
-
-(defn labeled-slider [text state path min max]
-  [:div.slider-text
-   [:div.text text]
-   [w/slider (get-in @state path) min max
-    (fn [new-val]
-      (swap! state assoc-in path new-val))]])
-
-(defn labeled-select [text options]
-  [:div.select-text
-   [:div.text text]
-   [:select.form-control
-    (for [[k v] options]
-      [:option {:value v}])]])
-
-(defn labeled-radios [text option-name selected f & radios]
-  (println "------------ selected:" selected)
-  [:div.select-radios
-   ^{:key "text"} [:div.text text]
-   ^{:key "form"} [:form.form-inline
-                   (into
-                     [:div.form-group]
-                     (for [[k v] radios]
-                       ^{:key k}
-                       [:div.radio
-                        [:label
-                         [:input {:type      "radio"
-                                  :name      option-name
-                                  :checked   (= selected k)
-                                  :on-change (partial f k)}
-                          v]]]))]])
-
-(defn labeled-bool [text state path]
-  [:div.bool-field
-   [:label
-    [:div.text text]
-    [:div.value
-     [:input.checkbox {:type      "checkbox"
-                       :on-change #(swap! state update-in path not)
-                       :checked   (get-in @state path)}]]
-    [:div.clearfix]]])
-
-(defn state-updater [f]
-  (fn []
-    (swap! app-state f)))
-
-(defn closer [key]
-  (state-updater
-   (fn [st]
-     (-> st
-         (update-in [:open-panes] disj key)
-         (update-in [:docked-panes] disj key)))))
-
-(defn docker [key]
-  (state-updater
-   (fn [st]
-     (-> st
-         (update-in [:open-panes] disj key)
-         (update-in [:docked-panes] conj key)))))
-
-(defn undocker [key]
-  (state-updater
-   (fn [st]
-     (-> st
-         (update-in [:docked-panes] disj key)
-         (update-in [:open-panes] conj key)))))
-
-(defn render-options-pane [state]
-  [w/floating-panel
-   "Rendering Options"
-   :cogs
-   (closer :rendering-options)
-   (docker :rendering-options)
-   (undocker :rendering-options)
-
-   ^{:key :circular-points}
-   [labeled-bool "Circular Points?" state
-    [:ro :circular?]]
-
-   ^{:key :point-size}
-   [labeled-slider "Point Size" state
-    [:ro :point-size] 1 10]
-
-   ^{:key :point-size-attenuation}
-   [labeled-slider "Point Size Attenuation" state
-    [:ro :point-size-attenuation] 0 5]
-
-   ^{:key :intensity-blend}
-   [labeled-slider "Intensity" state
-    [:ro :intensity-blend] 0 1]
-
-   ^{:key :intensity-clamps}
-   [labeled-slider "Intensity scaling, narrow down range of intensity values."
-    state
-    [:ro :intensity-clamps] 0 256]])
-
-
-(defn information-pane [state]
-  [w/floating-panel "Pipeline Information"
-   :info-circle
-   (closer :information)
-   (docker :information)
-   (undocker :information)
-
-   (let [[points size] (index-information)]
-     [w/key-val-table
-      ["Point Count" points]
-      ["Uncompressed Index Size" size]
-      ["Powered By" "entwine"]
-      ["Caching" "Amazon CloudFront"]
-      ["Backend" "Amazon EC2"]])])
-
-(defn point-manipulation-pane [state]
-  [w/floating-panel "Point Manipulation"
-   :magic
-   (closer :point-manipulation)
-   (docker :point-manipulation)
-   (undocker :point-manipulation)
-
-   [labeled-slider "Z-exaggeration.  Higher values stretch out elevation deltas more significantly"
-    state
-    [:pm :z-exaggeration] 1 12]])
-
-(defn imagery-pane [state]
-  [w/floating-panel "Imagery"
-   :picture-o
-   (closer :imagery)
-   (docker :imagery)
-   (undocker :imagery)
-
-   [:div.imagery
-    [:div.text "Imagery source"]
-    [w/dropdown
-     (get-in @state [:imagery-sources])
-     state [:ro :imagery-source]
-     (fn [new-val]
-       (println "It changed to this!" new-val)
-       (when-let [o (get-in @app-state [:comps :loaders :point])]
-         (when-let [p (get-in @app-state [:comps :policy])]
-           (.hookedReload
-             p
-             (fn []
-               (.setColorSourceImagery o new-val))))
-         (println "changing imagery for:" o)))]
-    [:p.tip
-     [:strong "Note that: "]
-     "The current view will be re-loaded with the new imagery."]]])
-
-
-(defn logo []
-  [:div.entwine {:style {:position "fixed"
-                         :bottom "10px"
-                         :left "10px"}}])
-
-(defn toggler [view]
-  (state-updater
-   (fn [st]
-     (let [open-panes (:open-panes st)
-           docked-panes (:docked-panes st)]
-       (if (or (open-panes view)
-               (docked-panes view))
-         (-> st
-             (update-in [:open-panes] disj view)
-             (update-in [:docked-panes] disj view))
-         (update-in st [:open-panes] conj view))))))
-
 
 (defn relayout-windows []
   (let [current-windows (:open-panes @app-state)]
@@ -479,14 +304,30 @@
       (w/reset-floating-panel-positions!)
       (swap! app-state assoc :open-panes current-windows))))
 
+
+(defn toggler [state view]
+  (aw/state-updater
+    state
+    (fn [st]
+      (let [open-panes (:open-panes st)
+            docked-panes (:docked-panes st)]
+        (if (or (open-panes view)
+                (docked-panes view))
+          (-> st
+              (update-in [:open-panes] disj view)
+              (update-in [:docked-panes] disj view))
+          (update-in st [:open-panes] conj view))))))
+
+
+
 (def ^:private panes
-  [[:rendering-options "Rendering Options" :cogs render-options-pane]
-   [:imagery "Imagery Options" :picture-o imagery-pane]
-   [:point-manipulation "Point Manipulation" :magic point-manipulation-pane]
-   [:information "Information" :info-circle information-pane]])
+  [[:rendering-options "Rendering Options" :cogs aw/render-options-pane]
+   [:imagery "Imagery Options" :picture-o aw/imagery-pane]
+   [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
+   [:information "Information" :info-circle aw/information-pane]])
 
 (defn make-app-bar []
-  (let [all-panes (-> (mapv (fn [[a b c d]] (vector c b (toggler a))) panes)
+  (let [all-panes (-> (mapv (fn [[a b c d]] (vector c b (toggler app-state a))) panes)
                       (conj [:separator]
                             [:clone "Stack Windows" relayout-windows]))]
     (println "all-panes:" all-panes)
@@ -524,7 +365,7 @@
           [compass]
 
           ;; powered by logo
-          [logo]
+          [aw/logo]
 
           ;; any panes which are enabled need to be rendered now
           ;;
@@ -817,6 +658,11 @@
       (if (not (get-in settings [:ro :imagery-source]))
         (swap! app-state assoc-in [:ro :imagery-source]
                (get-in (:imagery-sources defaults) [0 0])))
+
+      ;; make sure the Z bounds are initialized correctly
+      (let [bounds (:bounds remote-settings)
+            zrange [(bounds 2) (bounds 5)]]
+        (swap! app-state assoc-in [:ro :zrange] zrange))
 
       (println "Startup state: " @app-state))
 
