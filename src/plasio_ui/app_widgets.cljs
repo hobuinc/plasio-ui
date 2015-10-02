@@ -268,8 +268,19 @@
                 (.setColorSourceImagery o new-val))))
           (println "changing imagery for:" o)))]
      [:p.tip
-      [:strong "Note that: "]
+      [:strong "Note: "]
       "The current view will be re-loaded with the new imagery."]]
+
+    [:div
+     [:div.text "Image Quality"]
+     [w/slider (get-in @state [:as :image-quality]) 0 2 1 true
+      #(swap! state assoc-in [:as :image-quality] %)]
+     [:div.clearfix.slider-guides
+      [:div.pull-left "Low"]
+      [:div.pull-right "High"]]
+     [:p.tip
+      [:strong "Note: "]
+      "This setting only affects the newly fetched imagery and will not affect the current scene."]]
 
     [:div
      [:div.text "Height Ramp Color Source"]
@@ -289,9 +300,51 @@
                     (-> st
                         (assoc-in [:ro :rgb_f] (- 1 %))
                         (assoc-in [:ro :map_f] %))))]
-     [:div.clearfix.ramp-guides
+     [:div.clearfix.slider-guides
       [:div.pull-left "All Imagery"]
       [:div.pull-right "All Ramp Color"]]]]])
+
+(defn address-text [local-state]
+  [:input.form-control {:type        "text"
+                        :placeholder "Address..."
+                        :autoFocus   true
+                        :value       (:value @local-state)
+                        :on-change   #(do
+                                       (println "----- what?")
+                                       (swap! local-state assoc
+                                              :value
+                                              (.. % -target -value)))}])
+
+
+(defn address-lookup-pane [state]
+  (let [local-state (reagent/atom {:error "what?"})]
+    (fn []
+      (println "----- " @local-state)
+      [w/floating-panel
+       "Address Lookup" :map-o
+       (closer state :address-lookup)
+       (docker state :address-lookup)
+       (undocker state :address-lookup)
+
+       [:div.address-lookup
+        [:div.text "Navigate to a location"]
+        [:form.form
+         {:on-change #(do
+                       (println "changing!")
+                       (swap! local-state assoc :error nil))
+          :on-submit #(do
+                       (.preventDefault %)
+                       (println "going to submit address!"))}
+         [:div.input-group.input-group-sm
+          [address-text local-state]
+          [:span.input-group-btn
+           [:button.btn.btn-default {:type "submit"}
+            (w/icon :search)]]]
+
+         (when-let [err (:error @local-state)]
+           [:div.alert.alert-danger err])
+
+         ]]])))
 
 
 (defn logo []

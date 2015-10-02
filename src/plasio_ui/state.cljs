@@ -35,3 +35,13 @@
                          k))]
     (doall
       (map #(.removeItem ls %) to-remove))))
+
+(defn save-application-state! [obj]
+  (let [v (pr-str obj)]
+    (.setItem js/localStorage "speckly.app-settings" v)))
+
+(defn get-application-settings []
+  (let [item (.getItem js/localStorage "speckly.app-settings")]
+    (when item
+      (reader/read-string item))))
+

@@ -28,6 +28,11 @@
   [& children]
   (into [:div.desc] children))
 
+(defn- prevent-same [[a b]]
+  (if (= a b)
+    [a (+ a 0.01)]
+    [a b]))
+
 (defn slider
   "An abstracted jQuery slider control"
   ([start min max f] (slider start min max (/ (- max min) 1024) true f))
@@ -45,7 +50,8 @@
                 emit #(f (let [value (.val slider)]
                            (if single?
                              (js/parseFloat value)
-                             (mapv js/parseFloat (string/split value #",")))))]
+                             (prevent-same
+                               (mapv js/parseFloat (string/split value #","))))))]
             (doto slider
               (.on "slide" emit)
               (.on "set" emit))
@@ -58,9 +64,9 @@
                            "range" (js-obj "min" min
                                            "max" max)))))
 
-       :reagent-render
-       (fn [start min max f]
-         [:div.slider])}))))
+        :reagent-render
+        (fn [start min max f]
+          [:div.slider])}))))
 
 
 (defn dropdown
@@ -256,18 +262,16 @@
   [:div.separator])
 
 (defn app-toolbar [& icons]
-  [:div.toolbar
-   icons])
+  (into [:div.toolbar] icons))
 
 (defn application-bar [& options]
   [:div.app-bar
    [:div.title "plasio"]
    [app-toolbar
     (for [[icon name f] options]
-      ^{:key (or name icon)}
       (if (= icon :separator)
-        [separator]
-        [action icon name f]))]])
+        ^{:key (or name icon)} [separator]
+        ^{:key (or name icon)} [action icon name f]))]])
 
 (defn mouse-pos [e]
   [(.-pageX e) (.-pageY e)])
@@ -390,7 +394,8 @@
           [:a.close-button {:href     "javascript:"
                             :on-click f-dismiss}
            (icon :times)]
-          [:div.floating-panel-body children]])})))
+          (into [:div.floating-panel-body]
+                children)])})))
 
 (let [toggle-state (atom true)]
   (defn docker-widget [& children]

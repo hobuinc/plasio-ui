@@ -712,10 +712,18 @@ a:active,a:visited,a:focus {
     z-index: 100000;
 }
 
-.ramp-guides {
+.slider-guides {
     font-size: 0.8em;
     margin-top: -10px;
     text-transform: uppercase;
     color: #ccc;
+}
 
+.address-lookup .form {
+    margin-top: 5px;
+
+}
+
+.address-lookup .alert {
+    margin-top: 5px;
 }

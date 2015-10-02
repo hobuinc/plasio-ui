@@ -9,7 +9,8 @@
             [goog.string :as gs]
             [goog.string.format]
             cljsjs.gl-matrix
-            [plasio-ui.config :as config])
+            [plasio-ui.config :as config]
+            [plasio-ui.state :as plasio-state])
     (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
@@ -26,12 +27,19 @@
                           :window {:width 0
                                    :height 0}
                           :ro {:circular? false
-                               :point-size 1
-                               :point-size-attenuation 0.1
+                               :point-size 2
+                               :point-size-attenuation 0.2
                                :intensity-blend 0
                                :intensity-clamps [0 255]
                                :color-ramp :red-to-green
+                               :max-color-component 255
+                               :colorClampHigher 1
+                               :colorClampLower 0
+                               :rgb_f 1
+                               :map_f 0
                                :zrange [0 1]}
+                          :widget-states {:address-lookup {:error "what"}}
+                          :as {:image-quality 1}            ;; application settings
                           :po {:distance-hint 50
                                :max-depth-reduction-hint 5}
                           :pm {:z-exaggeration 1}}))
@@ -179,6 +187,7 @@
   ([n]
    (let [r (get-in n [:comps :renderer])
          ro (:ro n)
+         as (:as n)
          [ramp-sc ramp-ec] (get config/color-ramps (:color-ramp ro))
          p (get-in n [:comps :policy])]
      (println ro)
@@ -192,16 +201,22 @@
                             "clampHigher" (nth (:intensity-clamps ro) 1)
                             "colorClampHigher" (:colorClampHigher ro)
                             "colorClampLower" (:colorClampLower ro)
+                            "maxColorComponent" (:max-color-component ro)
                             "zrange" (apply array (:zrange ro))
                             "rgb_f" (:rgb_f ro)
                             "map_f" (:map_f ro)
+                            "intensity_f" 1
                             "rampColorStart" (apply array ramp-sc)
                             "rampColorEnd" (apply array ramp-ec)))
      (doto p
        (.setDistanceHint (get-in n [:po :distance-hint]))
        (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])
                                        (- 5)
-                                       js/Math.floor))))))
+                                       js/Math.floor)))
+
+     ;; application states
+     (set! (.-IMAGE_QUALITY js/PlasioLib.Loaders.MapboxLoader)
+           (get as :image-quality 1)))))
 
 (defn initialize-modes
   "Instantiate all modes that we know of, we should be doing lazy instantiate here,
@@ -329,6 +344,7 @@
   [[:rendering-options "Rendering Options" :cogs aw/render-options-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
+   [:address-lookup "Address Lookup" :map-o aw/address-lookup-pane]
    [:information "Information" :info-circle aw/information-pane]])
 
 (defn make-app-bar []
@@ -348,7 +364,13 @@
                   (fn [_ _ o n]
                     (apply-ui-state! n)
                     (when *save-snapshot-on-ui-update*
-                      (do-save-current-snapshot)))))
+                      (do-save-current-snapshot))))
+
+       ;; watch application state and save things that need to be persisted
+       (add-watch app-state "__save-app-state"
+                  (fn [_ _ o n]
+                    (when-not (identical? (:as o) (:as n))
+                      (plasio-state/save-application-state! (:as n))))))
 
      :reagent-render
      (fn []
@@ -379,7 +401,7 @@
              (for [[id name icon widget] panes
                    :when (open-panes id)
                    :when widget]
-               [widget app-state])])
+               ^{:key id} [widget app-state])])
 
           ;; if we have any profile views to show, show them
           (when-let [series (:profile-series @app-state)]
@@ -396,7 +418,7 @@
              (for [[id name icon widget] panes
                    :when (docked-panes id)
                    :when widget]
-               [widget app-state])])]))}))
+               ^{:key id} [widget app-state])])]))}))
 
 (defn initialize-for-pipeline [e {:keys [server pipeline max-depth
                                          compress? color? intensity? bbox ro
@@ -479,19 +501,6 @@
                (.updateCamera renderer 0 (js-obj "far" far-dist))))))
 
     ;; set some default render state
-    ;;
-    (.setRenderOptions renderer
-                       (js-obj "circularPoints" 0
-                               "overlay_f" 0
-                               "rgb_f" 1
-                               "intensity_f" 1
-                               "clampLower" (nth (:intensity-clamps ro) 0)
-                               "clampHigher" (nth (:intensity-clamps ro) 1)
-                               "maxColorComponent" (get render-hints :max-color-component 255)
-                               "pointSize" (:point-size ro)
-                               "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
-                               "intensityBlend" (:intensity-blend ro)
-                               "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
     (.setClearColor renderer 0 (/ 29 256) (/ 33 256))
 
     (.start policy)
@@ -668,6 +677,10 @@
       (let [bounds (:bounds remote-settings)
             zrange [(bounds 2) (bounds 5)]]
         (swap! app-state assoc-in [:ro :zrange] zrange))
+
+      ;; merge any application state that may need to
+      (when-let [as (plasio-state/get-application-settings)]
+        (swap! app-state update :as merge as))
 
       (println "Startup state: " @app-state))
 
