@@ -1,402 +1,199 @@
 (ns plasio-ui.widgets
-  (:require [plasio-ui.state :as plasio-state]
-            [reagent.core :as reagent :refer [atom]]
-            [clojure.string :as string]))
+  (:require [om.core :as om]
+            [om-tools.core :refer-macros [defcomponentk]]
+            [om-tools.dom :as d]
+            [plasio-ui.state :as plasio-state]))
 
-(defn panel
-  "A simple widget which shows a panel with title and children"
-  [title & children]
-  [:div.app-panel
-   [:div.title title]
-   (into [:div.contents] children)])
-
-(defn panel-with-close
-  [title f & children]
-  [:div.panel
-   [:div.title title]
-   [:div.close-button [:a {:href "javascript:"
-                           :on-click f} [:i.fa.fa-times]]]
-   (into [:div.contents] children)])
-
-(defn panel-section
-  "A section inside a panel"
-  [& children]
-  (into [:div.panel-section] children))
-
-(defn desc
-  "Styled description text"
-  [& children]
-  (into [:div.desc] children))
-
-(defn slider
-  "An abstracted jQuery slider control"
-  ([start min max f] (slider start min max (/ (- max min) 1024) true f))
-  ([start min max enable? f] (slider start min max (/ (- max min) 1024) enable? f))
-  ([start min max step enable? f]
-   (let [this (reagent/current-component)]
-     (reagent/create-class
-       {:component-did-mount
-        (fn []
-          (let [slider (js/jQuery (.getDOMNode this))
-                single? (number? start)
-                start (if single?
-                        start
-                        (apply array start))
-                emit #(f (let [value (.val slider)]
-                           (if single?
-                             (js/parseFloat value)
-                             (mapv js/parseFloat (string/split value #",")))))]
-            (doto slider
-              (.on "slide" emit)
-              (.on "set" emit))
-            (when (not enable?) (.attr slider "disabled" "disabled"))
-            (.noUiSlider slider
-                         (js-obj
-                           "start" start
-                           "connect" (if single? "lower" true)
-                           "step" step
-                           "range" (js-obj "min" min
-                                           "max" max)))))
-
-       :reagent-render
-       (fn [start min max f]
-         [:div.slider])}))))
+(defn fa-icon [& parts]
+  (d/i {:class (apply str
+                      "fa "
+                      (map #(str "fa-" (name %)) parts))}))
 
 
-(defn dropdown
-  ([options state path]
-    (dropdown options state path #()))
-  ([options state path f]
-   (let [options-map (into {} options)
-         title (get options-map (get-in @state path))
-         trigger #(do (swap! state assoc-in path %)
-                      (f %))]
-     [:div.dropdown
-      [:button.btn.btn-sm.btn-default.dropdown-toggle
-       {:type        "button"
-        :data-toggle "dropdown"} title [:span.caret]]
-      (into [:ul.dropdown-menu]
-            (for [[k v] options]
-              ^{:key k} [:li [:a {:href "javascript:"
-                                  :on-click #(trigger k)}
-                              v]]))])))
+(defn- coerce-val [v]
+  (let [v' (js->clj v)]
+    (if (sequential? v')
+      (mapv js/parseFloat v')
+      (js/parseFloat v'))))
 
-#_(defn dropdown
-  "A dropdown option list"
-  ([choices start f] (dropdown choices start true f))
-  ([choices start enable? f]
-   (let [this (reagent/current-component)
-         selected (reagent/atom (or start (get-in choices [0 0])))
-         emit #(f (reset! selected (.. % -target -value)))]
-     (reagent/create-class
-       {:component-did-mount
-        (fn []
-          (let [node (js/jQuery (.getDOMNode this))]
-            (when (not enable?) (.attr node "disabled" "disabled"))))
-        :reagent-render
-        (fn [choices start enable? f]
-          [:select.form-control {:value @selected :onChange emit}
-           (for [[k v] choices]
-             [:option {:value k :key k} v])])}))))
-
-(defn key-val-table
-  [& data]
-  (let [this (reagent/current-component)]
-    (reagent/create-class
-      {:reagent-render
-       (fn [& data]
-         [:table.key-val
-          [:tbody
-           (for [[k v] data]
-             ^{:key k} [:tr [:td k][:td v]])]])})))
-
-(defn icon [& parts] [:i {:class (str "fa " (string/join " "
-                                      (map #(str "fa-" (name %)) parts)))}])
+(defn- slider-val [node]
+  (when-let [slider (.-noUiSlider node)]
+    (let [v (coerce-val (.get slider))]
+      ;; if the slider values are right on top of each other
+      ;; make sure they never touch
+      (if (and (sequential? v)
+               (= (first v) (second v)))
+        [(first v) (+ (first v) 0.01)]
+        v))))
 
 
-(defn toolbar
-  "A toolbar control"
-  [f & buttons]
-  (let [st (atom "")]
-    (fn [f & buttons]
-      [:div.toolbar
-       (into [:div.icons]
-             (map (fn [[id i title state]]
-                    (let [disabled? (and (keyword? state) (= state :disabled))]
-                      [:a.button {:class (when (keyword? state) (name state))
-                                  :href "javascript:"
-                                  :on-mouse-over (when-not disabled?
-                                                   #(reset! st title))
-                                  :on-mouse-leave (when-not disabled?
-                                                    #(reset! st ""))
-                                  :on-click (when-not disabled?
-                                              (fn [e]
-                                                (.preventDefault e)
-                                                (f id)))}
-                       (icon i)]))
-                  buttons))
-       [:p.tip @st]])))
+(defcomponentk slider [[:data min max start
+                        {step 1} {f nil}
+                        {connect false}] state owner]
+  (did-mount [_]
+    (let [node (om/get-node owner)
+          start (clj->js start)
+          emit #(when f
+                 (f (slider-val node)))]
+      (js/noUiSlider.create
+        node
+        (js-obj
+          "start" start
+          "connect" connect
+          "step" step
+          "range" (js-obj "min" min
+                          "max" max)))
+
+      (doto (.-noUiSlider node)
+        (.on "slide" emit))))
+
+  (did-update [_ _ _]
+    (let [props (om/get-props owner)
+          node (om/get-node owner)]
+      (when (not= (:start props)
+                  (slider-val node))
+        (.set (.-noUiSlider node) (clj->js (:start props))))))
 
 
-(defn prepend [name series]
-  (.concat (array name) series))
-
-(defn filter-zeros [items]
-  (->> items
-       vec
-       (map (fn [e]
-              (if (zero? e) js/NaN
-                  e)))
-       (apply array)))
-
-(defn make-color [[r g b]]
-  (str "rgba(" r "," g "," b ", 1.0)"))
-
-(defn prefix-nans [buffer count]
-  (if (zero? count)
-    buffer
-    (let [b (apply array (repeat count js/NaN))]
-      (.concat b buffer))))
+  (render [_]
+    (d/div {:class "slider"})))
 
 
-(defn generate-plottable-data [series]
-  (let [offsets (reductions (fn [acc [_ _ a]] (+ acc (.-length a))) 0 series)
-        data-points (->> series
-                         (map (fn [index off [_ color series]]
-                                (let [profile-name (str "Profile " index)]
-                                  [[profile-name (make-color color)]
-                                   (prepend profile-name (-> series
-                                                             filter-zeros
-                                                             (prefix-nans off)))]))
-                              (range)
-                              offsets))
-        colors (->> data-points
-                    (map first)
-                    (mapcat identity)
-                    (apply js-obj))
-        data-points (->> data-points
-                         (map second)
-                         (apply array))]
-    [data-points colors]))
+(defcomponentk labeled-slider [data owner]
+  (render [_]
+    (d/div {:class "slider-text"}
+           (d/div {:class "text"} (:text data))
+           (om/build slider data))))
+
+(defcomponentk toolbar-item [[:data id {title ""} {icon nil} {f nil}]]
+  (render [_]
+    (let [user-ns (namespace id)
+          sep? (= user-ns "separator")]
+      (if sep?
+        (d/div {:class "separator"})
+        (d/button {:class    "btn"
+                   :title    title
+                   :on-click #(plasio-state/toggle-pane! id)}
+                  (when icon
+                    (fa-icon icon)))))))
+
+(defcomponentk application-bar [[:data panes] owner]
+  (render [_]
+    (d/div
+      {:class "app-bar"}
+      (d/div {:class "title"} "plasio")
+      (d/div {:class "toolbar"}
+             (om/build-all toolbar-item panes {:key :id})))))
 
 
-(defn profile-series [series]
-  (let [state (atom {})]
-    (reagent/create-class
-     {:component-did-mount
-      (fn [this]
-        (let [[data-points colors] (generate-plottable-data series)
-              node (reagent/dom-node this)]
-          (js/console.log "series:" data-points "colors:" colors)
-          (js/console.log node)
+(defcomponentk docked-widgets [[:data children] owner state]
+  (render-state [_ {:keys [collapsed?]}]
+    (apply d/div
+      {:class (str "docker-widget"
+                   (if collapsed? " off" " on"))}
+      (d/a {:class "toggle-docker"
+            :href "javascript:"
+            :on-click #(swap! state update :collapsed? not)}
+           (fa-icon
+             (if collapsed? :angle-double-right :angle-double-left)))
+      children)))
 
-          (let [width (.-offsetWidth node)
-                chart (.generate js/c3
-                                 (js-obj "bindto" node
-                                         "size" (js-obj "height" 180
-                                                        "width" width)
-                                         "legend" (js-obj "show" false)
-                                         "axis" (js-obj "x" (js-obj "show" false)
-                                                        "y" (js-obj "color" "#ffffff"))
-                                         "data" (js-obj "columns" data-points
-                                                        "colors" colors)))
-                resizer (fn []
-                          (println "resizing!")
-                          (let [width (.-offsetWidth node)]
-                            (js/console.log "resizing chart" chart "to" width)
-                            (.resize chart (js-obj "width" width))))
-                remove-resizer (fn []
-                                 (.removeEventListener js/window "resize" resizer))]
-            ;; make sure resizer is triggered whenever the document is resized
-            (.addEventListener js/window "resize" resizer)
-            (swap! state assoc
-                   :chart chart
-                   :remove-resizer remove-resizer))))
-
-      :component-will-receive-props
-      (fn [this [_ series]]
-        (println "GOT NEW DATAS!")
-        (when-let [chart (:chart @state)]
-          (let [[data-points colors] (generate-plottable-data series)
-                to-load (js-obj "columns" data-points
-                                "colors" colors
-                                "unload" (.-columns chart))]
-            (println "chart is valid!!!!")
-            (js/console.log to-load)
-            (.load chart to-load))))
-
-      :component-will-unmount
-      (fn [this]
-        ;; make sure we unhook the resizer
-        (when-let [rs (:remove-resizer @state)]
-          (rs)))
-
-      :reagent-render
-      (fn [[id color series]]
-        [:div.profile-series])})))
-
-(defn profile-view [series f]
-  [:div.profile-view
-   [profile-series (reverse series)]
-   [:div.close
-    [:a.fa.fa-times {:href "javascript:"
-                     :on-click f}]]])
-
-
-(defn status [type text]
-  [:div.status-message {:class (name type)} text])
-
-(defn action [ic name f]
-  [:button {:class "btn"
-            :title name
-            :on-click f}
-   (icon ic)])
-
-(defn separator []
-  [:div.separator])
-
-(defn app-toolbar [& icons]
-  [:div.toolbar
-   icons])
-
-(defn application-bar [& options]
-  [:div.app-bar
-   [:div.title "plasio"]
-   [app-toolbar
-    (for [[icon name f] options]
-      ^{:key (or name icon)}
-      (if (= icon :separator)
-        [separator]
-        [action icon name f]))]])
-
-(defn mouse-pos [e]
+(defn- mp [e]
   [(.-pageX e) (.-pageY e)])
 
-(defn element-pos [e]
+(defn- element-pos [e]
   (let [r (.getBoundingClientRect e)]
     [(.-left r) (.-top r)]))
 
-(defn pos-diff [[a b] [c d]]
+(defn- pos-diff [[a b] [c d]]
   [(- a c) (- b d)])
 
-(defn pos-add [[a b] [c d]]
+(defn- pos-add [[a b] [c d]]
   [(+ a c) (+ b d)])
 
 (let [index (atom 0)]
-  (defn next-z-index []
+  (defn- next-z-index []
     (swap! index inc)))
 
-(let [lst (cycle [{:left 10 :top 40}
-                  {:left 30 :top 60}
-                  {:left 50 :top 80}
-                  {:left 70 :top 100}])
-      st (atom lst)]
-  (defn next-window-default-location []
-    (let [v (first @st)]
-      (swap! st rest)
-      v))
+(defn- -drag-start! [id owner state e]
+  (when (zero? (.-button e))
+    (println "starting drag!")
+    (let [drag-move
+          (fn [e]
+            (let [pos (mp e)
+                  off (:widget-offset @state)
+                  [left top] (pos-add pos off)]
+              (plasio-state/set-ui-location!
+                id {:left left :top top})))
 
-  (defn reset-default-location-state! []
-    (reset! st lst)))
+          drag-end
+          (fn [e]
+            (when-let [f (:mmh @state)]
+              (.removeEventListener js/document "mousemove" f))
+            (when-let [f (:muh @state)]
+              (.removeEventListener js/document "mouseup" f))
 
-(defn reset-floating-panel-positions! []
-  (reset-default-location-state!)
-  (plasio-state/clear-locations-cache!))
+            (swap! state
+                   (fn [st]
+                     (-> st
+                         (dissoc :mmh :muh :dragging?)
+                         (assoc :z-index (next-z-index))))))
+
+          pos (mp e)
+          elem (.. e -target -parentNode)
+          elem-pos (element-pos elem)]
+
+      (.addEventListener js/document "mousemove" drag-move)
+      (.addEventListener js/document "mouseup" drag-end)
+
+      (swap! state assoc
+             :widget-offset (pos-diff elem-pos pos)
+             :mmh drag-move
+             :muh drag-end
+             :dragging? true))))
 
 
-(defn floating-panel [title ico f-dismiss f-dock f-undock & children]
-  (let [state (atom (merge (next-window-default-location)
-                           (plasio-state/get-location title)))
-        drag-start
-        (fn [e]
-          (when (zero? (.-button e))
-            (println "starting drag!")
-            ;; we need to determine our detach handlers
-            ;; and trigger them when the mouse is released
-            ;;
-            (let [drag-move (fn [e]
-                              (let [mp (mouse-pos e)
-                                    off (:widget-offset @state)
-                                    [left top] (pos-add mp off)]
-                                (swap! state assoc
-                                       :left left
-                                       :top top)))
-                  drag-end (fn [e]
-                             (when-let [f (:mousemove-handler @state)]
-                               (.removeEventListener js/document "mousemove" f))
-                             (when-let [f (:mouseup-handler @state)]
-                               (.removeEventListener js/document "mouseup" f))
+(defcomponentk floating-panel [[:data id title icon {child nil}] state owner]
+  (init-state [_]
+    {:collapsed? false :dragging? false})
 
-                             (swap! state
-                                    (fn [st]
-                                      (-> st
-                                          (dissoc :mouseup-handler
-                                                  :mousemove-handler
-                                                  :dragging?)
-                                          (assoc :z-index (next-z-index)))))
+  (render-state [_ {:keys [collapsed? dragging? z-index]}]
+    (let [ui (om/observe owner plasio-state/ui)
+          {:keys [left top]} (plasio-state/get-ui-location id)
+          docked-panes (-> ui :docked-panes set)
+          docked? (docked-panes id)]
+      (d/div
+        {:class (str "floating-panel"
+                     (when collapsed? " collapsed")
+                     (when dragging? " dragging"))
+         :style {:left    (str left "px")
+                 :top     (str top "px")
+                 :z-index (if dragging? 1000000 (or z-index 0))}}
+        (d/div {:class         "title"
+                :on-mouse-down #(when-not docked?
+                                 (-drag-start! id owner state %))}
+               (fa-icon icon) " " title)
 
-                             ;; save the final location for this window
-                             (let [mp (mouse-pos e)
-                                   off (:widget-offset @state)
-                                   [left top] (pos-add mp off)]
-                               (plasio-state/save-location!
-                                 title {:left left :top top})))]
-              (let [mp (mouse-pos e)
-                    elem (.. e -target -parentNode)
-                    elem-pos (element-pos elem)]
-                (println elem-pos)
-                (swap! state assoc
-                       :widget-offset (pos-diff elem-pos mp)
-                       :mousemove-handler drag-move
-                       :mouseup-handler drag-end
-                       :dragging? true)
+        ;; standard controls to handle windowing
+        (d/a {:class "pin" :href "javascript:" :on-click #(plasio-state/dock-pane! id)} (fa-icon :lock))
+        (d/a {:class "unpin" :href "javascript:" :on-click #(plasio-state/undock-pane! id)} (fa-icon :unlock))
+        (d/a {:class "toggle" :href "javascript:" :on-click #(swap! state update :collapsed? not)}
+             (fa-icon
+               (if collapsed? :chevron-down :chevron-up)))
+        (d/a {:class "close-button" :href "javascript:" :on-click #(plasio-state/toggle-pane! id)} (fa-icon :close))
 
-                (js/console.log elem)
-                (.addEventListener js/document "mousemove" drag-move)
-                (.addEventListener js/document "mouseup" drag-end)))))]
-    (plasio-state/save-location! title @state)
-    (reagent/create-class
-      {:reagent-render
-       (fn []
-         (println "icon is:" ico)
-         [:div.floating-panel
-          {:class (str (when (:collapsed? @state)
-                         "collapsed")
-                       " "
-                       (when (:dragging? @state)
-                         "dragging"))
-           :style {:left    (:left @state)
-                   :top     (:top @state)
-                   :z-index (if (:dragging? @state)
-                              1000000
-                              (or (:z-index @state)
-                                  0))}}
-          [:div.title
-           {:on-mouse-down drag-start}
-           (icon ico)
-           title]
-          [:div.title-docked
-           (icon ico)
-           title]
-          [:a.pin {:href "javascript:"
-                   :on-click f-dock}
-           (icon :lock)]
-          [:a.unpin {:href "javascript:"
-                     :on-click f-undock}
-           (icon :unlock)]
-          [:a.toggle {:href     "javascript:"
-                      :on-click #(swap! state update :collapsed? not)}
-           (icon (if (:collapsed? @state) :chevron-down :chevron-up))]
-          [:a.close-button {:href     "javascript:"
-                            :on-click f-dismiss}
-           (icon :times)]
-          [:div.floating-panel-body children]])})))
+        ;; finally render our widget
+        (d/div {:class "floating-panel-body"} (om/build child {}))))))
 
-(let [toggle-state (atom true)]
-  (defn docker-widget [& children]
-    (into [:div.docker-widget
-           {:class (if @toggle-state "on" "off")}
-           [:a.toggle-docker {:href "javascript:"
-                              :on-click #(swap! toggle-state not)}
-            (icon (if @toggle-state :angle-double-left :angle-double-right))]]
-          children)))
+
+(defcomponentk key-val-table [[:data {title nil} data] owner]
+  (render [_]
+    (d/div
+      (when title
+        (d/div {:class "text"} title))
+      (d/table
+        {:class "key-val"}
+        (apply d/tbody
+               (for [[k v] data]
+                 (d/tr (d/td k) (d/td v))))))))
+

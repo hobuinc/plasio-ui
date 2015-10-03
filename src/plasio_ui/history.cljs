@@ -1,6 +1,7 @@
 (ns plasio-ui.history
   "URL and history stuff, most of the stuff here is HTML5 but will try not to fail"
   (:require [clojure.walk :as walk]
+            [cljs.reader :refer [read-string]]
             [clojure.string :refer [join split]]))
 
 ;; define all paths from to compressed name mappings, this will be used to construct URLs and to
@@ -13,14 +14,14 @@
    [[:camera :target] "ct"]
    [[:camera :distance] "cd"]
    [[:camera :max-distance] "cmd"]
+   [[:ro :circular?] "cp"]
    [[:ro :point-size] "ps"]
    [[:ro :point-size-attenuation] "pa"]
    [[:ro :intensity-blend] "ib"]
    [[:ro :intensity-clamps] "ic"]
    [[:ro :imagery-source] "is"]
    [[:ro :color-ramp] "cr" keyword]
-   [[:ro :colorClampLower] "ccl"]
-   [[:ro :colorClampHigher] "cch"]
+   [[:ro :color-ramp-range] "ccr"]
    [[:ro :map_f] "mapf"]
    [[:pm :z-exaggeration] "ze"]
    [[:po :distance-hint] "dh"]
@@ -53,6 +54,7 @@
                        js/decodeURIComponent
                        js/JSON.parse
                        js->clj)]
+           (println "-- -- " p t)
            (assoc-in acc p
                      (if t (t val) val)))))
      {}
@@ -65,9 +67,11 @@
   ([obj title]
     (when-let [history (.. js/window -history)]
       (when (aget history "pushState")
+        (println "-- -- pushing state:" obj)
         (let [url (compress obj)
-              url-qs (str "/?" url)]
-          (.pushState history (clj->js obj) title url-qs))))))
+              url-qs (str "/?" url)
+              store-state (pr-str obj)]
+          (.pushState history (js-obj "state" store-state) title url-qs))))))
 
 
 (defn current-state-from-query-string
@@ -82,6 +86,6 @@
   [f]
   (.addEventListener js/window "popstate"
                      (fn [e]
-                       (f (-> (.-state e)
-                              (js->clj :keywordize-keys true))))))
+                       (f (-> (.. e -state -state)
+                              read-string)))))
 

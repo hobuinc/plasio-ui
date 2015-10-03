@@ -7,8 +7,10 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.28"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [reagent "0.5.1"]
+                 [cljsjs/react "0.13.3-0"]
+                 [prismatic/om-tools "0.3.12"]
                  [cljsjs/gl-matrix "2.3.0-jenanwise-0"]
+                 [racehub/om-bootstrap "0.5.3"]
                  [cljs-http "0.1.31"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
@@ -20,7 +22,7 @@
 
   :cljsbuild {
     :builds [{:id "dev"
-              :source-paths ["src"]
+              :source-paths ["src" "vendor/src"]
 
               :figwheel { :on-jsload "plasio-ui.core/on-js-reload" }
 
@@ -30,7 +32,7 @@
                          :output-dir "resources/public/js/compiled/out"
                          :source-map-timestamp true }}
              {:id "min"
-              :source-paths ["src"]
+              :source-paths ["src" "vendor/src"]
               :compiler {:output-to "resources/public/js/compiled/plasio_ui.js"
                          :main plasio-ui.core
                          :optimizations :whitespace

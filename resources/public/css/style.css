@@ -72,6 +72,10 @@ body {
     line-height: 45px;
 }
 
+input[type="checkbox"] {
+    margin-top: 2px;
+}
+
 
 ::-webkit-scrollbar-track
 {
@@ -548,16 +552,6 @@ a:active,a:visited,a:focus {
     box-shadow: 0px 0px 1px #666;
 }
 
-.floating-panel .title-docked {
-    font-size: 0.9em;
-    padding: 5px 3px;
-    background-color: #00BBD7;
-    color: #eee;
-    cursor: default;
-    box-shadow: 0px 0px 1px #666;
-    display: none;
-}
-
 
 .floating-panel .title .fa {
     margin-left: 5px;
@@ -625,14 +619,6 @@ a:active,a:visited,a:focus {
     z-index: 0 !important;
 }
 
-.docker-widget .floating-panel .title {
-    display: none;
-}
-
-.docker-widget .floating-panel .title-docked {
-    display: inherit;
-}
-
 .docker-widget .floating-panel .floating-panel-body {
     border: none;
 }
@@ -663,21 +649,21 @@ a:active,a:visited,a:focus {
     float: right;
 }
 
-.imagery .dropdown {
+.imagery .imagery-source .btn-group {
     width: 100%;
 }
 
-.imagery .dropdown button {
+.imagery .imagery-source .btn-group button {
     width: 100%;
     text-align: left;
 }
 
-.imagery .dropdown .caret {
+.imagery .imagery-source .btn-group .caret {
     float: right;
     margin-top: 7px;
 }
 
-.imagery .dropdown-menu {
+.imagery .imagery-source .dropdown-menu {
     width: 100%;
 }
 
@@ -712,7 +698,7 @@ a:active,a:visited,a:focus {
     z-index: 100000;
 }
 
-.ramp-guides {
+.slider-guides {
     font-size: 0.8em;
     margin-top: -10px;
     text-transform: uppercase;
