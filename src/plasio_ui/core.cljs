@@ -170,6 +170,8 @@
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
    [:information "Information" :info-circle aw/information-pane]
+   [:separator/two]
+   [:local-settings "Local Settings" :wrench aw/local-settings-pane]
    [:separator/one]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]])
 
@@ -217,9 +219,6 @@
         {:class (str "app-container"
                      (when-not (empty? dp) " with-dock"))}
 
-        ;; build the app bar
-        (om/build app-bar {})
-
         ;; setup render target
         (om/build aw/render-target {:renderer-state @root})
 
@@ -233,7 +232,12 @@
         (when-not (empty? dp)
           (om/build docked-panes {:panes (vec dp)}))
 
-        (om/build aw/logo {})))))
+        (om/build aw/logo {})
+
+        ;; build the app bar
+        (om/build app-bar {})
+
+        ))))
 
 (defn- urlify [s]
   (if (re-find #"https?://" s)

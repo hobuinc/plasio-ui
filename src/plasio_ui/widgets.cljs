@@ -65,28 +65,39 @@
            (d/div {:class "text"} (:text data))
            (om/build slider data))))
 
-(defcomponentk toolbar-item [[:data id {title ""} {icon nil} {f nil}]]
+(defcomponentk toolbar-item [[:data id {title ""}
+                              {icon nil} {f nil}]
+                             [:opts ftooltip]]
   (render [_]
     (let [user-ns (namespace id)
           sep? (= user-ns "separator")]
       (if sep?
         (d/div {:class "separator"})
         (d/button {:class    "btn"
-                   :title    title
                    ;; when we have a handler,
+                   :on-mouse-enter #(when ftooltip
+                                     (ftooltip title))
+                   :on-mouse-leave #(when ftooltip
+                                     (ftooltip nil))
                    :on-click #(if f
                                (f)
                                (plasio-state/toggle-pane! id))}
                   (when icon
                     (fa-icon icon)))))))
 
-(defcomponentk application-bar [[:data panes] owner]
-  (render [_]
-    (d/div
-      {:class "app-bar"}
-      (d/div {:class "title"} "plasio")
-      (d/div {:class "toolbar"}
-             (om/build-all toolbar-item panes {:key :id})))))
+(defcomponentk application-bar [[:data panes] state owner]
+  (render-state [_ {t :tooltip}]
+    (let [ftooltip (fn [tip]
+                     (swap! state assoc :tooltip tip))]
+      (d/div {:class "app-bar-container"}
+             (d/div
+               {:class "app-bar"}
+               (d/div {:class "title"} "plasio")
+               (d/div {:class "toolbar"}
+                      (om/build-all toolbar-item panes {:key  :id
+                                                        :opts {:ftooltip ftooltip}})))
+             (when t
+               (d/div {:class "app-tooltip"} t))))))
 
 
 (defcomponentk docked-widgets [[:data children] owner state]

@@ -268,6 +268,25 @@
                           ["Caching" "Amazon CloudFront"]
                           ["Backend" "Amazon EC2"]]})))))
 
+
+(let [id :local-settings]
+  (defcomponentk local-settings-pane [owner]
+    (render [_]
+      (let [local-options (om/observe owner plasio-state/ui-local-options)]
+        (d/div
+          {:class "local-settings"}
+          (d/form
+            (i/input {:type      "checkbox"
+                      :label     "Enable Flicker Fix"
+                      :checked   (:flicker-fix @local-options)
+                      :on-change (fn []
+                                   (om/transact!
+                                     plasio-state/ui-local-options
+                                     #(update % :flicker-fix not)))})
+            (d/p {:class "tip"}
+                 "If you're seeing visual artifacts like points appearing and disappearing, "
+                 "enabling this options may work.")))))))
+
 (declare initialize-for-pipeline)
 
 (defcomponentk render-target [[:data renderer-state] owner]
@@ -314,6 +333,10 @@
                              "map_f" (or (:map_f ro) 0)
                              "rampColorStart" (apply array ramp-sc)
                              "rampColorEnd" (apply array ramp-ec)))
+      (let [flicker-fix? (get-in n [:ui :local-options :flicker-fix])]
+        (.setRenderHints r (js-obj
+                             "flicker-fix" flicker-fix?)))
+
       (doto p
         (.setDistanceHint (get-in n [:po :distance-hint]))
         (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])

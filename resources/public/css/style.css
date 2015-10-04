@@ -20,8 +20,14 @@ body {
     background-color: RGB(0, 187, 215);
 }
 
-.app-bar {
+.app-bar-container {
     position: fixed;
+    top: 0; left: 0; right: 0;
+    height: auto;
+}
+
+.app-bar {
+    position: absolute;
     top: 0;
     right: 0;
     left: 0;
@@ -57,6 +63,21 @@ body {
     margin-left: 10px;
     margin-right: 10px;
     border: 1px solid white;
+}
+
+.app-tooltip {
+    position: absolute;
+    right: -5px;
+    top: 35px;
+    background: RGB(0, 187, 215);
+    color: white;
+    padding: 5px 10px;
+    font-weight: normal;
+    font-size: 0.8em;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    opacity: 0.8;
 }
 
 
@@ -675,6 +696,14 @@ a:active,a:visited,a:focus {
 .imagery .ramp-range {
     margin-top: 5px;
     text-align: center;
+}
+
+.local-settings .form-group {
+    margin: 0px;
+}
+
+.local-settings .checkbox {
+    margin: 0px;
 }
 
 .tip {

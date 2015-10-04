@@ -8,7 +8,7 @@
 (defonce app-state (atom {:ui     {:open-panes   []
                                    :docked-panes []
                                    :locations {}
-                                   :local-options {}}
+                                   :local-options {:flicker-fix false}}
                           :window {:width  0
                                    :height 0}
                           :ro     {:circular?              false
