@@ -92,8 +92,6 @@
             [:div.s]]
            [:div.circle]]))})))
 
-(declare initialize-for-pipeline)
-
 #_(defn do-profile []
   (if-let [lines (-> @app-state-lines
                      seq)]
@@ -173,19 +171,22 @@
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:separator/one]
-   [:reorder-panes "Reorder Panes" :clone #()]])
+   [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]])
 
 (defcomponent app-bar [owner]
   (render [_]
     (let [all-panes
           (->> panes
-               (mapv #(zipmap [:id :title :icon :f] %)))]
+               (mapv
+                 (fn [[id title icon w f]]
+                   {:id id :title title :icon icon :f f})))]
       (om/build w/application-bar {:panes all-panes}))))
 
 (defn coerce-panes [ids]
   (let [as-map (into {}
                      (keep (fn [[id title icon w]]
-                             (when w
+                             (when (and w
+                                        (not= w :fn))
                                [id {:id    id
                                     :title title
                                     :icon  icon
@@ -365,11 +366,22 @@
                (fn [_ _ o n]
                  ;; camera causes its own snapshot saving etc.
                  ;; we only concern ourselves with app state here
-                 (let [o' (dissoc o :comps)
-                       n' (dissoc n :comps)]
+                 (let [o' (select-keys o [:ro :po :pm])
+                       n' (select-keys n [:ro :po :pm])]
                    (when (and *save-snapshot-on-ui-update*
                               (not= o' n'))
                      (plasio-state/do-save-current-snapshot)))))
+
+    ;; some of the local state is persistant, keep it in sync
+    (add-watch plasio-state/app-state "__ui-local-state-watcher"
+               (fn [_ _ o n]
+                 (let [o' (select-keys o [:ui])
+                       n' (select-keys n [:ui])]
+                   (when-not (= o' n')
+                     (plasio-state/save-local-state! n')))))
+
+    ;; also make sure the state is local state is loaded
+    (swap! plasio-state/app-state merge (plasio-state/load-local-state))
 
     ;; history stuff, on pops, we want to merge back the stuff
     (history/listen

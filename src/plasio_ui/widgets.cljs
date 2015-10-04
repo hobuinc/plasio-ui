@@ -73,7 +73,10 @@
         (d/div {:class "separator"})
         (d/button {:class    "btn"
                    :title    title
-                   :on-click #(plasio-state/toggle-pane! id)}
+                   ;; when we have a handler,
+                   :on-click #(if f
+                               (f)
+                               (plasio-state/toggle-pane! id))}
                   (when icon
                     (fa-icon icon)))))))
 
@@ -153,13 +156,22 @@
              :dragging? true))))
 
 
+(let [s (atom (plasio-state/window-placement-seq))]
+  (defn- next-panel-position []
+    (let [p (first @s)]
+      (swap! s rest)
+      p)))
+
+
 (defcomponentk floating-panel [[:data id title icon {child nil}] state owner]
   (init-state [_]
-    {:collapsed? false :dragging? false})
+    {:collapsed? false :dragging? false :pos (next-panel-position)})
 
-  (render-state [_ {:keys [collapsed? dragging? z-index]}]
+  (render-state [_ {:keys [collapsed? dragging? z-index pos]}]
     (let [ui (om/observe owner plasio-state/ui)
-          {:keys [left top]} (plasio-state/get-ui-location id)
+          ui-locs (om/observe owner plasio-state/ui-locations)
+          {:keys [left top]} (or (get @ui-locs id)
+                                 pos)
           docked-panes (-> ui :docked-panes set)
           docked? (docked-panes id)]
       (d/div

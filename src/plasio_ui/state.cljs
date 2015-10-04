@@ -81,41 +81,32 @@
       (reader/read-string v))))
 
 
-(defn- loc-key [id]
-  (str "location." (name id)))
-
-(defn- save-location! [id location]
-  (save-val! (loc-key id) location))
-
-(defn- get-location [id]
-  (get-val (loc-key id)))
-
-(defn -starts-with? [s p]
-  (zero?
-    (.indexOf s p)))
-
-(defn clear-locations-cache! []
-  (let [ls js/localStorage
-        len (.-length js/localStorage)
-        to-remove (vec (for [i (range len)
-                             :let [k (.key ls i)]
-                             :when (-starts-with? k "location.")]
-                         k))]
-    (doall
-      (map #(.removeItem ls %) to-remove))))
-
-(defn get-ui-location [id]
-  (or (get @ui-locations id)
-      (get-location id)
-      {:left 10 :top 10}))
-
-
 (defn set-ui-location! [id pos]
   (om/transact!
     ui-locations
-    #(assoc % id pos))
-  (save-location! id pos))
+    #(assoc % id pos)))
 
+(defn save-local-state! [state]
+  (save-val! "local-app-state" state))
+
+(defn load-local-state []
+  (get-val "local-app-state"))
+
+(defn window-placement-seq []
+  (iterate (fn [{l :left t :top}]
+             {:left (+ l 20)
+              :top  (+ t 20)})
+           {:left 30 :top 50}))
+
+
+(defn rearrange-panels []
+  (om/transact! ui-locations
+                (fn [_]
+                  (into {}
+                        (map (fn [id new-loc]
+                               [id new-loc])
+                             (:open-panes @ui)
+                             (window-placement-seq))))))
 
 
 (defn- js-camera-props [{:keys [azimuth distance max-distance target elevation]}]
