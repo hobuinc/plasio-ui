@@ -337,6 +337,9 @@
         (.setRenderHints r (js-obj
                              "flicker-fix" flicker-fix?)))
 
+      (set! (.-IMAGE_QUALITY js/PlasioLib.Loaders.MapboxLoader)
+            (get-in n [:ui :local-options :imagery-quality] 1))
+
       (doto p
         (.setDistanceHint (get-in n [:po :distance-hint]))
         (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])
