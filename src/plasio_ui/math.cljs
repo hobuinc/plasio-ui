@@ -36,3 +36,16 @@
 
 (defn ->deg [rads]
   (* 180 (/ rads js/Math.PI)))
+
+(let [max-extent 20037508.342789244
+      min-extent (- max-extent)
+      d->r (/ js/Math.PI 180.0)
+      a 6378137.0]
+  (defn ll->webm [[lat lon]]
+    (let [x (* a lat d->r)
+          y (* a (js/Math.log
+                   (js/Math.tan
+                     (+ (* js/Math.PI 0.25)
+                        (* 0.5 lon d->r)))))]
+      [(min (max min-extent x) max-extent)
+       (min (max min-extent y) max-extent)])))

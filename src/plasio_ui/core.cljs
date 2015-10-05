@@ -169,6 +169,7 @@
   [[:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
+   [:search-location "Search for an Address" :search aw/search-location-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:separator/two]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]

@@ -4,12 +4,16 @@
             [om-tools.dom :as d]
             [om-bootstrap.input :as i]
             [om-bootstrap.button :as b]
+            [om-bootstrap.random :as r]
             [plasio-ui.config :as config]
             [plasio-ui.state :as plasio-state]
             [plasio-ui.widgets :as w]
             [goog.string :as gs]
             [goog.string.format]
-            [plasio-ui.math :as math]))
+            [clojure.string :as s]
+            [plasio-ui.math :as math]
+            [cljs.core.async :refer [<!]])
+  (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (let [id :rendering-options]
   (defcomponentk rendering-options-pane [owner]
@@ -286,6 +290,85 @@
             (d/p {:class "tip"}
                  "If you're seeing visual artifacts like points appearing and disappearing, "
                  "enabling this options may work.")))))))
+
+
+(defn- in-bounds? [[a b _ d e _] [g h]]
+  (and (>= g a)
+       (<= g d)
+       (>= h b)
+       (<= h e)))
+
+(defn- format-coordinates [[x y]]
+  (let [format-deg (fn [v]
+                     (str (.toFixed (js/Math.abs v) 5) "°"))
+        ns (if (neg? y) "S" "N")
+        ew (if (neg? x) "W" "E")]
+    (str (format-deg y) " " ns ", "
+         (format-deg x) " " ew)))
+
+(let [id :search-location]
+  (defcomponentk search-location-pane [state owner]
+    (init-state [_]
+      {:value (plasio-state/get-last-typed-address)})
+
+    (did-mount [_]
+      (when-not (s/blank? (:value @state))
+        (let [ref (om/get-node owner "address")]
+          (.select ref))))
+
+    (render-state [_ {:keys [error value loading? data]}]
+      (let [local-options (om/observe owner plasio-state/ui-local-options)]
+        (d/div
+          {:class "search-location"}
+          (d/form
+            {:on-submit (fn [e]
+                          (.preventDefault e)
+                          (swap! state assoc :loading? true)
+                          (go
+                            (if-let [addr (<! (plasio-state/resolve-address value))]
+                              (let [[x y] (math/ll->webm (:coordinates addr))
+                                    bounds (get-in @plasio-state/root [:bounds])
+                                    in? (in-bounds? bounds [x y])]
+                                (swap! state assoc
+                                       :loading? false
+                                       :data addr
+                                       :error (when-not in?
+                                                "Sorry, this address is out of bounds."))
+                                (when in?
+                                  (plasio-state/transition-to x y)))
+                              (swap! state assoc :loading? false
+                                     :error "There was an error trying to get the address resolved."))))
+
+             :on-change #(let [val (.. % -target -value)]
+                          (plasio-state/save-typed-address val)
+                          (swap! state
+                                  (fn [st]
+                                    (-> st
+                                        (dissoc :error)
+                                        (assoc :value val))))
+                          dissoc :error)}
+            (i/input {:type        "textarea"
+                      :bs-size     "small"
+                      :placeholder "Address..."
+                      :autoFocus   true
+                      :ref         "address"
+                      :disabled?   loading?
+                      :value       value})
+            (b/button {:bs-style  "success"
+                       :bs-size   "small"
+                       :type      "submit"
+                       :disabled? (or (s/blank? value)
+                                      loading?)}
+                      (w/fa-icon :search) " Lookup")
+            (when data
+              (d/div {:class "addr-info"}
+                     "Address resolved to:"
+                     (d/div {:class "addr"} (:address data))
+                     (d/div {:class "location"}
+                            (format-coordinates (:coordinates data)))))
+
+            (when error
+              (d/p {:class "error"} error))))))))
 
 (declare initialize-for-pipeline)
 

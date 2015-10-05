@@ -2,7 +2,9 @@
   (:require [om.core :as om]
             [cljs.reader :as reader]
             [plasio-ui.history :as history]
-            [cljs.core.async :as async])
+            [cljs.core.async :as async]
+            [cljs-http.client :as http]
+            [cljs.core.async :refer [<!]])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (defonce app-state (atom {:ui     {:open-panes   []
@@ -91,6 +93,12 @@
 
 (defn load-local-state []
   (get-val "local-app-state"))
+
+(defn save-typed-address [val]
+  (save-val! "saved-address" val))
+
+(defn get-last-typed-address []
+  (get-val "saved-address"))
 
 (defn window-placement-seq []
   (iterate (fn [{l :left t :top}]
@@ -272,3 +280,58 @@
      :overlay overlay
      :loaders loaders
      :policy policy}))
+
+
+(def mapbox-token "pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw")
+
+(defn resolve-address [address]
+  (let [escaped (js/encodeURIComponent address)
+        url (str "https://api.mapbox.com/v4/geocode/mapbox.places/"
+                 address ".json?access_token=" mapbox-token)]
+    (go
+      (when-let [res (some-> url
+                             (http/get {:with-credentials? false})
+                             <!
+                             :body
+                             js/JSON.parse
+                             (js->clj :keywordize-keys true)
+                             (get-in [:features 0]))]
+        (println res)
+        {:coordinates (:center res)
+         :address (:place_name res)}))))
+
+(defn- world-x-range [bounds]
+  (let [sx (bounds 0)
+        ex (bounds 3)
+        center (+ sx (/ (- ex sx) 2))]
+    [sx ex center]))
+
+(defn- fix-easting [bounds x]
+  (let [[minx maxx midx] (world-x-range bounds)]
+    (println minx maxx)
+    (println midx)
+    (- (* midx 2) x)))
+
+(defn data-range [bounds]
+  [(- (bounds 3) (bounds 0))
+   (- (bounds 4) (bounds 1))
+   (- (bounds 5) (bounds 2))])
+
+(defn mapr [v ins ine outs oute]
+  (let [f (/ (- v ins) (- ine ins))]
+    (+ outs (* f (- oute outs)))))
+
+
+(defn transition-to [x y]
+  (let [bounds (:bounds @root)
+        [rx ry _] (data-range bounds)
+        x' (mapr (fix-easting bounds x)
+                 (bounds 0) (bounds 3)
+                 (- (/ rx 2)) (/ rx 2))
+        y' (mapr y (bounds 1) (bounds 4)
+                 (- (/ ry 2)) (/ rx 2))
+        camera (:camera @comps)]
+    (println "-- -- incoming: " x y)
+    (println "-- -- computed: " x' y')
+    ;; may need to do something about easting
+    (.transitionTo camera x' nil y')))

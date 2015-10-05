@@ -367,7 +367,6 @@ table.key-val td:last-child {
     position: fixed;
     bottom: 5px;
     right: 25px;
-    font: monospace;
 }
 
 .compass .circle {
@@ -704,6 +703,25 @@ a:active,a:visited,a:focus {
 
 .local-settings .checkbox {
     margin: 0px;
+}
+
+.search-location .addr-info {
+    margin-top: 10px;
+}
+
+.search-location .addr-info .addr {
+    margin-top: 5px;
+    border-top: 1px solid #ccc;
+    padding: 5px;
+}
+
+.search-location .addr-info .location {
+    padding: 5px;
+}
+
+.search-location .error {
+    color: red;
+    padding-top: 5px;
 }
 
 .tip {
