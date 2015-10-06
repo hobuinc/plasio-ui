@@ -306,69 +306,81 @@
     (str (format-deg y) " " ns ", "
          (format-deg x) " " ew)))
 
-(let [id :search-location]
-  (defcomponentk search-location-pane [state owner]
-    (init-state [_]
-      {:value (plasio-state/get-last-typed-address)})
+(defn- trigger-search [owner text]
+  (om/set-state! owner :loading? true)
+  (println "-- -- triggering search")
+  (go (let [r (<! (plasio-state/resolve-address text))]
+        (om/set-state! owner :loading? false)
+        (if r
+          (let [[x y] (math/ll->webm (:coordinates r))]
+            (om/set-state! owner :data r)
+            (if (in-bounds? (:bounds @plasio-state/root)
+                            [x y])
+              (plasio-state/transition-to x y)
+              (om/set-state! owner :error "Sorry, this address is out of bounds.")))
+          (om/set-state! owner :error "Sorry, there was an error resolving this address.")))))
 
-    (did-mount [_]
-      (when-not (s/blank? (:value @state))
-        (let [ref (om/get-node owner "address")]
-          (.select ref))))
+(defn world-in-ll []
+  (let [bounds (:bounds @plasio-state/root)]
+    (let [[west south] (math/webm->ll [(bounds 0) (bounds 1)])
+          [east north] (math/webm->ll [(bounds 3) (bounds 4)])]
+      [(js/google.maps.LatLng. north east)
+       (js/google.maps.LatLng. south west)])))
 
-    (render-state [_ {:keys [error value loading? data]}]
-      (let [local-options (om/observe owner plasio-state/ui-local-options)]
-        (d/div
-          {:class "search-location"}
-          (d/form
-            {:on-submit (fn [e]
-                          (.preventDefault e)
-                          (swap! state assoc :loading? true)
-                          (go
-                            (if-let [addr (<! (plasio-state/resolve-address value))]
-                              (let [[x y] (math/ll->webm (:coordinates addr))
-                                    bounds (get-in @plasio-state/root [:bounds])
-                                    in? (in-bounds? bounds [x y])]
-                                (swap! state assoc
-                                       :loading? false
-                                       :data addr
-                                       :error (when-not in?
-                                                "Sorry, this address is out of bounds."))
-                                (when in?
-                                  (plasio-state/transition-to x y)))
-                              (swap! state assoc :loading? false
-                                     :error "There was an error trying to get the address resolved."))))
+(defcomponentk search-widget [state owner]
+  (init-state [_]
+    {:right "-400px"})
 
-             :on-change #(let [val (.. % -target -value)]
-                          (plasio-state/save-typed-address val)
-                          (swap! state
-                                  (fn [st]
-                                    (-> st
-                                        (dissoc :error)
-                                        (assoc :value val))))
-                          dissoc :error)}
-            (i/input {:type        "textarea"
-                      :bs-size     "small"
-                      :placeholder "Address..."
-                      :autoFocus   true
-                      :ref         "address"
-                      :disabled?   loading?
-                      :value       value})
-            (b/button {:bs-style  "success"
-                       :bs-size   "small"
-                       :type      "submit"
-                       :disabled? (or (s/blank? value)
-                                      loading?)}
-                      (w/fa-icon :search) " Lookup")
-            (when data
-              (d/div {:class "addr-info"}
-                     "Address resolved to:"
-                     (d/div {:class "addr"} (:address data))
-                     (d/div {:class "location"}
-                            (format-coordinates (:coordinates data)))))
+  (did-mount [_]
+    (let [node (om/get-node owner "textbox")
+          ac (js/google.maps.places.Autocomplete.
+               node (js-obj "types" (array "geocode")))
+          [ne sw] (world-in-ll)
+          bounds (js/google.maps.LatLngBounds. sw ne)]
 
-            (when error
-              (d/p {:class "error"} error))))))))
+      (println "-- -- WORLD " bounds)
+      (doto ac
+        (.addListener "place_changed"
+                      (fn []
+                        (let [p (js->clj (.getPlace ac)
+                                         :keywordize-keys true)]
+                          (when-let [fa (:formatted_address p)]
+                            (trigger-search owner fa)))))
+        (.setBounds bounds))
+      (.focus node)
+      (swap! state assoc :right "0px")))
+  (render-state [_ {:keys [right error data]}]
+    (d/div
+      {:class "search-widget"
+       :style {:right right
+               :background-color (when error
+                                   "#900")}
+       :on-submit #(.preventDefault %)}
+      (d/form
+        {:on-change #(swap! state dissoc :error :data)}
+        (d/input {:class "search-box"
+                  :placeholder "Search for an Address"
+                  :ref "textbox"
+                  :on-key-down (fn [e]
+                                 (let [code (.-keyCode e)]
+                                   (when (#{27 13} code)
+                                     (.preventDefault e))
+                                   (case code
+                                     27 (plasio-state/hide-search-box!)
+                                     13 (let [val (.. e -target -value)]
+                                          (when-not (s/blank? val)
+                                            (trigger-search owner val)))
+                                     nil)))
+                  :type "text"}))
+
+      (when-let [a (:address data)]
+        (d/div {:class "addr-info"}
+               (d/p {:class "address"} (w/fa-icon :map-marker) " " a)
+               (d/p {:class "coordinates"} (format-coordinates (:coordinates data)))))
+
+      (when error
+        (d/p {:class "error"} error)))))
+
 
 (declare initialize-for-pipeline)
 

@@ -282,6 +282,19 @@
      :policy policy}))
 
 
+(defn show-search-box! []
+  (om/transact! ui-local-options
+                #(assoc % :search-box-visible? true)))
+
+(defn toggle-search-box! []
+  (om/transact! ui-local-options
+                #(update % :search-box-visible? not)))
+
+(defn hide-search-box! []
+  (om/transact! ui-local-options
+                #(assoc % :search-box-visible? false)))
+
+
 (def mapbox-token "pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw")
 
 (defn resolve-address [address]

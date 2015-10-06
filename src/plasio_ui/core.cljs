@@ -169,7 +169,7 @@
   [[:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
-   [:search-location "Search for an Address" :search aw/search-location-pane]
+   [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]
    [:information "Information" :info-circle aw/information-pane]
    [:separator/two]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
@@ -214,6 +214,7 @@
   (render [_]
     (let [root (om/observe owner plasio-state/root)
           ui (om/observe owner plasio-state/ui)
+          ui-locals (om/observe owner plasio-state/ui-local-options)
           op (-> @ui :open-panes set)
           dp (-> @ui :docked-panes set)]
       (d/div
@@ -238,7 +239,8 @@
         ;; build the app bar
         (om/build app-bar {})
 
-        ))))
+        (when (:search-box-visible? @ui-locals)
+          (om/build aw/search-widget {}))))))
 
 (defn- urlify [s]
   (if (re-find #"https?://" s)

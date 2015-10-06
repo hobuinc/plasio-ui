@@ -724,10 +724,61 @@ a:active,a:visited,a:focus {
     padding-top: 5px;
 }
 
+.search-widget {
+    position: fixed;
+    top: 65px;
+    background-color: white;
+    width: 400px;
+    color: #333;
+    transition: height 0.2s, right 0.2s;
+    -webkit-transition-timing-function: ease-out;
+    -moz-transition-timing-function: ease-out;
+    -ms-transition-timing-function: ease-out;
+    -o-transition-timing-function: ease-out;
+    transition-timing-function: ease-out;
+    background-color: RGB(0, 187, 215);
+}
+
+input:focus {
+    outline: none;
+}
+
+.search-widget input[type="text"] {
+    border: 1px solid white;
+    font-size: 1.1em;
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 5px;
+    box-shadow: 0px 1px 2px #333;
+}
+
+.search-widget .error {
+    font-size: 0.8em;
+    padding: 5px 20px;
+    color: #fff;
+    margin: 0px;
+}
+
+.search-widget .addr-info {
+    font-size: 0.8em;
+    color: #eee;
+    padding: 10px;
+}
+
+.search-widget .addr-info p {
+    margin: 0px;
+
+}
+
+.search-widget .addr-info .coordinates {
+    padding-left: 10px;
+    color: #fff;
+    font-weight: bold;
+}
+
 .tip {
     padding: 10px;
     color: #aaa;
-
 }
 
 .powered-by {

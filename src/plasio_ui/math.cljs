@@ -40,6 +40,7 @@
 (let [max-extent 20037508.342789244
       min-extent (- max-extent)
       d->r (/ js/Math.PI 180.0)
+      r->d (/ 180 js/Math.PI)
       a 6378137.0]
   (defn ll->webm [[lat lon]]
     (let [x (* a lat d->r)
@@ -48,4 +49,12 @@
                      (+ (* js/Math.PI 0.25)
                         (* 0.5 lon d->r)))))]
       [(min (max min-extent x) max-extent)
-       (min (max min-extent y) max-extent)])))
+       (min (max min-extent y) max-extent)]))
+
+  (defn webm->ll [[x y]]
+    [(/ (* x r->d) a)
+     (* (- (* 0.5 js/Math.PI)
+           (* 2.0 (js/Math.atan
+                    (js/Math.exp
+                      (/ (- y) a)))))
+        r->d)]))
