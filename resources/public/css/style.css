@@ -776,6 +776,18 @@ input:focus {
     font-weight: bold;
 }
 
+.search-widget .cancel-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.2em;
+    color: #ccc;
+}
+
+.search-widget .cancel-button:hover {
+    color: #999;
+}
+
 .tip {
     padding: 10px;
     color: #aaa;
@@ -801,5 +813,4 @@ input:focus {
     margin-top: -10px;
     text-transform: uppercase;
     color: #ccc;
-
 }

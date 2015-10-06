@@ -371,7 +371,11 @@
                                           (when-not (s/blank? val)
                                             (trigger-search owner val)))
                                      nil)))
-                  :type "text"}))
+                  :type "text"})
+        (d/a {:class "cancel-button"
+              :href "javascript:"
+              :on-click #(plasio-state/hide-search-box!)}
+             (w/fa-icon :times)))
 
       (when-let [a (:address data)]
         (d/div {:class "addr-info"}
