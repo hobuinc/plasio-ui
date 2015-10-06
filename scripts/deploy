@@ -34,6 +34,8 @@ mv $DEPLOY_DIR/lib/dist/plasio-lib.js $DEPLOY_DIR/lib/dist/plasio-lib-$ID.js
 mv $DEPLOY_DIR/config.json $DEPLOY_DIR/config-$ID.json
 
 sed -i.bak -e "s/style\.css/style-$ID\.css/g ; s/plasio_ui\.js/plasio_ui-$ID\.js/g ; s/plasio-renderer\.js/plasio-renderer-$ID\.js/g ; s/plasio-lib\.js/plasio-lib-$ID\.js/g ; s/BuildID = \"\"/BuildID = \"$ID\"/g" $DEPLOY_DIR/index.html
+sed -i.bak -e "s/AIzaSyAUWT5-vsCeQb1vYYamCw-RFvKTzLlY9iU/AIzaSyCdLqz1ZxiO2woQ4B4wbYtcR2EtYEYnHxg/g" $DEPLOY_DIR/index.html
+
 
 echo ":: done."
 
