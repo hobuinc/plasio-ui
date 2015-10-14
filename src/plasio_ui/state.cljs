@@ -2,6 +2,7 @@
   (:require [om.core :as om]
             [cljs.reader :as reader]
             [plasio-ui.history :as history]
+            [plasio-ui.util :as util]
             [cljs.core.async :as async]
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]])
@@ -330,19 +331,14 @@
    (- (bounds 4) (bounds 1))
    (- (bounds 5) (bounds 2))])
 
-(defn mapr [v ins ine outs oute]
-  (let [f (/ (- v ins) (- ine ins))]
-    (+ outs (* f (- oute outs)))))
-
-
 (defn transition-to [x y]
   (let [bounds (:bounds @root)
         [rx ry _] (data-range bounds)
-        x' (mapr (fix-easting bounds x)
-                 (bounds 0) (bounds 3)
-                 (- (/ rx 2)) (/ rx 2))
-        y' (mapr y (bounds 1) (bounds 4)
-                 (- (/ ry 2)) (/ rx 2))
+        x' (util/mapr (fix-easting bounds x)
+                      (bounds 0) (bounds 3)
+                      (- (/ rx 2)) (/ rx 2))
+        y' (util/mapr y (bounds 1) (bounds 4)
+                      (- (/ ry 2)) (/ rx 2))
         camera (:camera @comps)]
     (println "-- -- incoming: " x y)
     (println "-- -- computed: " x' y')

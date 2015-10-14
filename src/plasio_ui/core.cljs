@@ -169,12 +169,13 @@
   [[:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
-   [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]
+   [:innundation-plane "Innundation Plane" :street-view aw/innundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:separator/two]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
+   [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
    [:separator/one]
-   [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]])
+   [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
 
 (defcomponent app-bar [owner]
   (render [_]
@@ -345,8 +346,11 @@
       (println "color? " color?)
       (println "intensity? " intensity?)
 
-      (swap! plasio-state/app-state (fn [st] (merge-with conj st settings)))
-
+      ;; merge-with will fail if some of the non-vec settings are available in both
+      ;; app-state and settings, we do a simple check to make sure that app-state doesn't
+      ;; have what we'd like it to have
+      (when-not (:pipeline @plasio-state/app-state)
+        (swap! plasio-state/app-state (fn [st] (merge-with conj st settings))))
 
       ;; put in initialization paramters
       (swap! plasio-state/app-state assoc :init-params local-settings)

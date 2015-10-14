@@ -788,6 +788,51 @@ input:focus {
     color: #999;
 }
 
+.innundation-plane .current-height {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.z-histogram {
+    position: relative;
+}
+
+.z-histogram .histogram-base-region {
+    position: absolute;
+    height: 50px;
+}
+
+.histogram {
+    position: relative;
+    height: 50px;
+    width: 200px;
+}
+
+.histogram .histogram-item {
+    position: absolute;
+    background-color: #ccc;
+}
+
+.histogram .histogram-item:last-child {
+    border-right: none;
+}
+
+
+.value-present {
+    border-bottom: 1px dotted #ccc;
+    margin-bottom: 10px;
+}
+
+.value-present .key {
+    margin-top: 6px;
+
+}
+
+.value-present .value {
+    font-size: 1.4em;
+
+}
+
 .tip {
     padding: 10px;
     color: #aaa;
@@ -810,7 +855,8 @@ input:focus {
 
 .slider-guides {
     font-size: 0.8em;
-    margin-top: -10px;
+    margin-top: -15px;
     text-transform: uppercase;
     color: #ccc;
+    margin-bottom: 10px;
 }

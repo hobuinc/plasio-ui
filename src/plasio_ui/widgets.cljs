@@ -1,5 +1,6 @@
 (ns plasio-ui.widgets
-  (:require [om.core :as om]
+  (:require [plasio-ui.util :as util]
+            [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
             [om-tools.dom :as d]
             [plasio-ui.state :as plasio-state]))
@@ -27,43 +28,73 @@
         v))))
 
 
+(defn- create-slider! [node start connect step min max f]
+  (js/noUiSlider.create
+    node
+    (js-obj
+      "start" start
+      "connect" connect
+      "step" step
+      "range" (js-obj "min" min
+                      "max" max)))
+  (doto (.-noUiSlider node)
+    (.on "slide" f)))
+
+(defcomponentk slider-guides [[:data left right]]
+  (render [_]
+    (d/div {:class "slider-guides clearfix"}
+           (d/div {:class "pull-left"} left)
+           (d/div {:class "pull-right"} right))))
+
+
 (defcomponentk slider [[:data min max start
+                        {guides nil}
                         {step 1} {f nil}
                         {connect false}] state owner]
   (did-mount [_]
-    (let [node (om/get-node owner)
-          start (clj->js start)
-          emit #(when f
-                 (f (slider-val node)))]
-      (js/noUiSlider.create
-        node
-        (js-obj
-          "start" start
-          "connect" connect
-          "step" step
-          "range" (js-obj "min" min
-                          "max" max)))
+    (let [node (om/get-node owner "slider")
+          start (clj->js start)]
+      (create-slider! node start connect step min max
+                      (fn []
+                        (f (slider-val node))))))
 
-      (doto (.-noUiSlider node)
-        (.on "slide" emit))))
-
-  (did-update [_ _ _]
+  (did-update [_ pp _]
     (let [props (om/get-props owner)
-          node (om/get-node owner)]
-      (when (not= (:start props)
-                  (slider-val node))
-        (.set (.-noUiSlider node) (clj->js (:start props))))))
+          node (om/get-node owner "slider")]
+      ;; if the range changed, we need to recreate the slider, otherwise
+      ;; just update what needs to be
+      (if (or (not= (:step props) (:step pp))
+              (not= (:connect props) (:connect pp))
+              (not= (:min props) (:min pp))
+              (not= (:max props) (:max pp)))
+        (let [slider (.-noUiSlider node)]
+          (.destroy slider)
+          (create-slider! node (clj->js (:start props))
+                          (:connect props)
+                          (:step props)
+                          (:min props)
+                          (:max props)
+                          (fn [_] (f (slider-val node)))))
+        (when (not= (:start props)
+                    (slider-val node))
+          (.set (.-noUiSlider node) (clj->js (:start props)))))))
 
 
   (render [_]
-    (d/div {:class "slider"})))
+    (d/div
+      (d/div {:class "slider"
+              :ref "slider"})
+      (when guides
+        (let [[a b] guides]
+          (om/build slider-guides {:left a :right b}))))))
 
 
 (defcomponentk labeled-slider [data owner]
   (render [_]
     (d/div {:class "slider-text"}
            (d/div {:class "text"} (:text data))
-           (om/build slider data))))
+           (om/build slider data)
+           )))
 
 (defcomponentk toolbar-item [[:data id {title ""}
                               {icon nil} {f nil}]
@@ -98,6 +129,117 @@
                                                         :opts {:ftooltip ftooltip}})))
              (when t
                (d/div {:class "app-tooltip"} t))))))
+
+(defn- px [v]
+  (str v "px"))
+
+(def ^:private histogram-width 200)
+(def ^:private histogram-height 50)
+
+(let [in-mem (.createElement js/document "canvas")]
+  (defn render-histogram! [canvas histogram n x left right]
+    (let [w (.-width canvas)
+          h (.-height canvas)
+          items (->> histogram
+                     seq
+                     (sort-by (comp js/parseInt first)))
+          width-per-item (/ 200 (count items))
+          max-val (js/Math.log (apply max (vals histogram)))
+          l left
+          r right]
+      (set! (.-width in-mem) w)
+      (set! (.-height in-mem) h)
+
+      (let [ctx (.getContext in-mem "2d")]
+        ;; clear base
+        (.clearRect ctx 0 0 w h)
+
+        ;; draw bars indicating how much we've scrolled
+        (let [offset1 (util/mapr l n x 0 w)
+              offset2 (util/mapr r n x 0 w)]
+          (set! (.-fillStyle ctx) "#eee")
+          ;; fancy bars closing in
+          (.fillRect ctx 0 0 offset1 h)
+          (.fillRect ctx offset2 0 (- w offset2) h)
+
+
+          ;; draw all bars
+          (doall
+            (map-indexed
+              (fn [index [k v]]
+                (let [k (js/parseInt k)
+                      x (* index width-per-item)
+                      h (* 40 (/ (js/Math.log v) max-val))
+                      y (- 50 h)]
+                  (if (and (>= k l) (<= k r))
+                    (set! (.-fillStyle ctx) "#00BBD7")
+                    (set! (.-fillStyle ctx) "#ccc"))
+                  (.fillRect ctx
+                             x y width-per-item h)))
+              items))
+
+          ;; fancy lines closing in
+          (let [y h]
+            (set! (.-strokeStyle ctx) "#ccc")
+            (doto ctx
+              (.beginPath)
+              (.moveTo 0 y)
+              (.lineTo offset1 y)
+              (.moveTo offset2 y)
+              (.lineTo w y)
+              (.stroke))
+
+            (set! (.-strokeStyle ctx) "#00BBD7")
+            (doto ctx
+              (.beginPath)
+              (.moveTo offset1 y)
+              (.lineTo offset2 y)
+              (.stroke)))))
+
+      ;; once we're done rendering blit it
+      (let [ctx (.getContext canvas "2d")]
+        (.clearRect ctx 0 0 w h)
+        (.drawImage ctx in-mem 0 0)))))
+
+(defn base-histogram [{:keys [range width height]} owner]
+  (reify
+    om/IRender
+    (render [_]
+      (d/canvas {:width width :height height}))
+
+    om/IDidUpdate
+    (did-update [_ _ _]
+      (let [histogram (om/get-props owner :histogram)
+            left (om/get-props owner :left)
+            right (om/get-props owner :right)
+            [n x] (om/get-props owner :range)]
+        (render-histogram! (om/get-node owner) histogram n x left right)))))
+
+(defcomponentk value-present [[:data key value]]
+  (render [_]
+    (d/div {:class "value-present clearfix"}
+           (d/div {:class "key pull-left"} key)
+           (d/div {:class "value pull-right"} value))))
+
+
+(defcomponentk z-histogram-slider [[:data text min max start histogram {f nil}] state owner]
+  (render [_]
+    (d/div
+      {:class "z-histogram"}
+      (d/div {:class "text"} text)
+      (om/build base-histogram {:histogram histogram
+                                :left (first start)
+                                :right (second start)
+                                :range [min max]
+                                :width histogram-width
+                                :height histogram-height})
+      (om/build slider {:min     min
+                        :max     max
+                        :step    0.01
+                        :start   start
+                        :connect false
+                        :guides [min max]
+                        :f       f}))))
 
 
 (defcomponentk docked-widgets [[:data children] owner state]

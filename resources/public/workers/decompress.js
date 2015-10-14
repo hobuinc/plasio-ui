@@ -28,6 +28,26 @@ function swapSpace(buffer, worldBoundsX, pointSize, numPoints) {
 	}
 }
 
+function collectStats(buffer, pointSize, numPoints) {
+	// whatever stats we collect go here
+	//
+	var bin = {};
+	var binIt = function(val) {
+		var key = Math.floor(val / 10) * 10;
+		bin[key] = ((!bin[key]) ? 0 : bin[key]) + 1;
+	};
+
+	var offset = 0;
+	var psInFloats = pointSize / 4;
+	for (var i = 0 ; i < numPoints ; i ++) {
+		var z = buffer[offset + 1];
+		binIt(z);
+		offset += psInFloats;
+	}
+
+	return {z: bin};
+}
+
 var hasColor = function(schema) {
 	var hasr = false, hasg = false, hasb = false;
 	for (var i = 0, il = schema.length ; i < il ; i ++) {
@@ -96,11 +116,6 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, checkAddCol
 	});
 
 	totalSaved += (numPoints * pointSize) - ab.byteLength;
-	/*
-	console.log("Decompress points:", numPoints,
-	            "bytes: ", ab.byteLength, "->", numPoints * pointSize, "saved:", totalSaved);
-	 */
-
 	var out = Module._malloc(numPoints * pointSize);
 
 	for (var i = 0 ; i < numPoints ; i ++) {
@@ -116,16 +131,16 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, checkAddCol
 	var b = new Float32Array(ret.buffer);
 
 	if (checkAddColor && numPoints > 0 && !hasColor(schema)) {
-		console.log(b.byteLength);
 		b = addColor(b, numPoints, pointSize);
-		console.log(b.byteLength);
 	}
 
 	// if we got any points, swap them
 	if (numPoints > 0)
 		swapSpace(b, worldBoundsX, pointSize, numPoints);
 
-	return b;
+	var stats = collectStats(b, pointSize, numPoints);
+
+	return [b, stats];
 };
 
 self.onmessage = function(e) {
@@ -137,6 +152,11 @@ self.onmessage = function(e) {
 	var worldBoundsX = data.worldBoundsX;
 	var addColor = data.addColor;
 
-	var res = decompressBuffer(schema, worldBoundsX, ab, numPoints, addColor);
-	postMessage({result: res}, [res.buffer]);
+	var w = decompressBuffer(schema, worldBoundsX, ab, numPoints, addColor);
+
+	var res = w[0],
+		stats = w[1];
+
+
+	postMessage({result: res, stats: stats}, [res.buffer]);
 };
