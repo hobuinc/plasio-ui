@@ -144,14 +144,14 @@
   (defcomponentk imagery-pane [state owner]
     (did-mount [_]
       (let [r (:renderer @plasio-state/comps)]
-        (.addStatsListener r "z" "inun-z"
+        (.addStatsListener r "z" "imagery-z"
                            (fn [_ n]
                              (let [hist (js->clj n)]
                                (swap! state assoc
                                       :histogram hist))))))
     (will-unmount [_]
       (let [r (:renderer @plasio-state/comps)]
-        (.removeStatsListener r "z" "inun-z")))
+        (.removeStatsListener r "z" "imagery-z")))
 
     (render-state [_ {:keys [histogram]}]
       (let [ro (om/observe owner plasio-state/ro)
@@ -164,9 +164,9 @@
             override (:color-ramp-override @lo)
 
             bounds (:bounds @as)
-            ss (max (or (nth override 0)) (bounds 2))
-            se (min (or (nth override 1)) (bounds 5))
-
+            [ss se] (if override
+                      override
+                      [(bounds 2) (bounds 5)])
             imager-source-title (get as-map
                                      imagery-source
                                      "No Source")]
@@ -349,11 +349,11 @@
       (let [root (om/observe owner plasio-state/root)
             bounds (:bounds @root)
             ui-locals (om/observe owner plasio-state/ui-local-options)
-            zr   (z-range bounds)
             innun-override (:innundation-range-override @ui-locals)
-            start-s (max (or (nth innun-override 0)) (bounds 2))
-            start-e (min (or (nth innun-override 1)) (bounds 5))
-            innun-height (:innudation-height @ui-locals)
+            [start-s start-e] (if innun-override
+                                innun-override
+                                [(bounds 2) (bounds 5)])
+            innun-height (get @ui-locals :innudation-height start-s)
             clamped-innun-height (min (max innun-height start-s) start-e)]
         (d/div
           {:class "innundation-plane"}
@@ -532,7 +532,7 @@
   (did-update [_ prev-props prev-state]
     ;; apply any state that needs to be applied here
     (let [r (get-in @plasio-state/root [:comps :renderer])
-          pn (:render-state prev-props)
+          pn (:renderer-state prev-props)
           n (:renderer-state (om/get-props owner))
           ro (:ro n)
           lo (get-in n [:ui :local-options])
@@ -547,8 +547,6 @@
                   (- 1 m)
                   (or (:rgb_f ro) 1.0))
           map_f (get ro :map_f 0.0)]
-
-      (println "-- -- " zrange-lower zrange-upper)
 
       (.setRenderOptions r (js-obj
                              "circularPoints" (if (true? (:circular? ro)) 1 0)
@@ -577,10 +575,10 @@
                        (- (bounds 4) (bounds 1)))
             lo (get-in n [:ui :local-options])
             half (/ range 2.0)
-            [low high] (get lo :innundation-range-override [(bounds 5) (bounds 2)])
+            [low high] (get lo :innundation-range-override [(bounds 2) (bounds 5)])
             planey (util/mapr
                      (min high
-                          (max low (:innudation-height lo)))
+                          (max low (get lo :innudation-height low)))
                      (bounds 2) (bounds 5)
                      (- half) half)]
         (if (get-in n [:ui :local-options :innundation?])
@@ -592,14 +590,18 @@
                         size)
           (.removePlane r "innundation")))
 
-      (set! (.-IMAGE_QUALITY js/PlasioLib.Loaders.MapboxLoader)
-            (get-in n [:ui :local-options :imagery-quality] 1))
+      ;; if the imagery source has changed we need to update that
+      ;;
+      (let [is (:imagery-source ro)
+            pis (get-in pn [:ro :imagery-source])]
+        (when-not (= is pis)
+          (let [policy (:policy @plasio-state/comps)
+                loader (get-in @plasio-state/comps [:loaders :point])]
+            (.hookedReload policy
+                           #(.setColorSourceImagery loader is)))))
 
-      (doto p
-        (.setDistanceHint (get-in n [:po :distance-hint]))
-        (.setMaxDepthReductionHint (->> (get-in n [:po :max-depth-reduction-hint])
-                                        (- 5)
-                                        js/Math.floor)))))
+      (set! (.-IMAGE_QUALITY js/PlasioLib.Loaders.MapboxLoader)
+            (get-in n [:ui :local-options :imagery-quality] 1))))
 
   (render [_]
     (d/div {:id "render-target"})))

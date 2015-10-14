@@ -128,11 +128,11 @@
 
 
 (defn- camera-state [cam]
-  {:azimuth (.. cam -azimuth)
-   :distance (.. cam -distance)
-   :max-distance (.. cam -maxDistance)
-   :target (into [] (.. cam -target))
-   :elevation (.. cam -elevation)})
+  {:azimuth      (aget cam "azimuth")
+   :distance     (aget cam "distance")
+   :max-distance (aget cam "maxDistance")
+   :target       (into [] (aget cam "target"))
+   :elevation    (aget cam "elevation")})
 
 (defn- ui-state [st]
   (select-keys st [:ro :po :pm]))
@@ -169,7 +169,7 @@
                                          init-params]}]
   (println "render-hints:" render-hints)
   (println "bbox:" bbox)
-  (let [create-renderer (.. js/window -renderer -core -createRenderer)
+  (let [create-renderer (aget js/window "renderer" "core" "createRenderer")
         renderer (create-renderer e)
         bbox [(nth bbox 0) (nth bbox 2) (nth bbox 1)
               (nth bbox 3) (nth bbox 5) (nth bbox 4)]
@@ -229,8 +229,8 @@
     (doto policy
       (.on "bbox"
            (fn [bb]
-             (let [bn (.. bb -mins)
-                   bx (.. bb -maxs)
+             (let [bn (aget bb "mins")
+                   bx (aget bb "maxs")
                    x  (- (aget bx 0) (aget bn 0))
                    y  (- (aget bx 1) (aget bn 1))
                    z  (- (aget bx 2) (aget bn 2))
@@ -258,14 +258,7 @@
                                "intensityBlend" (:intensity-blend ro)
                                "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
     (.setClearColor renderer 0 (/ 29 256) (/ 33 256))
-
     (.start policy)
-
-    (when-let [dh (get-in init-params [:po :distance-hint])]
-      (.setDistanceHint policy dh))
-
-    (when-let [pmdr (get-in init-params [:po :max-depth-reduction-hint])]
-      (.setMaxDepthReductionHint policy (js/Math.floor (- 5 pmdr))))
 
     ;; establish a listener for lines, just blindly accept lines and mutate our internal
     ;; state with list of lines

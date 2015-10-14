@@ -35,7 +35,9 @@
               :source-paths ["src" "vendor/src"]
               :compiler {:output-to "resources/public/js/compiled/plasio_ui.js"
                          :main plasio-ui.core
-                         :optimizations :whitespace
+                         :optimizations :advanced
+                         :externs ["vendor/externs/nouislider.js"
+                                   "vendor/externs/plasiolib.js"]
                          :pretty-print false}}]}
 
   :figwheel {
