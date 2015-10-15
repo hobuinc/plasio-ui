@@ -37,7 +37,8 @@
                          :main plasio-ui.core
                          :optimizations :advanced
                          :externs ["vendor/externs/nouislider.js"
-                                   "vendor/externs/plasiolib.js"]
+                                   "vendor/externs/plasiolib.js"
+                                   "vendor/externs/google_maps_api_v3_11.js"]
                          :pretty-print false}}]}
 
   :figwheel {
