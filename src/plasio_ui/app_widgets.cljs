@@ -615,8 +615,8 @@
         renderer (array "view")
         (fn [view]
              (when view
-               (let [eye (.-eye view)
-                     target (.-target view)]
+               (let [eye (aget view "eye")
+                     target (aget view "target")]
                  ;; such calculations, mostly project vectors to xz plane and
                  ;; compute the angle between the two vectors
                  (when (and eye target)
