@@ -142,21 +142,12 @@
 
 (let [id :imagery]
   (defcomponentk imagery-pane [state owner]
-    (did-mount [_]
-      (let [r (:renderer @plasio-state/comps)]
-        (.addStatsListener r "z" "imagery-z"
-                           (fn [_ n]
-                             (let [hist (js->clj n)]
-                               (swap! state assoc
-                                      :histogram hist))))))
-    (will-unmount [_]
-      (let [r (:renderer @plasio-state/comps)]
-        (.removeStatsListener r "z" "imagery-z")))
-
     (render-state [_ {:keys [histogram]}]
       (let [ro (om/observe owner plasio-state/ro)
             as (om/observe owner plasio-state/root)
             lo (om/observe owner plasio-state/ui-local-options)
+            histogram (om/observe owner plasio-state/histogram)
+
             imagery-source (:imagery-source @ro)
             imagery-sources (:imagery-sources @as)
             as-map (into {} imagery-sources)
@@ -164,9 +155,10 @@
             override (:color-ramp-override @lo)
 
             bounds (:bounds @as)
+            zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
             [ss se] (if override
                       override
-                      [(bounds 2) (bounds 5)])
+                      zbounds)
             imager-source-title (get as-map
                                      imagery-source
                                      "No Source")]
@@ -202,22 +194,14 @@
 
           ;; z-range override
           ;;
-          (let [hist (into {} (map (fn [[k v]]
-                                     [(js/parseInt k) v])
-                                   histogram))
-                full-histogram (merge (util/zero-histogram
-                                        (bounds 2)
-                                        (bounds 5)
-                                        10)
-                                      hist)]
-            (om/build w/z-histogram-slider
-                      {:text  "Z Range Override"
-                       :min   (bounds 2)
-                       :max   (bounds 5)
-                       :start [ss se]
-                       :histogram full-histogram
-                       :f #(om/update! plasio-state/ui-local-options
-                                       :color-ramp-override %)}))
+          (om/build w/z-histogram-slider
+                    {:text      "Z Range Override"
+                     :min       (zbounds 0)
+                     :max       (zbounds 1)
+                     :start     [ss se]
+                     :histogram @histogram
+                     :f         #(om/update! plasio-state/ui-local-options
+                                             :color-ramp-override %)})
 
 
           ;; draw the widget for selecting ramps
@@ -333,26 +317,20 @@
 
 (let [id :innundation-plane]
   (defcomponentk innundation-plane-pane [state owner]
-    (did-mount [_]
-      (let [r (:renderer @plasio-state/comps)]
-        (.addStatsListener r "z" "inun-z"
-                           (fn [_ n]
-                             (let [hist (js->clj n)]
-                               (swap! state assoc
-                                      :histogram hist))))))
-
-    (will-unmount [_]
-      (let [r (:renderer @plasio-state/comps)]
-        (.removeStatsListener r "z" "inun-z")))
-
     (render-state [_ {:keys [histogram]}]
       (let [root (om/observe owner plasio-state/root)
-            bounds (:bounds @root)
+            ro (om/observe owner plasio-state/ro)
             ui-locals (om/observe owner plasio-state/ui-local-options)
+            histogram (om/observe owner plasio-state/histogram)
+
+            bounds (:bounds @root)
+            zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
+
+
             innun-override (:innundation-range-override @ui-locals)
             [start-s start-e] (if innun-override
                                 innun-override
-                                [(bounds 2) (bounds 5)])
+                                zbounds)
             innun-height (get @ui-locals :innudation-height start-s)
             clamped-innun-height (min (max innun-height start-s) start-e)]
         (d/div
@@ -367,36 +345,27 @@
           (om/build w/value-present {:key   "Current Height"
                                      :value (commify clamped-innun-height)})
 
-          (let [hist (into {} (map (fn [[k v]]
-                                     [(js/parseInt k) v])
-                                   histogram))
-                full-histogram (merge (util/zero-histogram
-                                        (bounds 2)
-                                        (bounds 5)
-                                        10)
-                                      hist)]
-            (d/div
-              (om/build w/z-histogram-slider {:text      "Z Range Override"
-                                              :min       (bounds 2)
-                                              :max       (bounds 5)
-                                              :start     [start-s start-e]
-                                              :histogram full-histogram
-                                              :f         #(do
-                                                           (om/update! plasio-state/ui-local-options
-                                                                       :innundation-range-override
-                                                                       %))})
+          (om/build w/z-histogram-slider {:text      "Z Range Override"
+                                          :min       (zbounds 0)
+                                          :max       (zbounds 1)
+                                          :start     [start-s start-e]
+                                          :histogram @histogram
+                                          :f         #(do
+                                                       (om/update! plasio-state/ui-local-options
+                                                                   :innundation-range-override
+                                                                   %))})
 
-              ;; build the slider that will help us change the position
-              ;;
-              (om/build w/labeled-slider {:text    "Adjust the current innundation plane height."
-                                          :min     start-s
-                                          :max     start-e
-                                          :connect false
-                                          :step    0.001
-                                          :start   clamped-innun-height
-                                          :f       (fn [val]
-                                                     (om/transact! plasio-state/ui-local-options
-                                                                   #(assoc % :innudation-height val)))})))
+          ;; build the slider that will help us change the position
+          ;;
+          (om/build w/labeled-slider {:text    "Adjust the current innundation plane height."
+                                      :min     start-s
+                                      :max     start-e
+                                      :connect false
+                                      :step    0.001
+                                      :start   clamped-innun-height
+                                      :f       (fn [val]
+                                                 (om/transact! plasio-state/ui-local-options
+                                                               #(assoc % :innudation-height val)))})
 
           ;; the innundation plane opacity slider
           (d/div
@@ -410,9 +379,7 @@
                                         :f (fn [val]
                                              (om/transact! plasio-state/ui-local-options
                                                            #(assoc % :innundation-plane-opacity
-                                                                     val)))}))
-
-          )))))
+                                                                     val)))})))))))
 
 
 (defn- in-bounds? [[a b _ d e _] [g h]]
@@ -509,7 +476,7 @@
 
 (declare initialize-for-pipeline)
 
-(defcomponentk render-target [[:data renderer-state] owner]
+(defcomponentk render-target [[:data renderer-state] state owner]
   (did-mount [_]
     ;; time to intialize the renderer and set it up
     (let [rs renderer-state
@@ -526,8 +493,32 @@
                    :render-hints (:render-hints rs)
                    :init-params  (:init-params rs)})]
 
+      ;; add stats listener for Z, update the histogram and z-range for the renderer
+      ;;
+      (let [r (:renderer comps)]
+        (.addStatsListener r "z" "z-collector"
+                           (fn [_ n]
+                             (let [hist (js->clj n)]
+                               (when-not (empty? hist)
+                                 (let [hist (into {} (for [[k v] hist]
+                                                       [(js/parseInt k) v]))
+                                       nn (apply min (keys hist))
+                                       xx (apply max (keys hist))
+                                       hist (merge (util/zero-histogram nn xx 10)
+                                                   hist)]
+                                   ;; update the state of our renderer based on what we get from the histogram
+                                   (om/update! plasio-state/ro :zrange [nn xx])
+                                   (om/update! plasio-state/histogram hist))))))
+        (swap! state assoc :cleanup-fn
+               (fn []
+                 (.removeStatsListener r "z" "z-collector"))))
+
       ;; save intialized state
       (om/update! plasio-state/comps comps)))
+
+  (will-unmount [_]
+    (when-let [cfn (:cleanup-fn @state)]
+      (cfn)))
 
   (did-update [_ prev-props prev-state]
     ;; apply any state that needs to be applied here
@@ -539,7 +530,7 @@
           [ramp-sc ramp-ec] (get config/color-ramps (:color-ramp ro))
           [color-ramp-start color-ramp-end] (:color-ramp-range ro)
           p (get-in @plasio-state/root [:comps :policy])
-          zrange (:zrange ro)
+          zrange (or (:zrange ro) (:bounds n))
           ramp-override (:color-ramp-override lo)
           zrange-lower (or (nth ramp-override 0) (nth zrange 0))
           zrange-upper (or (nth ramp-override 1) (nth zrange 1))
@@ -570,16 +561,17 @@
       ;; check for innundation plane stuff
       ;;
       (let [bounds (:bounds n)
-            range (- (bounds 5) (bounds 2))
+            zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
+            range (- (zbounds 1) (zbounds 0))
             size  (max (- (bounds 3) (bounds 0))
                        (- (bounds 4) (bounds 1)))
             lo (get-in n [:ui :local-options])
             half (/ range 2.0)
-            [low high] (get lo :innundation-range-override [(bounds 2) (bounds 5)])
+            [low high] (get lo :innundation-range-override zbounds)
             planey (util/mapr
                      (min high
                           (max low (get lo :innudation-height low)))
-                     (bounds 2) (bounds 5)
+                     (zbounds 0) (zbounds 1)
                      (- half) half)]
         (if (get-in n [:ui :local-options :innundation?])
           (.updatePlane r "innundation"

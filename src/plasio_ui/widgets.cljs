@@ -201,19 +201,26 @@
         (.clearRect ctx 0 0 w h)
         (.drawImage ctx in-mem 0 0)))))
 
-(defn base-histogram [{:keys [range width height]} owner]
+(defn- render-histogram-for-owner! [owner]
+  (let [histogram (om/get-props owner :histogram)
+        left (om/get-props owner :left)
+        right (om/get-props owner :right)
+        [n x] (om/get-props owner :range)]
+    (render-histogram! (om/get-node owner) histogram n x left right)))
+
+(defn base-histogram [{:keys [width height]} owner]
   (reify
+    om/IDidMount
+    (did-mount [_]
+      (render-histogram-for-owner! owner))
+
     om/IRender
     (render [_]
       (d/canvas {:width width :height height}))
 
     om/IDidUpdate
     (did-update [_ _ _]
-      (let [histogram (om/get-props owner :histogram)
-            left (om/get-props owner :left)
-            right (om/get-props owner :right)
-            [n x] (om/get-props owner :range)]
-        (render-histogram! (om/get-node owner) histogram n x left right)))))
+      (render-histogram-for-owner! owner))))
 
 (defcomponentk value-present [[:data key value]]
   (render [_]

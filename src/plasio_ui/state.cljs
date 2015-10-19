@@ -25,6 +25,7 @@
                           :po     {:distance-hint            50
                                    :max-depth-reduction-hint 5}
                           :pm     {:z-exaggeration 1}
+                          :histogram {}
                           :comps  {}}))
 
 (def root-state (om/root-cursor app-state))
@@ -38,6 +39,7 @@
 (def po (om/ref-cursor (:po root-state)))
 (def pm (om/ref-cursor (:pm root-state)))
 (def comps (om/ref-cursor (:comps root-state)))
+(def histogram (om/ref-cursor (:histogram root-state)))
 
 
 (defn toggle-pane! [id]
