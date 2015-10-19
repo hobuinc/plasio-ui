@@ -219,29 +219,29 @@
           op (-> @ui :open-panes set)
           dp (-> @ui :docked-panes set)]
       (d/div
-        {:class (str "app-container"
-                     (when-not (empty? dp) " with-dock"))}
-
         ;; setup render target
         (om/build aw/render-target {:renderer-state @root})
+        (d/div
+          {:class (str "app-container"
+                       (when-not (empty? dp) " with-dock"))}
 
-        ;; compass
-        (om/build aw/compass {})
+          ;; compass
+          (om/build aw/compass {})
 
-        ;; render all open panes
-        (om/build floating-panes {:panes (vec op)})
+          ;; render all open panes
+          (om/build floating-panes {:panes (vec op)})
 
-        ;; render all docked panes
-        (when-not (empty? dp)
-          (om/build docked-panes {:panes (vec dp)}))
+          ;; render all docked panes
+          (when-not (empty? dp)
+            (om/build docked-panes {:panes (vec dp)}))
 
-        (om/build aw/logo {})
+          (om/build aw/logo {})
 
-        ;; build the app bar
-        (om/build app-bar {})
+          ;; build the app bar
+          (om/build app-bar {})
 
-        (when (:search-box-visible? @ui-locals)
-          (om/build aw/search-widget {}))))))
+          (when (:search-box-visible? @ui-locals)
+            (om/build aw/search-widget {})))))))
 
 (defn- urlify [s]
   (if (re-find #"https?://" s)
