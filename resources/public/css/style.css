@@ -43,6 +43,14 @@ body {
     float: left;
 }
 
+.app-bar .title .resource {
+    color: #eee;
+    padding-left: 10px;
+    line-height: 10px;
+    font-weight: 400;
+    display: inline-block;
+}
+
 
 .app-bar .toolbar {
     float: right;
@@ -859,4 +867,24 @@ input:focus {
     text-transform: uppercase;
     color: #ccc;
     margin-bottom: 10px;
+}
+
+
+.switch-resource a {
+    display: block;
+    color: #00BBD9;
+    font-size: 1.3em;
+    text-align: center;
+    padding: 5px;
+    border-bottom: 1px dashed #ccc;
+}
+
+.switch-resource a:hover {
+    color: white;
+    background: #00BBD9;
+    text-decoration: none;
+}
+
+.switch-resource a:last-child {
+    border-bottom: none;
 }

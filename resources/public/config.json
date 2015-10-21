@@ -2,12 +2,6 @@
     "brand": "NYC",
     "sub-brand": "Plasio Point Cloud Renderer",
     "server": "devdata.greyhound.io",
-    "pipeline": "nyc-hb",
-    "imagery-sources": [
-        ["mapbox.satellite", "Satellite"],
-        ["mapbox.pencil", "Pencil"],
-        ["mapbox.comic", "Comic"],
-        ["mapbox.wheatpaste", "Wheatpaste"]
-    ]
+    "resource": "nyc"
 }
 

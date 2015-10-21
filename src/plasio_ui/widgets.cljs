@@ -116,14 +116,16 @@
                   (when icon
                     (fa-icon icon)))))))
 
-(defcomponentk application-bar [[:data panes] state owner]
+(defcomponentk application-bar [[:data panes resource-name] state owner]
   (render-state [_ {t :tooltip}]
     (let [ftooltip (fn [tip]
                      (swap! state assoc :tooltip tip))]
       (d/div {:class "app-bar-container"}
              (d/div
                {:class "app-bar"}
-               (d/div {:class "title"} "plasio")
+               (d/div {:class "title"}
+                      "plasio"
+                      (d/div {:class "resource"} resource-name))
                (d/div {:class "toolbar"}
                       (om/build-all toolbar-item panes {:key  :id
                                                         :opts {:ftooltip ftooltip}})))

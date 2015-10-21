@@ -42,6 +42,13 @@
 (def histogram (om/ref-cursor (:histogram root-state)))
 
 
+(def known-resources
+  [["New York City" "nyc" "devdata.greyhound.io"]
+   ["Nepal" "nepal" "devdata.greyhound.io"]
+   ["Autzen" "autzen" "devdata.greyhound.io"]
+   ["Half Dome" "half-dome" "devdata.greyhound.io"]])
+
+
 (defn toggle-pane! [id]
   (om/transact!
     ui
@@ -91,11 +98,11 @@
     ui-locations
     #(assoc % id pos)))
 
-(defn save-local-state! [state]
-  (save-val! "local-app-state" state))
+(defn save-local-state! [id state]
+  (save-val! (str "local-app-state." id) state))
 
-(defn load-local-state []
-  (get-val "local-app-state"))
+(defn load-local-state [id ]
+  (get-val (str "local-app-state." id)))
 
 (defn save-typed-address [val]
   (save-val! "saved-address" val))
@@ -140,7 +147,7 @@
   (select-keys st [:ro :po :pm]))
 
 (defn- params-state [st]
-  (select-keys st [:server :pipeline]))
+  (select-keys st [:server :resource]))
 
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
@@ -165,34 +172,29 @@
           (save-current-snapshot!))))))
 
 
-(defn initialize-for-pipeline [e {:keys [server pipeline max-depth
-                                         compress? color? intensity? bbox ro
+(defn initialize-for-resource [e {:keys [server resource
+                                         schema
+                                         bounds ro
                                          render-hints
                                          init-params]}]
   (println "render-hints:" render-hints)
-  (println "bbox:" bbox)
+  (println "render-options:" ro)
+  (println "init-params:" init-params)
+  (println "bbox:" bounds)
   (let [create-renderer (aget js/window "renderer" "core" "createRenderer")
         renderer (create-renderer e)
-        bbox [(nth bbox 0) (nth bbox 2) (nth bbox 1)
-              (nth bbox 3) (nth bbox 5) (nth bbox 4)]
-        overlay (when (not color?)
-                  (js/PlasioLib.Loaders.MapboxLoader.
-                    (apply js/Array bbox)))
-        loaders {:point     (doto (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
-                                    server (apply js/Array bbox)
-                                    pipeline max-depth
-                                    compress? color? intensity?
-                                    overlay)
-                              (.setColorSourceImagery (get-in init-params
-                                                              [:ro :imagery-source])))
+        bbox [(nth bounds 0) (nth bounds 2) (nth bounds 1)
+              (nth bounds 3) (nth bounds 5) (nth bounds 4)]
+        loaders {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
+                              server resource
+                              (apply array bbox)
+                              (clj->js schema)
+                              (or (:imagery-source ro) "mapbox.satellite"))
                  :transform (js/PlasioLib.Loaders.TransformLoader.)}
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (clj->js loaders)
                  renderer
-                 (apply js/Array bbox)
-                 nil
-                 max-depth
-                 (:imagery-source ro))
+                 (apply js/Array bbox))
         camera (js/PlasioLib.Cameras.Orbital.
                 e renderer
                 (fn [eye target final? applying-state?]
@@ -254,7 +256,7 @@
                                "intensity_f" 1
                                "clampLower" (nth (:intensity-clamps ro) 0)
                                "clampHigher" (nth (:intensity-clamps ro) 1)
-                               "maxColorComponent" (get render-hints :max-color-component 255)
+                               "maxColorComponent" 8
                                "pointSize" (:point-size ro)
                                "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
                                "intensityBlend" (:intensity-blend ro)
@@ -273,7 +275,6 @@
     {:renderer renderer
      :target-element e
      :camera camera
-     :overlay overlay
      :loaders loaders
      :policy policy}))
 

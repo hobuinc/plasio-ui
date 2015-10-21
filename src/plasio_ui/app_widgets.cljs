@@ -8,6 +8,7 @@
             [plasio-ui.config :as config]
             [plasio-ui.state :as plasio-state]
             [plasio-ui.widgets :as w]
+            [plasio-ui.history :as history]
             [goog.string :as gs]
             [goog.string.format]
             [clojure.string :as s]
@@ -140,17 +141,24 @@
                                    :f       fr}))))))
 
 
-(let [id :imagery]
+(let [id :imagery
+      known-imagery-sources [["mapbox.satellite" "Satellite"]
+                             ["mapbox.comic" "Comic"]
+                             ["mapbox.wheatpaste" "Wheatpaste"]
+                             ["mapbox.emerald" "Emerald"]
+                             ["mapbox.pencil" "Pencil"]
+                             [:divider/one :divider]
+                             ["local.elevation" "Elevation"]
+                             ["local.origin" "Origin"]]]
   (defcomponentk imagery-pane [state owner]
-    (render-state [_ {:keys [histogram]}]
+    (render-state [_ _]
       (let [ro (om/observe owner plasio-state/ro)
             as (om/observe owner plasio-state/root)
             lo (om/observe owner plasio-state/ui-local-options)
             histogram (om/observe owner plasio-state/histogram)
 
-            imagery-source (:imagery-source @ro)
-            imagery-sources (:imagery-sources @as)
-            as-map (into {} imagery-sources)
+            imagery-source (or (:imagery-source @ro) "mapbox.satellite")
+            as-map (into {} known-imagery-sources)
 
             override (:color-ramp-override @lo)
 
@@ -161,36 +169,42 @@
                       zbounds)
             imager-source-title (get as-map
                                      imagery-source
-                                     "No Source")]
+                                     "No Source")
+            color? (:color? (util/schema->color-info (:schema @as)))]
 
         (d/div
           {:class "imagery"}
 
           ;; imagery source
-          (d/div {:class "imagery-source"}
-                 (d/div {:class "text"} "Imagery Source")
-                 (apply b/dropdown {:bs-size "small"
-                                    :title   imager-source-title}
-                        (for [[id name] imagery-sources]
-                          (b/menu-item {:key       id
-                                        :on-select (fn []
-                                                     (om/transact! plasio-state/ro #(assoc % :imagery-source id)))}
-                                       name)))
-                 (d/p {:class "tip"} "Note: The current scene will be reloaded with new imagery."))
+          (when-not color?
+            (d/div
+              (d/div {:class "imagery-source"}
+                     (d/div {:class "text"} "Imagery Source")
+                     (apply b/dropdown {:bs-size "small"
+                                        :title   imager-source-title}
+                            (for [[id name] known-imagery-sources]
+                              (if (keyword? id)
+                                (b/menu-item {:divider? true})
+                                (b/menu-item {:key       id
+                                              :on-select (fn []
+                                                           (om/transact! plasio-state/ro
+                                                                         #(assoc % :imagery-source id)))}
+                                             name))))
+                     (d/p {:class "tip"} "Note: The current scene will be reloaded with new imagery."))
 
-          ;; imagery quality
-          (om/build w/labeled-slider
-                    {:text  "Imagery Quality"
-                     :min   0
-                     :max   2
-                     :step  1
-                     :guides ["Low" "High"]
-                     :start (or (:imagery-quality @lo) 1)
-                     :f     (fn [nv]
-                              (om/transact! plasio-state/ui-local-options
-                                            #(assoc % :imagery-quality nv)))})
+              ;; imagery quality
+              (om/build w/labeled-slider
+                        {:text   "Imagery Quality"
+                         :min    0
+                         :max    2
+                         :step   1
+                         :guides ["Low" "High"]
+                         :start  (or (:imagery-quality @lo) 1)
+                         :f      (fn [nv]
+                                   (om/transact! plasio-state/ui-local-options
+                                                 #(assoc % :imagery-quality nv)))})
 
-          (d/p {:class "tip"} "Note: This setting only affects the newly fetched imagery.")
+              (d/p {:class "tip"} "Note: This setting only affects the newly fetched imagery.")))
 
           ;; z-range override
           ;;
@@ -245,13 +259,31 @@
                         (om/transact! plasio-state/pm #(assoc % :z-exaggeration nv)))})))))
 
 
+(let [id :switch-resource]
+  (defcomponentk resource-item [[:data title resource server]]
+    (render [_]
+      (d/a {:href (history/resource-url server resource)} title)))
+  (defcomponentk switch-resource-pane [owner]
+    (render [_]
+      (let [resources (map (fn [[title resource server]]
+                             {:title title
+                              :resource resource
+                              :server server
+                              :id (str resource "@" server)})
+                           plasio-state/known-resources)]
+        (d/div
+          {:class "switch-resource"}
+          (om/build-all resource-item resources {:key :id}))))))
+
+
 (defn commify [n]
   (let [regex (js/RegExp."\\B(?=(\\d{3})+(?!\\d))" "g")]
-                    (.replace (.toFixed n 3) regex ",")))
+                    (.replace (.toFixed n 0) regex ",")))
 
-(defn- index-information [info]
+(defn- index-size [info]
   (let [num-points (:num-points info)
-        size-bytes (* num-points (:point-size info))
+        schema (:schema info)
+        size-bytes (* (util/schema->point-size schema) num-points)
         pow js/Math.pow
         scales {"KB" (pow 1024 1)
                 "MB" (pow 1024 2)
@@ -273,15 +305,17 @@
   (defcomponentk information-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
-            [points size] (index-information @root)]
+            schema (:schema @root)
+            [points size] (index-size @root)
+            col-info (util/schema->color-info schema)]
         (om/build w/key-val-table
                   {:data [["Server" (:server @root)]
-                          ["Pipeline" (:pipeline @root)]
+                          ["Resource" (:resource @root)]
                           ["Points" points]
                           ["Uncompressed Size" size]
-                          ["Point Size" (:point-size @root)]
-                          ["Intensity?" (if (:intensity? @root) "Yes" "No")]
-                          ["Color?" (if (:color? @root) "Yes" "No")]
+                          ["Point Size" (util/schema->point-size schema )]
+                          ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
+                          ["Color?" (if (:color? col-info) "Yes" "No")]
                           ["Powered By" "entwine"]
                           ["Caching" "Amazon CloudFront"]
                           ["Backend" "Amazon EC2"]]})))))
@@ -325,7 +359,6 @@
 
             bounds (:bounds @root)
             zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
-
 
             innun-override (:innundation-range-override @ui-locals)
             [start-s start-e] (if innun-override
@@ -474,24 +507,12 @@
         (d/p {:class "error"} error)))))
 
 
-(declare initialize-for-pipeline)
-
 (defcomponentk render-target [[:data renderer-state] state owner]
   (did-mount [_]
     ;; time to intialize the renderer and set it up
     (let [rs renderer-state
-          comps (plasio-state/initialize-for-pipeline
-                  (om/get-node owner)
-                  {:server       (:server rs)
-                   :pipeline     (:pipeline rs)
-                   :max-depth    (:max-depth rs)
-                   :compress?    true
-                   :bbox         (:bounds rs)
-                   :color?       (:color? rs)
-                   :intensity?   (:intensity? rs)
-                   :ro           (:ro rs)
-                   :render-hints (:render-hints rs)
-                   :init-params  (:init-params rs)})]
+          comps (plasio-state/initialize-for-resource
+                  (om/get-node owner) rs)]
 
       ;; add stats listener for Z, update the histogram and z-range for the renderer
       ;;
@@ -511,7 +532,23 @@
                                    (om/update! plasio-state/histogram hist))))))
         (swap! state assoc :cleanup-fn
                (fn []
-                 (.removeStatsListener r "z" "z-collector"))))
+                 (.removeStatsListener r "z" "z-collector")))
+
+        ;; to determine the correct range for the colors, we need to wait for a color range to arrive
+        ;; and then based on that we determine whether colors are 16bit or 32bit.
+        ;;
+        (.addStatsListener r "red" "red-collector"
+                           (fn [_ n]
+                             (when n
+                               (let [hist (js->clj n)
+                                     red-comp (->> hist
+                                                   keys
+                                                   (map js/parseInt)
+                                                   (filter #(> % 255))
+                                                   first)]
+                                 (.removeStatsListener r "red" "red-collector")
+                                 (om/transact! plasio-state/ro
+                                               #(assoc % :max-color-component (if red-comp 65535 255))))))))
 
       ;; save intialized state
       (om/update! plasio-state/comps comps)))
@@ -549,6 +586,7 @@
                              "clampHigher" (nth (:intensity-clamps ro) 1)
                              "colorClampHigher" color-ramp-end
                              "colorClampLower" color-ramp-start
+                             "maxColorComponent" (get ro :max-color-component 255)
                              "zrange" (array zrange-lower zrange-upper)
                              "rgb_f" rgb_f
                              "map_f" map_f

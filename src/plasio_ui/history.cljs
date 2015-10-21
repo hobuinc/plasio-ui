@@ -8,7 +8,7 @@
 ;; decode information back from these URLs
 (def ^:private path-mappers
   [[[:server] "s"]
-   [[:pipeline] "p"]
+   [[:resource] "r"]
    [[:camera :azimuth] "ca"]
    [[:camera :elevation] "ce"]
    [[:camera :target] "ct"]
@@ -87,4 +87,9 @@
                      (fn [e]
                        (f (-> (.. e -state -state)
                               read-string)))))
+
+(defn resource-url [server resource]
+  (let [origin (aget js/location "origin")]
+    (str origin
+         "/?s=\"" server "\"&r=\"" resource "\"")))
 
