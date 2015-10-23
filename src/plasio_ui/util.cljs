@@ -33,8 +33,12 @@
      :intensity? (dims "Intensity")}))
 
 (defn identical-in-paths? [paths a b]
-  (every? #(identical? (get-in a %)
-                       (get-in b %))
+  (every? #(do
+            (let [a-val (get-in a %)
+                  b-val (get-in b %)
+                  is-same? (or (identical? a-val b-val)
+                               (= a-val b-val))]
+              is-same?))
           paths))
 
 

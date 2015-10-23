@@ -23,9 +23,7 @@
    [[:ro :color-ramp] "cr" keyword]
    [[:ro :color-ramp-range] "ccr"]
    [[:ro :map_f] "mapf"]
-   [[:pm :z-exaggeration] "ze"]
-   [[:po :distance-hint] "dh"]
-   [[:po :max-depth-reduction-hint] "mdr"]])
+   [[:pm :z-exaggeration] "ze"]])
 
 (defn all-url-keys []
   (mapv first path-mappers))
@@ -61,18 +59,33 @@
      {}
      tokens)))
 
+(defn- prep-state [obj]
+  (let [url (compress obj)
+        url-qs (str "/?" url)
+        to-store (reduce (fn [m path]
+                           (assoc-in m path (get-in obj path)))
+                         {}
+                         (all-url-keys))
+        store-state (pr-str to-store)]
+    [(js-obj "state" store-state) url-qs]))
+
 (defn push-state
   ([obj]
-    (push-state obj "Iowa Lidar"))
+    (push-state obj "speck.ly"))
 
   ([obj title]
     (when-let [history (.. js/window -history)]
-      (when (aget history "pushState")
-        (println "-- -- pushing state:" obj)
-        (let [url (compress obj)
-              url-qs (str "/?" url)
-              store-state (pr-str obj)]
-          (.pushState history (js-obj "state" store-state) title url-qs))))))
+      (let [[to-store url-qs] (prep-state obj)]
+        (.pushState history to-store title url-qs)))))
+
+
+(defn replace-state
+  ([obj]
+    (replace-state obj "speck.ly"))
+  ([obj title]
+    (when-let [history (.. js/window -history)]
+      (let [[to-store url-qs] (prep-state obj)]
+        (.replaceState history to-store title url-qs)))))
 
 
 (defn current-state-from-query-string

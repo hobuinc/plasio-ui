@@ -179,9 +179,10 @@
                  (fn [_ _ o n]
                    ;; camera causes its own snapshot saving etc.
                    ;; we only concern ourselves with app state here
-                   (when (and *save-snapshot-on-ui-update*
-                              (not (util/identical-in-paths? (history/all-url-keys) o n)))
-                     (plasio-state/do-save-current-snapshot))))
+                   (when *save-snapshot-on-ui-update*
+                     (let [all-same? (util/identical-in-paths? (history/all-url-keys) o n)]
+                       (when-not all-same?
+                         (plasio-state/do-save-current-snapshot))))))
 
       (let [state-id (str (:resource settings) "@" (:server settings))]
         ;; some of the local state is persistant, keep it in sync
@@ -201,8 +202,12 @@
         ;; when poping for history we need to make sure that the update to
         ;; root doesn't cause another state to be pushed onto our history stack
         (binding [*save-snapshot-on-ui-update* false]
+          ;; since this is a history pop just update the paths we're interested in
           (om/transact! plasio-state/root
-                        #(merge % (select-keys st [:ro :po :pm])))
+                        #(reduce
+                          (fn [s path]
+                            (assoc-in s path (get-in st path)))
+                          % (history/all-url-keys)))
 
           ;; there needs to be a better way of restoring camera props
           (when-let [camera (:camera @plasio-state/comps)]

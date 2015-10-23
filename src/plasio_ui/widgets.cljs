@@ -124,7 +124,7 @@
              (d/div
                {:class "app-bar"}
                (d/div {:class "title"}
-                      "plasio"
+                      "speck.ly"
                       (d/div {:class "resource"} resource-name))
                (d/div {:class "toolbar"}
                       (om/build-all toolbar-item panes {:key  :id

@@ -571,11 +571,8 @@
           ramp-override (:color-ramp-override lo)
           zrange-lower (or (nth ramp-override 0) (nth zrange 0))
           zrange-upper (or (nth ramp-override 1) (nth zrange 1))
-          rgb_f (if-let [m (:map_f ro)]
-                  (- 1 m)
-                  (or (:rgb_f ro) 1.0))
-          map_f (get ro :map_f 0.0)]
-
+          map_f (get ro :map_f 0.0)
+          rgb_f (- 1 map_f)]
       (.setRenderOptions r (js-obj
                              "circularPoints" (if (true? (:circular? ro)) 1 0)
                              "pointSize" (:point-size ro)
