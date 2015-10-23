@@ -32,5 +32,10 @@
     {:color? (every? dims ["Red" "Green" "Blue"])
      :intensity? (dims "Intensity")}))
 
+(defn identical-in-paths? [paths a b]
+  (every? #(identical? (get-in a %)
+                       (get-in b %))
+          paths))
+
 
 

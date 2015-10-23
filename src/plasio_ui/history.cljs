@@ -27,6 +27,8 @@
    [[:po :distance-hint] "dh"]
    [[:po :max-depth-reduction-hint] "mdr"]])
 
+(defn all-url-keys []
+  (mapv first path-mappers))
 
 (defn- compress [obj]
   (let [pairs (for [[ks token t] path-mappers

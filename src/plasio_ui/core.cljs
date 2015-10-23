@@ -179,11 +179,9 @@
                  (fn [_ _ o n]
                    ;; camera causes its own snapshot saving etc.
                    ;; we only concern ourselves with app state here
-                   (let [o' (select-keys o [:ro :po :pm])
-                         n' (select-keys n [:ro :po :pm])]
-                     (when (and *save-snapshot-on-ui-update*
-                                (not= o' n'))
-                       (plasio-state/do-save-current-snapshot)))))
+                   (when (and *save-snapshot-on-ui-update*
+                              (not (util/identical-in-paths? (history/all-url-keys) o n)))
+                     (plasio-state/do-save-current-snapshot))))
 
       (let [state-id (str (:resource settings) "@" (:server settings))]
         ;; some of the local state is persistant, keep it in sync
