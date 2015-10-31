@@ -80,10 +80,12 @@ var unpackBuffer = function(buffer, totalPoints, pointSize, schema) {
 
 		if (s.type === "floating" && s.size === 4)
 			fields.push([4, DataView.prototype.getFloat32]);
-		else if (s.type === "unsigned" && s.size === 2)
-			fields.push([2, DataView.prototype.getUint16]);
 		else if (s.type === "unsigned" && s.size === 4)
 			fields.push([4, DataView.prototype.getUint32]);
+		else if (s.type === "unsigned" && s.size === 2)
+			fields.push([2, DataView.prototype.getUint16]);
+		else if (s.type === "unsigned" && s.size === 1)
+			fields.push([1, DataView.prototype.getUint8]);
 		else
 			throw Error("Unrecognized schema field: " + JSON.stringify(s));
 
@@ -204,7 +206,7 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints) {
 
 self.onmessage = function(e) {
 	var data = e.data;
-	
+
 	var schema = data.schema;
 	var ab = data.buffer;
 	var numPoints = data.pointsCount;

@@ -44,6 +44,7 @@
 
 (def known-resources
   [["New York City" "nyc" "devdata.greyhound.io"]
+   ["St. Paul, MN" "st-paul" "devdata.greyhound.io"]
    ["Nepal" "nepal" "devdata.greyhound.io"]
    ["Autzen" "autzen" "devdata.greyhound.io"]
    ["Half Dome" "half-dome" "devdata.greyhound.io"]])
