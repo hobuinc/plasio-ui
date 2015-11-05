@@ -42,3 +42,6 @@ PlasioLib.Cameras.Orbital.prototype.setHeading = {};
 PlasioLib.FrustumLODNodePolicy = {};
 PlasioLib.FrustumLODNodePolicy.prototype.start = {};
 PlasioLib.FrustumLODNodePolicy.prototype.hookedReload = {};
+PlasioLib.FrustumLODNodePolicy.STOP_SPLIT_DEPTH = {};
+PlasioLib.FrustumLODNodePolicy.HARD_STOP_DEPTH = {};
+PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = {};

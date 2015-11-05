@@ -41,5 +41,8 @@
               is-same?))
           paths))
 
+(defn log4 [n]
+  (/ (js/Math.log n)
+     (js/Math.log 4)))
 
 

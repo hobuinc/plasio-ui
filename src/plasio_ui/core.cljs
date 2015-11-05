@@ -172,6 +172,14 @@
             zrange [(bounds 2) (bounds 5)]]
         (swap! plasio-state/app-state assoc-in [:ro :zrange] zrange))
 
+      ;; The frustom LOD stuff needs to be configured here
+      ;;
+      (let [point-count (:num-points remote-settings)
+            stop-split-depth (+ 1 (js/Math.ceil (util/log4 point-count)))]
+        (println "-- -- stop-split-depth:" stop-split-depth)
+        (set! (.-STOP_SPLIT_DEPTH js/PlasioLib.FrustumLODNodePolicy) stop-split-depth)
+        (set! (.-HARD_STOP_DEPTH js/PlasioLib.FrustumLODNodePolicy) (* 2 stop-split-depth)))
+
       (println "Startup state: " @plasio-state/app-state)
 
       ;; whenever UI changes are made, we need to save a snapshot
