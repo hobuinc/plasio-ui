@@ -142,14 +142,13 @@
 
 
 (let [id :imagery
-      known-imagery-sources [["mapbox.satellite" "Satellite"]
-                             ["mapbox.comic" "Comic"]
-                             ["mapbox.wheatpaste" "Wheatpaste"]
-                             ["mapbox.emerald" "Emerald"]
-                             ["mapbox.pencil" "Pencil"]
-                             [:divider/one :divider]
-                             ["local.elevation" "Elevation"]
-                             ["local.origin" "Origin"]]]
+      preknown-imagery-sources [["mapbox.satellite" "Satellite"]
+                                ["mapbox.comic" "Comic"]
+                                ["mapbox.wheatpaste" "Wheatpaste"]
+                                ["mapbox.emerald" "Emerald"]
+                                ["mapbox.pencil" "Pencil"]
+                                [:divider/one :divider]
+                                ["local.elevation" "Elevation"]]]
   (defcomponentk imagery-pane [state owner]
     (render-state [_ _]
       (let [ro (om/observe owner plasio-state/ro)
@@ -157,8 +156,18 @@
             lo (om/observe owner plasio-state/ui-local-options)
             histogram (om/observe owner plasio-state/histogram)
 
+            schema-info (util/schema->color-info (:schema @as))
+
+            known-imagery-sources (conj preknown-imagery-sources
+                                        (when (:origin? schema-info)
+                                          ["local.origin" "Origin"])
+                                        (when (:classification? schema-info)
+                                          ["local.classification" "Classification"])
+                                        (when (:point-source-id? schema-info)
+                                          ["local.pointSourceId" "Point Source ID"]))
             imagery-source (or (:imagery-source @ro) "mapbox.satellite")
             as-map (into {} known-imagery-sources)
+
 
             override (:color-ramp-override @lo)
 
@@ -170,7 +179,7 @@
             imager-source-title (get as-map
                                      imagery-source
                                      "No Source")
-            color? (:color? (util/schema->color-info (:schema @as)))]
+            color? (:color? schema-info)]
 
         (d/div
           {:class "imagery"}

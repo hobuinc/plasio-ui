@@ -30,7 +30,10 @@
 (defn schema->color-info [schema]
   (let [dims (set (map :name schema))]
     {:color? (every? dims ["Red" "Green" "Blue"])
-     :intensity? (dims "Intensity")}))
+     :intensity? (dims "Intensity")
+     :origin? (dims "Origin")
+     :classification? (dims "Classification")
+     :point-source-id? (dims "PointSourceId")}))
 
 (defn identical-in-paths? [paths a b]
   (every? #(do
