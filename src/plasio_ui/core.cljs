@@ -88,6 +88,9 @@
           {:class (str "app-container"
                        (when-not (empty? dp) " with-dock"))}
 
+          ;; target location
+          (om/build aw/target-location {})
+
           ;; compass
           (om/build aw/compass {})
 
@@ -219,7 +222,8 @@
 
           ;; there needs to be a better way of restoring camera props
           (when-let [camera (:camera @plasio-state/comps)]
-            (.applyState camera (plasio-state/js-camera-props (:camera st)))))))
+            (let [bbox (:bounds @plasio-state/root)]
+              (.applyState camera (plasio-state/js-camera-props bbox (:camera st))))))))
 
     (om/root hud
              plasio-state/app-state

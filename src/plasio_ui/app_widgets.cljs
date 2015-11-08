@@ -644,6 +644,29 @@
 
 (def ^:private z-vec (array 0 0 -1))
 
+(defcomponentk target-location [owner state]
+  (did-mount [_]
+    (when-let [renderer (:renderer @plasio-state/comps)]
+      (.addPropertyListener
+        renderer (array "view")
+        (fn [view]
+             (when view
+               (let [eye (aget view "eye")
+                     target (aget view "target")]
+                 (swap! state assoc :target [(aget target 0)
+                                             (aget target 1)
+                                             (aget target 2)])))))))
+  (render-state [_ {:keys [target]}]
+    (let [rs (om/observe owner plasio-state/root)
+          bbox (:bounds @rs)]
+      (when target
+        (let [loc (util/app->data-units bbox target)]
+          (d/p {:class "target-location"}
+               (w/fa-icon :map-marker)
+               (.toFixed (loc 0) 2) ", "
+               (.toFixed (loc 1) 2) ", "
+               (.toFixed (loc 2) 2)))))))
+
 (defcomponentk compass [owner state]
   (did-mount [_]
     (when-let [renderer (:renderer @plasio-state/comps)]

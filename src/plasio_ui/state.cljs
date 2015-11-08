@@ -128,20 +128,20 @@
                              (window-placement-seq))))))
 
 
-(defn- js-camera-props [{:keys [azimuth distance max-distance target elevation]}]
+(defn- js-camera-props [bbox {:keys [azimuth distance max-distance target elevation]}]
   (js-obj
     "azimuth" azimuth
     "distance" distance
     "maxDistance" max-distance
-    "target" (apply array target)
+    "target" (apply array (util/data-units->app bbox target))
     "elevation" elevation))
 
 
-(defn- camera-state [cam]
+(defn- camera-state [bbox cam]
   {:azimuth      (aget cam "azimuth")
    :distance     (aget cam "distance")
    :max-distance (aget cam "maxDistance")
-   :target       (into [] (aget cam "target"))
+   :target       (into [] (util/app->data-units bbox (aget cam "target")))
    :elevation    (aget cam "elevation")})
 
 (defn- ui-state [st]
@@ -156,7 +156,7 @@
   (if-let [camera (:camera @comps)]
     (history/push-state
       (merge
-        {:camera (camera-state camera)}
+        {:camera (camera-state (:bounds @root) camera)}
         (ui-state @root)
         (params-state @root)))))
 
@@ -171,7 +171,6 @@
         (when (= index @current-index)
           ;; the index hasn't changed since we were queued for save
           (save-current-snapshot!))))))
-
 
 (defn initialize-for-resource [e {:keys [server resource
                                          schema
@@ -212,7 +211,7 @@
                 ;; if there are any init-params to the camera, specify them here
                 ;;
                 (when (-> init-params :camera seq)
-                  (js-camera-props (:camera init-params))))]
+                  (js-camera-props bounds (:camera init-params))))]
 
     ;; add loaders to our renderer, the loader wants the actual classes and not the instances, so we use
     ;; Class.constructor here to add loaders, more like static functions in C++ classes, we want these functions
