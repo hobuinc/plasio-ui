@@ -651,8 +651,7 @@
         renderer (array "view")
         (fn [view]
              (when view
-               (let [eye (aget view "eye")
-                     target (aget view "target")]
+               (when-let [target (aget view "target")]
                  (swap! state assoc :target [(aget target 0)
                                              (aget target 1)
                                              (aget target 2)])))))))
@@ -719,3 +718,93 @@
             :style {:position "fixed"
                     :bottom "10px"
                     :left "10px"}})))
+
+
+(def ^:private menu-item-mapping
+  "Menu items we know about and have associated icons with"
+  {:delete :fa-times
+   :point :fa-map-marker
+   :los :fa-eye
+   :profile :fa-line-chart
+   :pan :fa-hand-paper-o
+   :camera :fa-video-camera
+   :circles :fa-square-o })
+
+(defn- in-heirarchy?
+  "Does the element which have parent in its heirarchy?"
+  [parent which]
+  (loop [w which]
+    (println "-- -- CHECK:" parent w)
+    (when w
+      (if (= w parent)
+        true
+        (recur (.-parentElement w))))))
+
+(defcomponentk context-menu [[:data actions {screenPos [0 0]}] state owner]
+  (init-state [_]
+    {:multiplier 2 :opacity 0})
+
+  (did-mount [_]
+    ;; when mounted attach a system wide click handler so that we can dismiss the
+    ;; the popup menu
+    ;;
+    (let [node (om/get-node owner)
+          handler (fn [e]
+                    (when-not (in-heirarchy? node (.-target e))
+                      (.preventDefault e)
+                      (om/update! plasio-state/current-actions {})))
+          rhandler (fn []
+                     (.removeEventListener js/document "mousedown" handler))]
+      (.addEventListener js/document "mousedown" handler)
+      (.addEventListener node "contextmenu" #(.preventDefault %))
+      ;; save the handler and also set the multiplier to 1 for much animation
+      (swap! state assoc
+             :rhandler rhandler))
+
+    (js/setTimeout #(swap! state assoc
+                           :multiplier 1
+                           :opacity 1) 10))
+
+
+  (will-unmount [_]
+    (when-let [rhandler (:rhandler @state)]
+      (rhandler)
+      (swap! state dissoc :rhandler)))
+
+  (render-state [_ {:keys [multiplier opacity]}]
+    (let [total-items (count actions)
+          angle-per-item (/ (* 2 js/Math.PI) total-items)
+          width 128
+          height 128
+          [x y] screenPos
+          d (cond
+              (> total-items 4) 2
+              (> total-items 2) 3
+              :else 4)
+          radius (/ width d)
+          center [(/ width 2) (/ height 2)]
+          indexed (map-indexed #(conj %2 %1) actions)]
+      (d/div
+        {:style {:position "absolute"
+                 :width    0
+                 :height   0
+                 :left     (- x (/ width 2))
+                 :top      (- y (/ height 2))}}
+        (d/div
+          {:class "context-menu"
+           :style {:width "100%" :height "100%"}}
+          (for [[id [title f] index] indexed
+                :let [angle (* index angle-per-item)
+                      posx (+ (center 0) (* multiplier radius (js/Math.cos angle)))
+                      posy (+ (center 1) (* multiplier radius (js/Math.sin angle)))]]
+            (do
+              (println "-- -- ID:" id)
+              (d/a {:class    "item"
+                    :style    {:left posx :top posy :opacity opacity}
+                    :href     "javascript:"
+                    :on-click #(do
+                                (.preventDefault %)
+                                (f))}
+                   (let [icon (name (get menu-item-mapping id :fa-exclamation-triangle))]
+                     (d/i {:class (str "fa " icon)}))
+                   (d/div {:class "item-tip"} title)))))))))

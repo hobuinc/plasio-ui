@@ -79,6 +79,7 @@
     (let [root (om/observe owner plasio-state/root)
           ui (om/observe owner plasio-state/ui)
           ui-locals (om/observe owner plasio-state/ui-local-options)
+          actions (om/observe owner plasio-state/current-actions)
           op (-> @ui :open-panes set)
           dp (-> @ui :docked-panes set)]
       (d/div
@@ -108,7 +109,10 @@
             (om/build app-bar {:resource-name res-name}))
 
           (when (:search-box-visible? @ui-locals)
-            (om/build aw/search-widget {})))))))
+            (om/build aw/search-widget {}))
+
+          (when-not (empty? @actions)
+            (om/build aw/context-menu @actions {:react-key @actions})))))))
 
 (defn resource-params [init-state]
   (go
@@ -221,9 +225,9 @@
                           % (history/all-url-keys)))
 
           ;; there needs to be a better way of restoring camera props
-          (when-let [camera (:camera @plasio-state/comps)]
+          (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
             (let [bbox (:bounds @plasio-state/root)]
-              (.applyState camera (plasio-state/js-camera-props bbox (:camera st))))))))
+              (.deserialize camera (plasio-state/js-camera-props bbox (:camera st))))))))
 
     (om/root hud
              plasio-state/app-state

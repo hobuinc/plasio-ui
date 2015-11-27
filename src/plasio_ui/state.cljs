@@ -25,6 +25,7 @@
                           :po     {:distance-hint            50
                                    :max-depth-reduction-hint 5}
                           :pm     {:z-exaggeration 1}
+                          :current-actions {}
                           :histogram {}
                           :comps  {}}))
 
@@ -40,6 +41,7 @@
 (def pm (om/ref-cursor (:pm root-state)))
 (def comps (om/ref-cursor (:comps root-state)))
 (def histogram (om/ref-cursor (:histogram root-state)))
+(def current-actions (om/ref-cursor (:current-actions root-state)))
 
 
 (def known-resources
@@ -154,12 +156,17 @@
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
   []
-  (if-let [camera (:camera @comps)]
+  (if-let [camera (.-activeCamera (:mode-manager @comps))]
     (history/push-state
       (merge
         {:camera (camera-state (:bounds @root) camera)}
         (ui-state @root)
         (params-state @root)))))
+
+(defn- wrap-dismiss-context-menu [f]
+  (fn [& args]
+    (om/update! current-actions {})
+    (apply f args)))
 
 ;; A simple way to throttle down changes to history, waits for 500ms
 ;; before applying a state, gives UI a chance to "settle down"
@@ -196,23 +203,44 @@
                  (clj->js loaders)
                  renderer
                  (apply js/Array bbox))
-        camera (js/PlasioLib.Cameras.Orbital.
-                e renderer
-                (fn [eye target final? applying-state?]
-                  ;; when the state is final and we're not applying a state, make a history
-                  ;; record of this
-                  ;;
-                  (when (and final?
-                             (not applying-state?))
-                    (do-save-current-snapshot))
+        mode-manager (js/PlasioLib.ModeManager.
+                       e renderer
+                       (fn [eye target final? applying-state?]
+                         ;; when the state is final and we're not applying a state, make a history
+                         ;; record of this
+                         ;;
+                         (when (and final?
+                                    (not applying-state?))
+                           (do-save-current-snapshot))
 
-                  ;; make renderer show our new view
-                  (.setEyeTargetPosition renderer
-                                         eye target))
-                ;; if there are any init-params to the camera, specify them here
-                ;;
-                (when (-> init-params :camera seq)
-                  (js-camera-props bounds (:camera init-params))))]
+                         ;; make renderer show our new view
+                         (.setEyeTargetPosition renderer
+                                                eye target))
+                       (when (-> init-params :camera seq)
+                         (js-camera-props bounds (:camera init-params))))]
+
+    ;; mode manager will let us know about any context menu actions we
+    ;; need to handle
+    (.addActionListener mode-manager
+                        (fn [actions info]
+                          ;; if we were provided with actions then show them
+                          ;; otherwise we show our own list
+                          (let [acts (js->clj actions :keywordize-keys true)
+                                info (js->clj info :keywordize-keys true)
+                                actions-to-use (if (empty? acts)
+                                                 ;; no actions from any of the modes, provide our
+                                                 ;; own actions
+                                                 {:camera ["Camera" #(set! (.-activeMode mode-manager) "camera")]
+                                                  :point  ["Pick Points" #(set! (.-activeMode mode-manager) "point")]}
+                                                 acts)]
+
+                            ;; make sure all actions can dismiss the popup
+                            (om/update! current-actions
+                                        {:actions (into {}
+                                                        (for [[k [title f]] actions-to-use]
+                                                          [k [title (wrap-dismiss-context-menu f)]]))
+                                         :pos (:pos info)
+                                         :screenPos (:screenPos info)}))))
 
     ;; add loaders to our renderer, the loader wants the actual classes and not the instances, so we use
     ;; Class.constructor here to add loaders, more like static functions in C++ classes, we want these functions
@@ -243,7 +271,7 @@
 
                ;; only set hints for distance etc. when no camera init parameters were specified
                (when-not (:camera init-params)
-                 (.setHint camera (js/Array x y z)))
+                 (.propagateDataRangeHint mode-manager x y z))
 
                (.updateCamera renderer 0 (js-obj "far" far-dist))))))
 
@@ -275,7 +303,7 @@
     ;; return components we have here
     {:renderer renderer
      :target-element e
-     :camera camera
+     :mode-manager mode-manager
      :loaders loaders
      :policy policy}))
 
@@ -336,7 +364,7 @@
                       (- (/ rx 2)) (/ rx 2))
         y' (util/mapr y (bounds 1) (bounds 4)
                       (- (/ ry 2)) (/ rx 2))
-        camera (:camera @comps)]
+        camera (.-activeCamera (:mode-manager @comps))]
     (println "-- -- incoming: " x y)
     (println "-- -- computed: " x' y')
     ;; may need to do something about easting
