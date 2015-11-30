@@ -763,7 +763,7 @@
 
     (js/setTimeout #(swap! state assoc
                            :multiplier 1
-                           :opacity 1) 10))
+                           :opacity 1) 0))
 
 
   (will-unmount [_]
