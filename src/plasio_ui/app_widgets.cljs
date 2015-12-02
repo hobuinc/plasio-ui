@@ -722,13 +722,27 @@
 
 (def ^:private menu-item-mapping
   "Menu items we know about and have associated icons with"
-  {:delete :fa-times
-   :point :fa-map-marker
-   :los :fa-eye
-   :profile :fa-line-chart
-   :pan :fa-hand-paper-o
-   :camera :fa-video-camera
-   :circles :fa-square-o })
+  {:delete     :fa-times
+   :point      :fa-map-marker
+   :los        :fa-eye
+   :remove-los [:fa-eye [:fa-ban :text-danger]]
+   :profile    :fa-line-chart
+   :pan        :fa-hand-paper-o
+   :camera     :fa-video-camera
+   :circles    :fa-square-o})
+
+(defn- ->icon [icon]
+  (if (sequential? icon)
+    ;; stacked icon
+    (d/span {:class "fa-stack"}
+            (map (fn [icon index]
+                   (d/i {:class (str "fa fa-stack-" index "x "
+                                     (if (sequential? icon)
+                                       (clojure.string/join " " (map name icon))
+                                       (name icon)))}))
+                 icon (repeat 1)))
+    (d/i {:class (str "fa " (name icon))})))
+
 
 (defn- in-heirarchy?
   "Does the element which have parent in its heirarchy?"
@@ -805,6 +819,6 @@
                     :on-click #(do
                                 (.preventDefault %)
                                 (f))}
-                   (let [icon (name (get menu-item-mapping id :fa-exclamation-triangle))]
-                     (d/i {:class (str "fa " icon)}))
+                   (let [icon (get menu-item-mapping id :fa-exclamation-triangle)]
+                     (->icon icon))
                    (d/div {:class "item-tip"} title)))))))))

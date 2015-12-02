@@ -925,7 +925,18 @@ input:focus {
     transition: transform 0.1s ease-out, z-index 0.1s ease-out, left 0.1s ease-out, top 0.1s ease-out, opacity 0.1s;
 }
 
-.context-menu .item .fa {
+.context-menu .item>.fa {
+    position: absolute;
+    font-size: 23px;
+    line-height: 23px;
+    font-weight: 700;
+    width: 100%;
+    text-align: center;
+    top:50%;
+    margin-top: -25%;
+}
+
+.context-menu .item>.fa-stack {
     position: absolute;
     font-size: 23px;
     line-height: 23px;

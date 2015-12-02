@@ -15,14 +15,6 @@ Renderer.prototype.addPropertyListener = {};
 Renderer.prototype.removePropertyListener = {};
 Renderer.prototype.setEyeTargetPosition = {};
 
-ModeManager = {};
-ModeManager.activeCamera = {};
-ModeManager.activeMode = {};
-ModeManager.prototype.isSameEntity = function() {};
-ModeManager.prototype.addActionListener = function() {};
-ModeManager.prototype.propagateDataRangeHint = function() {};
-
-
 PlasioLib = {};
 PlasioLib.Loaders = {};
 PlasioLib.Loaders.GreyhoundPipelineLoader = {};
@@ -32,6 +24,13 @@ PlasioLib.Loaders.MapboxLoader = {};
 PlasioLib.Loaders.MapboxLoader.IMAGE_QUALITY = {};
 
 PlasioLib.Loaders.TransformLoader = {};
+
+PlasioLib.ModeManager = {};
+PlasioLib.ModeManager.activeCamera = {};
+PlasioLib.ModeManager.activeMode = {};
+PlasioLib.ModeManager.prototype.isSameEntity = function() {};
+PlasioLib.ModeManager.prototype.addActionListener = function() {};
+PlasioLib.ModeManager.prototype.propagateDataRangeHint = function() {};
 
 
 PlasioLib.Cameras = {};
