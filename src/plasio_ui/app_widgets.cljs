@@ -460,7 +460,7 @@
 
 (defcomponentk search-widget [state owner]
   (init-state [_]
-    {:right "-400px"})
+    {:top "-10px"})
 
   (did-mount [_]
     (let [node (om/get-node owner "textbox")
@@ -478,11 +478,11 @@
                             (trigger-search owner fa)))))
         (.setBounds bounds))
       (.focus node)
-      (swap! state assoc :right "0px")))
-  (render-state [_ {:keys [right error data]}]
+      (swap! state assoc :top "30px")))
+  (render-state [_ {:keys [top error data]}]
     (d/div
       {:class "search-widget"
-       :style {:right right
+       :style {:top top
                :background-color (when error
                                    "#900")}
        :on-submit #(.preventDefault %)}

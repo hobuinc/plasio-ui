@@ -98,9 +98,7 @@
            )))
 
 (defcomponentk toolbar-item [[:data id {title ""}
-                              {icon nil} {f nil} {widget nil}]
-
-                             [:opts ftooltip]]
+                              {icon nil} {f nil} {widget nil}]]
   (render [_]
     (let [user-ns (namespace id)
           sep? (= user-ns "separator")]
@@ -108,10 +106,6 @@
         (d/div {:class "separator"})
         (d/button {:class    "btn"
                    ;; when we have a handler,
-                   :on-mouse-enter #(when ftooltip
-                                     (ftooltip title))
-                   :on-mouse-leave #(when ftooltip
-                                     (ftooltip nil))
                    :on-click #(if f
                                (f)
                                (plasio-state/toggle-pane! id))}
@@ -126,30 +120,25 @@
     (om/build widget {})))
 
 (defcomponentk application-bar [[:data panes resource-name {widgets []}] state owner]
-  (render-state [_ {t :tooltip}]
-    (let [ftooltip (fn [tip]
-                     (swap! state assoc :tooltip tip))]
-      (d/div {:class "app-bar-container"}
-             (d/div
-               {:class "app-bar"}
-               (d/div {:class "title"}
-                      "speck.ly"
-                      (d/div {:class "resource"} resource-name))
-               (d/div {:class "toolbar"}
-                      ;; if we have any widgets to build, do that
-                      (when-let [wds (seq widgets)]
-                        (om/build-all widget-item wds {:key :id}))
+  (render [_]
+    (d/div {:class "app-bar-container"}
+           (d/div
+             {:class "app-bar"}
+             (d/div {:class "title"}
+                    "speck.ly"
+                    (d/div {:class "resource"} resource-name))
+             (d/div {:class "toolbar"}
+                    ;; if we have any widgets to build, do that
+                    (when-let [wds (seq widgets)]
+                      (om/build-all widget-item wds {:key :id}))
 
-                      ;; now any toolbar items
-                      (om/build-all toolbar-item
-                                    (cons
-                                      ;; make sure there's a sperator between the two things
-                                      {:id :separator/toolbar}
-                                      panes)
-                                    {:key  :id
-                                     :opts {:ftooltip ftooltip}})))
-             (when t
-               (d/div {:class "app-tooltip"} t))))))
+                    ;; now any toolbar items
+                    (om/build-all toolbar-item
+                                  (cons
+                                    ;; make sure there's a sperator between the two things
+                                    {:id :separator/toolbar}
+                                    panes)
+                                  {:key :id}))))))
 
 (defn- px [v]
   (str v "px"))

@@ -16,6 +16,26 @@ body {
     overflow: hidden;
 }
 
+a:focus {
+    outline: none;
+}
+
+.btn:focus {
+    outline: none !important;
+}
+
+button:focus {
+    outline: none;
+}
+
+input::-moz-focus-inner {
+    border: 0;
+}
+
+a::-moz-focus-inner {
+    border: 0;
+}
+
 .checkbox {
     margin-top: 0px;
 }
@@ -28,6 +48,7 @@ body {
     position: fixed;
     top: 0; left: 0; right: 0;
     height: auto;
+    z-index: 1000;
 }
 
 .app-bar {
@@ -37,6 +58,8 @@ body {
     left: 0;
     height: 30px;
     background-color: #00BCD6;
+    box-shadow: 0px 1px 2px #333;
+    z-index:1000;
 }
 
 .app-bar .title {
@@ -68,6 +91,7 @@ body {
     color: white;
     font-size: 1.0em;
     padding: 2px 3px;
+    position: relative;
 }
 
 .app-bar .toolbar .separator {
@@ -445,15 +469,6 @@ table.key-val td:last-child {
     background-color: RGBA(128, 128, 128, 1);
 }
 
-.toolbar .tip {
-    display: inline-block;
-    margin: 5px 0px 0px 0px;
-    color: white;
-    height: 13px;
-    line-height: 13px;
-    font-weight: 700;
-}
-
 .profile-view {
     position: absolute;
     width: 70%;
@@ -616,7 +631,7 @@ a:active,a:visited,a:focus {
 .docker-widget {
     position: fixed;
     left: 0px;
-    top: 65px;
+    top: 30px;
     bottom: 0px;
     width: 300px;
     background-color: white;
@@ -657,6 +672,7 @@ a:active,a:visited,a:focus {
 
 .docker-widget .toolbar-item.active {
     background-color: RGBA(242, 105, 0, 1);
+    color: white;
 }
 
 .docker-widget .toolbar-item:hover {
@@ -695,7 +711,6 @@ a:active,a:visited,a:focus {
     top: 53px;
     bottom: 0;
     width: 100%;
-    z-index: -1;
 }
 
 .bool-field {
@@ -773,11 +788,11 @@ a:active,a:visited,a:focus {
 
 .search-widget {
     position: fixed;
-    top: 65px;
     background-color: white;
     width: 400px;
+    right: 0px;
     color: #333;
-    transition: height 0.2s, right 0.2s;
+    transition: height 0.2s, top 0.2s;
     -webkit-transition-timing-function: ease-out;
     -moz-transition-timing-function: ease-out;
     -ms-transition-timing-function: ease-out;
@@ -791,11 +806,11 @@ input:focus {
 }
 
 .search-widget input[type="text"] {
-    border: 1px solid white;
     font-size: 1.1em;
     padding: 10px;
     width: 100%;
     margin-bottom: 5px;
+    border: 1px solid transparent;
     box-shadow: 0px 1px 2px #333;
 }
 
