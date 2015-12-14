@@ -16,6 +16,10 @@ body {
     overflow: hidden;
 }
 
+.checkbox {
+    margin-top: 0px;
+}
+
 .noUi-connect {
     background-color: RGB(0, 187, 215);
 }
@@ -87,7 +91,6 @@ body {
     border-radius: 3px;
     opacity: 0.8;
 }
-
 
 .mui-app-bar {
     min-height: 50px;
@@ -368,7 +371,6 @@ table.key-val td:last-child {
     margin: 10px 5px 20px 5px;
 }
 
-
 .compass {
     width: 96px;
     height: 96px;
@@ -612,51 +614,88 @@ a:active,a:visited,a:focus {
 }
 
 .docker-widget {
-    position: absolute;
+    position: fixed;
     left: 0px;
-    top: 30px;
+    top: 65px;
     bottom: 0px;
     width: 300px;
-    background-color: rgba(255,255,255,0.7);
-    overflow: auto;
-    padding: 5px;
+    background-color: white;
     transition: left 0.2s;
 }
 
+.docker-widget .toolbar {
+    margin-top: 0;
+    background-color: RGBA(0, 187, 215, 1);
+    padding: 10px 5px 10px 5px;
+    box-shadow: 0px 1px 2px #333;
+}
+
+.docker-widget .toolbar-item {
+    position: relative;
+    font-size: 1.1em;
+    background-color: RGBA(0, 187, 215, 1);
+    margin-right: 2px;
+    border-radius: 2px;
+    box-shadow: 0px 1px 2px #333;
+    color: #ddd;
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    text-align: center;
+    line-height: 32px;
+}
+
+.docker-widget .toolbar-item .tooltip {
+    display: none;
+    font-family: 'Roboto', sans-serif;
+}
+
+.docker-widget .toolbar .current-toolbar-item {
+    color: white;
+    padding-top: 10px;
+}
+
+.docker-widget .toolbar-item.active {
+    background-color: RGBA(242, 105, 0, 1);
+}
+
+.docker-widget .toolbar-item:hover {
+    color: #fff;
+}
+
+.docker-widget .toolbar-item:hover .tooltip {
+    display: inherit;
+}
+
 .docker-widget.off {
-    left: -280px;
+    left: -275px;
     overflow: hidden;
 }
 
 .docker-widget .toggle-docker {
     position: absolute;
-    top: 0px;
+    z-index: 1000;
+    top: 10px;
     right: 5px;
-    color: #00BBD7;
-    font-size: 20px;
+    color: #ddd;
+    font-size: 22px;
     font-weight: 700;
 }
 
-.docker-widget .floating-panel {
-    position: relative;
-    left: 0px !important;
-    top: 0px !important;
-    max-width: 94%;
-    border: none !important;
-    box-shadow: none;
-    z-index: 0 !important;
+.docker-widget .toggle-docker:hover {
+    color: white;
 }
 
-.docker-widget .floating-panel .floating-panel-body {
-    border: none;
-}
-
-.docker-widget .floating-panel .unpin {
-    display: inherit;
-}
-
-.docker-widget .floating-panel .pin {
-    display: none;
+.docker-widget .active-pane {
+    padding: 20px 45px 65px 45px;
+    background-color: white;
+    font-size: 0.8em;
+    overflow: auto;
+    position: absolute;
+    top: 53px;
+    bottom: 0;
+    width: 100%;
+    z-index: -1;
 }
 
 .bool-field {
@@ -874,7 +913,6 @@ input:focus {
     display: block;
     color: #00BBD9;
     font-size: 1.3em;
-    text-align: center;
     padding: 5px;
     border-bottom: 1px dashed #ccc;
 }
@@ -890,15 +928,9 @@ input:focus {
 }
 
 .target-location {
-    position: absolute;
-    top: 40px;
-    left: 10px;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
-    font-size: 20px;
-    background-color: rgba(0,0,0,0.5);
-    border-radius:2px;
-    padding: 5px;
+    color: white;
+    display: inline-block;
+    font-size: 0.9em;
 }
 
 .target-location i {

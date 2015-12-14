@@ -3,6 +3,7 @@
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
             [om-tools.dom :as d]
+            [om-bootstrap.random :as r]
             [plasio-ui.state :as plasio-state]))
 
 (defn fa-icon [& parts]
@@ -97,7 +98,8 @@
            )))
 
 (defcomponentk toolbar-item [[:data id {title ""}
-                              {icon nil} {f nil}]
+                              {icon nil} {f nil} {widget nil}]
+
                              [:opts ftooltip]]
   (render [_]
     (let [user-ns (namespace id)
@@ -114,9 +116,16 @@
                                (f)
                                (plasio-state/toggle-pane! id))}
                   (when icon
-                    (fa-icon icon)))))))
+                    (fa-icon icon))
 
-(defcomponentk application-bar [[:data panes resource-name] state owner]
+                  (when widget
+                    (om/build widget {})))))))
+
+(defcomponentk widget-item [[:data widget]]
+  (render [_]
+    (om/build widget {})))
+
+(defcomponentk application-bar [[:data panes resource-name {widgets []}] state owner]
   (render-state [_ {t :tooltip}]
     (let [ftooltip (fn [tip]
                      (swap! state assoc :tooltip tip))]
@@ -127,8 +136,18 @@
                       "speck.ly"
                       (d/div {:class "resource"} resource-name))
                (d/div {:class "toolbar"}
-                      (om/build-all toolbar-item panes {:key  :id
-                                                        :opts {:ftooltip ftooltip}})))
+                      ;; if we have any widgets to build, do that
+                      (when-let [wds (seq widgets)]
+                        (om/build-all widget-item wds {:key :id}))
+
+                      ;; now any toolbar items
+                      (om/build-all toolbar-item
+                                    (cons
+                                      ;; make sure there's a sperator between the two things
+                                      {:id :separator/toolbar}
+                                      panes)
+                                    {:key  :id
+                                     :opts {:ftooltip ftooltip}})))
              (when t
                (d/div {:class "app-tooltip"} t))))))
 
@@ -251,17 +270,58 @@
                         :f       f}))))
 
 
+(defcomponentk docked-widget-toolbar-item [[:data id icon title active? activate-fn]]
+  (render [_]
+    (d/a {:class    (str "toolbar-item"
+                         (when active?
+                           " active"))
+          :on-click activate-fn
+          :href     "javascript:"
+          :alt      title}
+         (fa-icon icon)
+         (r/tooltip {:placement         "bottom"
+                     :position-left     0
+                     :position-top      42
+                     :arrow-offset-left 23}
+                    title))))
+
+(defcomponentk docked-widget-toolbar [[:data items active activate-fn]]
+  (render [_]
+    (d/div {:class "toolbar"}
+           (om/build-all docked-widget-toolbar-item
+                         (map
+                           (fn [{:keys [id] :as item}]
+                             (assoc item :active? (= id active)
+                                         :activate-fn #(activate-fn id)))
+                           items) {:key :id}))))
+
+
 (defcomponentk docked-widgets [[:data children] owner state]
   (render-state [_ {:keys [collapsed?]}]
-    (apply d/div
-      {:class (str "docker-widget"
-                   (if collapsed? " off" " on"))}
-      (d/a {:class "toggle-docker"
-            :href "javascript:"
-            :on-click #(swap! state update :collapsed? not)}
-           (fa-icon
-             (if collapsed? :angle-double-right :angle-double-left)))
-      children)))
+    (let [ui-options (om/observe owner plasio-state/ui-local-options)
+          active-panel (or (:active-panel @ui-options)
+                           :rendering-options)]
+      (d/div
+        {:class (str "docker-widget"
+                     (if collapsed? " off" " on"))}
+        (d/a {:class    "toggle-docker"
+              :href     "javascript:"
+              :on-click #(swap! state update :collapsed? not)}
+             (fa-icon
+               (if collapsed? :angle-double-right :angle-double-left)))
+
+        ;; first draw the toolbar for all the icons
+        (let [actions (mapv #(select-keys % [:id :title :icon]) children)
+              activate-fn #(plasio-state/set-active-panel! %)]
+          (om/build docked-widget-toolbar {:items       actions
+                                           :active      active-panel
+                                           :activate-fn activate-fn
+                                           }))
+
+        ;; now draw the active panel
+        (d/div {:class "active-pane"}
+               (when-let [active-child (first (filter #(= active-panel (:id %)) children))]
+                 (om/build (:child active-child) {})))))))
 
 (defn- mp [e]
   [(.-pageX e) (.-pageY e)])

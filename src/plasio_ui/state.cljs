@@ -133,6 +133,10 @@
                              (window-placement-seq))))))
 
 
+(defn set-active-panel! [panel]
+  (om/transact! ui-local-options #(assoc % :active-panel panel)))
+
+
 (defn- js-camera-props [bbox {:keys [azimuth distance max-distance target elevation]}]
   (js-obj
     "azimuth" azimuth

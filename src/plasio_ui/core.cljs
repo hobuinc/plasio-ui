@@ -27,26 +27,40 @@
 
 (def ^:private panes
   [[:switch-resource "Switch Resource" :database aw/switch-resource-pane]
-   [:separator/three]
    [:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
    [:innundation-plane "Innundation Plane" :street-view aw/innundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
-   [:separator/two]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
-   [:separator/one]
    [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
+
+
+(def ^:private all-docked-panes
+  [:rendering-options
+   :imagery
+   :point-manipulation
+   :innundation-plane
+   :information
+   :local-settings
+   :switch-resource])
+
+(def ^:private top-bar-panes
+  #{:search-location})
 
 (defcomponentk app-bar [[:data resource-name] owner]
   (render [_]
     (let [all-panes
           (->> panes
-               (mapv
+               (keep
                  (fn [[id title icon w f]]
-                   {:id id :title title :icon icon :f f})))]
-      (om/build w/application-bar {:panes all-panes
+                   (when (top-bar-panes id)
+                     {:id id :title title :icon icon :f f})))
+               vec)]
+      (om/build w/application-bar {:panes         all-panes
+                                   :widgets       [{:id "target-location"
+                                                    :widget aw/target-location}]
                                    :resource-name resource-name}))))
 
 (defn coerce-panes [ids]
@@ -72,7 +86,7 @@
   (render [_]
     (when-let [ps (-> panes coerce-panes vals seq)]
       (om/build w/docked-widgets
-                {:children (om/build-all w/floating-panel ps {:key :id})}))))
+                {:children ps}))))
 
 (defcomponentk hud [owner]
   (render [_]
@@ -90,17 +104,16 @@
                        (when-not (empty? dp) " with-dock"))}
 
           ;; target location
-          (om/build aw/target-location {})
+          #_(om/build aw/target-location {})
 
           ;; compass
           (om/build aw/compass {})
 
           ;; render all open panes
-          (om/build floating-panes {:panes (vec op)})
+          #_(om/build floating-panes {:panes (vec op)})
 
           ;; render all docked panes
-          (when-not (empty? dp)
-            (om/build docked-panes {:panes (vec dp)}))
+          (om/build docked-panes {:panes all-docked-panes})
 
           (om/build aw/logo {})
 
