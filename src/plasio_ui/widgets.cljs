@@ -286,8 +286,9 @@
 
 
 (defcomponentk docked-widgets [[:data children] owner state]
-  (render-state [_ {:keys [collapsed?]}]
+  (render [_]
     (let [ui-options (om/observe owner plasio-state/ui-local-options)
+          collapsed? (:docker-collapsed? @ui-options)
           active-panel (or (:active-panel @ui-options)
                            :rendering-options)]
       (d/div
@@ -295,7 +296,7 @@
                      (if collapsed? " off" " on"))}
         (d/a {:class    "toggle-docker"
               :href     "javascript:"
-              :on-click #(swap! state update :collapsed? not)}
+              :on-click #(plasio-state/toggle-docker!)}
              (fa-icon
                (if collapsed? :angle-double-right :angle-double-left)))
 

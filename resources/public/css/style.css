@@ -643,6 +643,7 @@ a:active,a:visited,a:focus {
     background-color: RGBA(0, 187, 215, 1);
     padding: 10px 5px 10px 5px;
     box-shadow: 0px 1px 2px #333;
+    width: 325px;
 }
 
 .docker-widget .toolbar-item {
@@ -684,15 +685,14 @@ a:active,a:visited,a:focus {
 }
 
 .docker-widget.off {
-    left: -275px;
-    overflow: hidden;
+    left: -300px;
 }
 
 .docker-widget .toggle-docker {
     position: absolute;
     z-index: 1000;
     top: 10px;
-    right: 5px;
+    right: -20px;
     color: #ddd;
     font-size: 22px;
     font-weight: 700;

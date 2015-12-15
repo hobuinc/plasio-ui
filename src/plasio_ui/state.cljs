@@ -88,6 +88,9 @@
           (assoc ui :docked-panes (vec (disj dp id))
                     :open-panes (vec (conj op id))))))))
 
+(defn toggle-docker! []
+  (om/transact! ui-local-options :docker-collapsed? not))
+
 
 (let [ls js/localStorage]
   (defn save-val! [key val]

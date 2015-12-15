@@ -157,6 +157,18 @@
        :num-points num-points})))
 
 
+(defn bind-system-key-handlers! []
+  (.addEventListener js/document
+                     "keydown"
+                     (fn [e]
+                       (let [code (or (.-which e)
+                                      (.-keyCode e))]
+                         (case code
+                           9 (plasio-state/toggle-docker!)
+                           nil)
+                         ))))
+
+
 (defn config-with-build-id []
   (if (clojure.string/blank? js/BuildID)
     "config.json"
@@ -241,6 +253,8 @@
           (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
             (let [bbox (:bounds @plasio-state/root)]
               (.deserialize camera (plasio-state/js-camera-props bbox (:camera st))))))))
+
+    (bind-system-key-handlers!)
 
     (om/root hud
              plasio-state/app-state
