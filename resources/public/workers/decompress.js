@@ -5,7 +5,7 @@
 importScripts("../lib/dist/laz-perf.js");
 
 
-function swapSpace(buffer, worldBoundsX, pointSize, numPoints) {
+function swapSpace(buffer, worldBoundsX, pointSize, numPoints, normalize) {
 	// we assume we have x, y and z as the first three floats per point
 	// we are useless without points anyway
 	var step = pointSize / 4; // every field is 4 byte floating point
@@ -18,7 +18,12 @@ function swapSpace(buffer, worldBoundsX, pointSize, numPoints) {
 		z = buffer[off + 2];
 
 		// x needs to be reflected
-		x = worldBoundsX[1] - x + worldBoundsX[0];
+		if (normalize) {
+			x = -x;
+		}
+		else {
+			x = worldBoundsX[1] - x + worldBoundsX[0];
+		}
 
 		buffer[off] = x;   // negate x
 		buffer[off + 1] = z;   // y is actually z from point cloud
@@ -132,7 +137,7 @@ var getColorChannelOffsets = function(schema) {
 };
 
 var totalSaved = 0;
-var decompressBuffer = function(schema, worldBoundsX, ab, numPoints) {
+var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize) {
 	var x = new Module.DynamicLASZip();
 
 	var abInt = new Uint8Array(ab);
@@ -183,7 +188,7 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints) {
 
 	// if we got any points, swap them
 	if (numPoints > 0)
-		swapSpace(b, worldBoundsX, pointSize, numPoints);
+		swapSpace(b, worldBoundsX, pointSize, numPoints, normalize);
 
 	// stats collection, if we have color, collect color stats
 	//
@@ -211,8 +216,9 @@ self.onmessage = function(e) {
 	var ab = data.buffer;
 	var numPoints = data.pointsCount;
 	var worldBoundsX = data.worldBoundsX;
+	var normalize = data.normalize;
 
-	var w = decompressBuffer(schema, worldBoundsX, ab, numPoints);
+	var w = decompressBuffer(schema, worldBoundsX, ab, numPoints, normalize);
 
 	var res = w[0],
 		stats = w[1];

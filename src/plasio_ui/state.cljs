@@ -202,15 +202,16 @@
         renderer (create-renderer e)
         bbox [(nth bounds 0) (nth bounds 2) (nth bounds 1)
               (nth bounds 3) (nth bounds 5) (nth bounds 4)]
-        loaders {:point     (js/PlasioLib.Loaders.GreyhoundPipelineLoader.
-                              server resource
-                              (apply array bbox)
-                              (clj->js schema)
-                              (or (:imagery-source ro) "mapbox.satellite"))
-                 :transform (js/PlasioLib.Loaders.TransformLoader.)}
+        loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
+                   server resource
+                   (clj->js schema)
+                   (or (:imagery-source ro) "mapbox.satellite"))
+                 (js/PlasioLib.Loaders.TransformLoader.)]
         policy (js/PlasioLib.FrustumLODNodePolicy.
-                 (clj->js loaders)
+                 (apply array loaders)
                  renderer
+                 (clj->js {:pointCloudBBox bbox
+                           :normalize true})
                  (apply js/Array bbox))
         mode-manager (js/PlasioLib.ModeManager.
                        e renderer
@@ -255,7 +256,7 @@
     ;; Class.constructor here to add loaders, more like static functions in C++ classes, we want these functions
     ;; to depend on absolutely no instance state
     ;;
-    (doseq [[type loader] loaders]
+    (doseq [loader loaders]
       (js/console.log loader)
       (.addLoader renderer (.-constructor loader)))
 
