@@ -765,11 +765,12 @@
     (let [node (om/get-node owner)
           handler (fn [e]
                     (when-not (in-heirarchy? node (.-target e))
+                      (.stopPropagation e)
                       (.preventDefault e)
                       (om/update! plasio-state/current-actions {})))
           rhandler (fn []
-                     (.removeEventListener js/document "mousedown" handler))]
-      (.addEventListener js/document "mousedown" handler)
+                     (.removeEventListener js/document "mousedown" handler true))]
+      (.addEventListener js/document "mousedown" handler true)
       (.addEventListener node "contextmenu" #(.preventDefault %))
       ;; save the handler and also set the multiplier to 1 for much animation
       (swap! state assoc

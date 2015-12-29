@@ -211,10 +211,11 @@
                  (apply array loaders)
                  renderer
                  (clj->js {:pointCloudBBox bbox
-                           :normalize true})
-                 (apply js/Array bbox))
+                           :normalize true}))
         mode-manager (js/PlasioLib.ModeManager.
                        e renderer
+                       (clj->js
+                         {:pointCloudBounds bounds})
                        (fn [eye target final? applying-state?]
                          ;; when the state is final and we're not applying a state, make a history
                          ;; record of this
@@ -241,6 +242,7 @@
                                                  ;; no actions from any of the modes, provide our
                                                  ;; own actions
                                                  {:camera ["Camera" #(set! (.-activeMode mode-manager) "camera")]
+                                                  :lines  ["Pick Line Segments" #(set! (.-activeMode mode-manager) "line")]
                                                   :point  ["Pick Points" #(set! (.-activeMode mode-manager) "point")]}
                                                  acts)]
 
