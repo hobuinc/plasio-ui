@@ -1,4 +1,6 @@
-(ns plasio-ui.util)
+(ns plasio-ui.util
+  (:require [cljs.core.async :as async :refer [<!]])
+  (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (defn mapr
   "maps v which is in range ins -> ine, to the range outs -> oute"
@@ -94,6 +96,24 @@
               (- (ve 2) (center 2))
               (- (ve 1) (center 1))]]
       v')))
+
+(defn throttle
+  "Make sure that calls are throttled to at least 'to' interval, most recent passed value is passed
+  to f"
+  [to f]
+  (let [last-count (atom 0)
+        last-args (atom nil)]
+    (fn [& args]
+      (swap! last-count inc)
+      (reset! last-args args)
+
+      (let [cnt @last-count]
+        (go
+          (<! (async/timeout to))
+          (when (= cnt @last-count)
+            ;; the counter didn't change since its last call, which means that the property has
+            ;; settled
+            (apply f @last-args)))))))
 
 
 

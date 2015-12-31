@@ -1017,3 +1017,10 @@ input:focus {
     opacity: 1;
 }
 
+#profile-view {
+    position: fixed;
+    right: 5px;
+    top: 100px;
+    background-color: black;
+    border: 2px solid #333;
+}

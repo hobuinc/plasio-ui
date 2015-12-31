@@ -14,6 +14,8 @@ Renderer.prototype.removePlane = {};
 Renderer.prototype.addPropertyListener = {};
 Renderer.prototype.removePropertyListener = {};
 Renderer.prototype.setEyeTargetPosition = {};
+Renderer.prototype.addHighlightSegment = {};
+Renderer.prototype.removeHighlightSegment = {};
 
 PlasioLib = {};
 PlasioLib.Loaders = {};

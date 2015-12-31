@@ -58,3 +58,38 @@
                     (js/Math.exp
                       (/ (- y) a)))))
         r->d)]))
+
+
+(let [dir (js/vec3.create)
+      right (js/vec3.create)
+      xz-plane (array 0 1 0 0)
+      tmp (js/vec3.create)]
+  (defn orthogonal-axis-for-eye-target
+    "Figure out two axis from the given eye and target, one
+    going right and the other going straight ahead but on the
+    XZ plane"
+    [eye target scale]
+    (let [eye' (project-point xz-plane (apply array eye))
+          target' (project-point xz-plane (apply array target))
+          _ (println "-- -- projected:" target' eye')
+
+          ;; compute the direction vector going from our eye to the target
+          _ (js/vec3.subtract dir target' eye')
+
+          ;; normalize the direction, this is the first vector we need
+          _ (js/vec3.normalize dir dir)
+
+          ;; now figure out the right vector, just a cross product of our direction
+          ;; and up vector
+          _ (js/vec3.cross right dir (array 0 1 0))]
+
+      ;; we now need to get the two axis built offsetting from the target with the given
+      ;; scale
+      [
+       ;; first segment, going from left to right
+       [(js/vec3.scaleAndAdd (js/Array 3) target right (- scale))
+        (js/vec3.scaleAndAdd (js/Array 3) target right scale)]
+
+       ;; second segment, going from near to far
+       [(js/vec3.scaleAndAdd (js/Array 3) target dir (- scale))
+        (js/vec3.scaleAndAdd (js/Array 3) target dir scale)]])))

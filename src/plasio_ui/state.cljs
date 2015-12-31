@@ -3,6 +3,7 @@
             [cljs.reader :as reader]
             [plasio-ui.history :as history]
             [plasio-ui.util :as util]
+            [plasio-ui.components :as components]
             [cljs.core.async :as async]
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]])
@@ -304,6 +305,10 @@
                                "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
     (.setClearColor renderer 0 (/ 29 256) (/ 33 256))
     (.start policy)
+
+
+    ;; TODO: This is TEMPORARY
+    (components/set-active-autotool! :profile renderer {})
 
     ;; establish a listener for lines, just blindly accept lines and mutate our internal
     ;; state with list of lines
