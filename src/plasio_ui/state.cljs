@@ -321,6 +321,7 @@
     {:renderer renderer
      :target-element e
      :mode-manager mode-manager
+     :point-loader (first loaders)
      :loaders loaders
      :policy policy}))
 

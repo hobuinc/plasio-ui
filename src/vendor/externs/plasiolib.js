@@ -34,6 +34,10 @@ PlasioLib.ModeManager.prototype.isSameEntity = function() {};
 PlasioLib.ModeManager.prototype.addActionListener = function() {};
 PlasioLib.ModeManager.prototype.propagateDataRangeHint = function() {};
 
+PlasioLib.Features = {};
+PlasioLib.Features.Profiler = {};
+PlasioLib.Features.Profiler.prototype.extractProfile = function() {};
+
 
 PlasioLib.Cameras = {};
 PlasioLib.Cameras.Orbital = {};

@@ -632,7 +632,7 @@
             pis (get-in pn [:ro :imagery-source])]
         (when-not (= is pis)
           (let [policy (:policy @plasio-state/comps)
-                loader (get-in @plasio-state/comps [:loaders :point])]
+                loader (get @plasio-state/comps :point-loader)]
             (.hookedReload policy
                            #(.setColorSourceImagery loader is)))))
 
