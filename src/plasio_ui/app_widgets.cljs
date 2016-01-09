@@ -39,8 +39,21 @@
                      :f       (fn [val]
                                 (om/transact! plasio-state/ro #(assoc % :point-size val)))})
 
-          ;; slider for point size attentuation
+          ;; point density loading
           (om/build w/labeled-slider
+                    {:text "Point Density"
+                     :min 1
+                     :max 5
+                     :start (get @ro :point-density 3)
+                     :step 1
+                     :guides ["Low" "High"]
+                     :f (fn [val]
+                          (om/transact! plasio-state/ro #(assoc % :point-density val)))})
+
+          (d/p {:class "tip-warn"} "WARNING: Setting this value to higher values may render your browser unusable.  Changes will take effect next time you move your camera around.")
+
+          ;; slider for point size attentuation
+          #_(om/build w/labeled-slider
                     {:text    "Point Size Attenuation"
                      :min     0.0
                      :max 2.0
@@ -582,6 +595,8 @@
           zrange-upper (or (nth ramp-override 1) (nth zrange 1))
           map_f (get ro :map_f 0.0)
           rgb_f (- 1 map_f)]
+      ;; standard render options
+      ;;
       (.setRenderOptions r (js-obj
                              "circularPoints" (if (true? (:circular? ro)) 1 0)
                              "pointSize" (:point-size ro)
@@ -598,6 +613,13 @@
                              "map_f" map_f
                              "rampColorStart" (apply array ramp-sc)
                              "rampColorEnd" (apply array ramp-ec)))
+      ;; apply any screen rejection values
+      (let [density (get ro :point-density 2)
+            factor (+ 100 (- 500 (* density 100)))]
+        (js/console.log factor)
+        (set! (.-REJECT_ON_SCREEN_SIZE_RADIUS js/PlasioLib.FrustumLODNodePolicy) factor))
+
+      ;; do we need a flicker fix?
       (let [flicker-fix? (get-in n [:ui :local-options :flicker-fix])]
         (.setRenderHints r (js-obj
                              "flicker-fix" flicker-fix?)))

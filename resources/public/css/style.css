@@ -900,6 +900,11 @@ input:focus {
     color: #aaa;
 }
 
+.tip-warn {
+    padding: 10px;
+    color: #FF530D;
+}
+
 .powered-by {
     font-size: 12px;
 }
