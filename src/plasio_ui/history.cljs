@@ -23,7 +23,8 @@
    [[:ro :color-ramp] "cr" keyword]
    [[:ro :color-ramp-range] "ccr"]
    [[:ro :map_f] "mapf"]
-   [[:pm :z-exaggeration] "ze"]])
+   [[:pm :z-exaggeration] "ze"]
+   [[:ui :local-options :color-ramp-override] "cro"]])
 
 (defn all-url-keys []
   (mapv first path-mappers))

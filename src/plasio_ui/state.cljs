@@ -158,7 +158,7 @@
    :elevation    (aget cam "elevation")})
 
 (defn- ui-state [st]
-  (select-keys st [:ro :po :pm]))
+  (select-keys st [:ro :po :pm :ui]))
 
 (defn- params-state [st]
   (select-keys st [:server :resource]))
@@ -308,7 +308,7 @@
 
 
     ;; TODO: This is TEMPORARY
-    (components/set-active-autotool! :profile renderer {})
+    #_(components/set-active-autotool! :profile renderer {})
 
     ;; establish a listener for lines, just blindly accept lines and mutate our internal
     ;; state with list of lines

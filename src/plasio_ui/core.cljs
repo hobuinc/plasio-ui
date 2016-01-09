@@ -124,7 +124,7 @@
           (when (:search-box-visible? @ui-locals)
             (om/build aw/search-widget {}))
 
-          (when-not (empty? @actions)
+          #_(when-not (empty? @actions)
             (om/build aw/context-menu @actions {:react-key @actions})))))))
 
 (defn resource-params [init-state]
@@ -234,7 +234,14 @@
                          (plasio-state/save-local-state! state-id n')))))
 
         ;; also make sure the state is local state is loaded
-        (swap! plasio-state/app-state merge (plasio-state/load-local-state state-id))))
+        (swap! plasio-state/app-state merge (plasio-state/load-local-state state-id))
+
+        ;; certain UI properties are saved off in the URL and for now overrides the default
+        ;; state that the user may have locally, we override such properties all over again
+        ;; so that our initial state reflects the correct overriden value
+        (let [override-keys #{[:ui]}]
+          (swap! plasio-state/app-state
+                 merge (select-keys override override-keys)))))
 
     ;; history stuff, on pops, we want to merge back the stuff
     (history/listen
