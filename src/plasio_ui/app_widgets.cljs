@@ -50,7 +50,9 @@
                      :f (fn [val]
                           (om/transact! plasio-state/ro #(assoc % :point-density val)))})
 
-          (d/p {:class "tip-warn"} "WARNING: Setting this value to higher values may render your browser unusable.  Changes will take effect next time you move your camera around.")
+          (d/p {:class "tip-warn"}
+               "WARNING: Setting this value to higher values may render your browser unusable. "
+               "Changes will take effect next time you move your camera around.")
 
           ;; slider for point size attentuation
           #_(om/build w/labeled-slider

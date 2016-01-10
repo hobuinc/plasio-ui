@@ -1,26 +1,26 @@
 
 Renderer = {};
-Renderer.prototype.addLoader = {};
-Renderer.prototype.setRenderViewSize = {};
-Renderer.prototype.updateCamera = {};
-Renderer.prototype.setRenderOptions = {};
-Renderer.prototype.setClearColor = {};
-Renderer.prototype.addStatsListener = {};
-Renderer.prototype.removeStatsListener = {};
-Renderer.prototype.setRenderOptions = {};
-Renderer.prototype.setRenderHints = {};
-Renderer.prototype.updatePlane = {};
-Renderer.prototype.removePlane = {};
-Renderer.prototype.addPropertyListener = {};
-Renderer.prototype.removePropertyListener = {};
-Renderer.prototype.setEyeTargetPosition = {};
-Renderer.prototype.addHighlightSegment = {};
-Renderer.prototype.removeHighlightSegment = {};
+Renderer.prototype.addLoader = function() {};
+Renderer.prototype.setRenderViewSize = function() {};
+Renderer.prototype.updateCamera = function() {};
+Renderer.prototype.setRenderOptions = function() {};
+Renderer.prototype.setClearColor = function() {};
+Renderer.prototype.addStatsListener = function() {};
+Renderer.prototype.removeStatsListener = function() {};
+Renderer.prototype.setRenderOptions = function() {};
+Renderer.prototype.setRenderHints = function() {};
+Renderer.prototype.updatePlane = function() {};
+Renderer.prototype.removePlane = function() {};
+Renderer.prototype.addPropertyListener = function() {};
+Renderer.prototype.removePropertyListener = function() {};
+Renderer.prototype.setEyeTargetPosition = function() {};
+Renderer.prototype.addHighlightSegment = function() {};
+Renderer.prototype.removeHighlightSegment = function() {};
 
 PlasioLib = {};
 PlasioLib.Loaders = {};
 PlasioLib.Loaders.GreyhoundPipelineLoader = {};
-PlasioLib.Loaders.GreyhoundPipelineLoader.prototype.setColorSourceImagery = {};
+PlasioLib.Loaders.GreyhoundPipelineLoader.prototype.setColorSourceImagery = function() {};
 
 PlasioLib.Loaders.MapboxLoader = {};
 PlasioLib.Loaders.MapboxLoader.IMAGE_QUALITY = {};
@@ -47,15 +47,15 @@ PlasioLib.Cameras.Orbital.maxDistance = {};
 PlasioLib.Cameras.Orbital.target = {};
 PlasioLib.Cameras.Orbital.elevation = {};
 
-PlasioLib.Cameras.Orbital.prototype.setHint = {};
-PlasioLib.Cameras.Orbital.prototype.transitionTo = {};
-PlasioLib.Cameras.Orbital.prototype.setHeading = {};
-PlasioLib.Cameras.Orbital.prototype.serialize = {};
-PlasioLib.Cameras.Orbital.prototype.deserialize = {};
+PlasioLib.Cameras.Orbital.prototype.setHint = function() {};
+PlasioLib.Cameras.Orbital.prototype.transitionTo = function() {};
+PlasioLib.Cameras.Orbital.prototype.setHeading = function() {};
+PlasioLib.Cameras.Orbital.prototype.serialize = function() {};
+PlasioLib.Cameras.Orbital.prototype.deserialize = function() {};
 
 PlasioLib.FrustumLODNodePolicy = {};
-PlasioLib.FrustumLODNodePolicy.prototype.start = {};
-PlasioLib.FrustumLODNodePolicy.prototype.hookedReload = {};
+PlasioLib.FrustumLODNodePolicy.prototype.start = function() {};
+PlasioLib.FrustumLODNodePolicy.prototype.hookedReload = function() {};
 PlasioLib.FrustumLODNodePolicy.STOP_SPLIT_DEPTH = {};
 PlasioLib.FrustumLODNodePolicy.HARD_STOP_DEPTH = {};
 PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = {};
