@@ -33,6 +33,7 @@
    [:innundation-plane "Innundation Plane" :street-view aw/innundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
+   [:autotools "Auto Tools" :automobile aw/autotools-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
    [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
 
@@ -44,6 +45,7 @@
    :innundation-plane
    :information
    :local-settings
+   :autotools
    :switch-resource])
 
 (def ^:private top-bar-panes
@@ -261,6 +263,7 @@
             (let [bbox (:bounds @plasio-state/root)]
               (.deserialize camera (plasio-state/js-camera-props bbox (:camera st))))))))
 
+    ;; bind any global handlers
     (bind-system-key-handlers!)
 
     (om/root hud

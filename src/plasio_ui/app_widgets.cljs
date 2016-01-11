@@ -363,6 +363,30 @@
                  "If you're seeing visual artifacts like points appearing and disappearing, "
                  "enabling this options may work.")))))))
 
+(let [id :autotool]
+  (defcomponentk autotools-pane [owner]
+    (render [_]
+      (let [local-options (om/observe owner plasio-state/ui-local-options)
+            autotools-config (get @local-options :autotools {})
+            active-tool (:active-tool autotools-config)]
+        (d/div
+          {:class "autotools"}
+          "Active Auto Tool"
+          (b/button-group
+            {:justified? true}
+            (b/button-group
+              {}
+              (b/button {:active? (= active-tool :profile)
+                         :bs-size "small"
+                         :on-click #(if (= active-tool :profile)
+                                     (plasio-state/set-active-autotool! nil)
+                                     (plasio-state/set-active-autotool! :profile))} "Profiler"))
+            (b/button-group
+              {}
+              (b/button {:disabled? true
+                         :bs-size  "small"
+                         :on-click #(println "Hello?")} "Line of Sight"))))))))
+
 (defn z-range [bounds]
   (- (bounds 5) (bounds 2)))
 
@@ -575,7 +599,10 @@
                                                #(assoc % :max-color-component (if red-comp 65535 255))))))))
 
       ;; save intialized state
-      (om/update! plasio-state/comps comps)))
+      (om/update! plasio-state/comps comps)
+
+      ;; if any renderer auto tools need to be restored, do that now
+      (plasio-state/restore-autotool!)))
 
   (will-unmount [_]
     (when-let [cfn (:cleanup-fn @state)]

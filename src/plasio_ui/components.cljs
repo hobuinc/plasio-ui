@@ -33,13 +33,17 @@
           ch (:chan @state)
           prop-listener (.addPropertyListener
                           renderer
-                          (array "view")
+                          (array)
                           (util/throttle
-                            200
-                            (fn [view]
-                              (let [eye (aget view "eye")
-                                    target (aget view "target")]
-                                (when (and eye target)
+                            500
+                            (fn [st]
+                              (let [eye (aget st "view" "eye")
+                                    target (aget st "view" "target")]
+                                ;; TODO: The event notifications may arrive out of band even after
+                                ;; after the listener is removed, this most likely needs to be fixed in
+                                ;; the renderer where a frame delayed dispatch is needed, not as you see changes
+                                ;; dispatch
+                                (when (and eye target (:prop-listener @state))
                                   ;; do our profiling stuff
                                   (let [scale (get-in @state [:params :scale] 1500)
                                         width (get-in @state [:params :width] 50)
@@ -98,6 +102,11 @@
         (.appendChild (.-body js/document) ons)
         (reset! canvases [ons mem]))))
 
+  (defn release-canvases []
+    (let [[ons mem] (get-canvases)]
+      (.removeChild (.-body js/document) ons)
+      (reset! canvases nil)))
+
   (defn mapr [a sa ea so eo]
     (+ so
        (* (- eo so)
@@ -128,6 +137,9 @@
                        (mapr y (mins 1) (maxs 1) bottom top)
                        2 2))
           (recur (inc n) (+ offset floats-per-point))))))
+
+  (defn remove-profiles-from-dom! []
+    (release-canvases))
 
   (defn push-profile-to-dom! [profiles]
     (let [[ons mem] (get-canvases)]
@@ -167,7 +179,9 @@
       ;; close the delivery chan
       (when-let [ch @last-chan]
         (async/close! ch)
-        (reset! last-chan nil)))
+        (reset! last-chan nil))
+
+      (remove-profiles-from-dom!))
 
     (when-let [new-tool (get tools-mapping tool)]
       ;; we have a new tool, call the function and start doing stuff to it

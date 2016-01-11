@@ -387,3 +387,34 @@
     (println "-- -- computed: " x' y')
     ;; may need to do something about easting
     (.transitionTo camera x' nil y')))
+
+(defn- apply-autotool-config! []
+  (let [renderer (get-in @root [:comps :renderer])
+         autotools (get @ui-local-options :autotools)]
+
+    (println "-- -- applying config:" autotools)
+
+    (components/set-active-autotool! (:active-tool autotools)
+                                     renderer
+                                     (:active-tool-params autotools))))
+
+(defn set-active-autotool!
+  ([with]
+    (set-active-autotool! with {}))
+  ([with params]
+    ;; update our local state
+   (println "-- -- setting active to:" with params)
+   (om/transact! ui-local-options [:autotools]
+                 (fn [autotools]
+                   (assoc autotools
+                     :active-tool with
+                     :active-tool-params params)))
+
+    ;; apply the current tool
+    (apply-autotool-config!)))
+
+
+(defn restore-autotool!
+  "If an auto tool is active, restore its state, done at app initialization"
+  []
+  (apply-autotool-config!))
