@@ -181,7 +181,9 @@
                                           ["local.classification" "Classification"])
                                         (when (:point-source-id? schema-info)
                                           ["local.pointSourceId" "Point Source ID"]))
-            imagery-source (or (:imagery-source @ro) "mapbox.satellite")
+            imagery-source (or (:imagery-source @ro) (if (:color? schema-info)
+                                                       "none"
+                                                       "mapbox.satellite"))
             as-map (into {} known-imagery-sources)
 
 

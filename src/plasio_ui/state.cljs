@@ -201,12 +201,19 @@
   (println "bbox:" bounds)
   (let [create-renderer (aget js/window "renderer" "core" "createRenderer")
         renderer (create-renderer e)
+
+        color-info (util/schema->color-info schema)
+        
         bbox [(nth bounds 0) (nth bounds 2) (nth bounds 1)
               (nth bounds 3) (nth bounds 5) (nth bounds 4)]
         loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
                    server resource
                    (clj->js schema)
-                   (or (:imagery-source ro) "mapbox.satellite"))
+                   ;; the default startup imagery is different based on whether you have color or not
+                   (or (:imagery-source ro)
+                       (if (:color? color-info)
+                         "none"
+                         "mapbox.satellite")))
                  (js/PlasioLib.Loaders.TransformLoader.)]
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (apply array loaders)
