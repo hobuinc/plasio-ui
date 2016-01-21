@@ -155,9 +155,10 @@
                                    :connect true
                                    :f       fr}))))))
 
-
 (let [id :imagery
-      preknown-imagery-sources [["mapbox.satellite" "Satellite"]
+      preknown-imagery-sources [["none" "None"]
+                                [:divider/two :divider]
+                                ["mapbox.satellite" "Satellite"]
                                 ["mapbox.comic" "Comic"]
                                 ["mapbox.wheatpaste" "Wheatpaste"]
                                 ["mapbox.emerald" "Emerald"]
@@ -200,35 +201,45 @@
           {:class "imagery"}
 
           ;; imagery source
-          (when-not color?
-            (d/div
-              (d/div {:class "imagery-source"}
-                     (d/div {:class "text"} "Imagery Source")
-                     (apply b/dropdown {:bs-size "small"
-                                        :title   imager-source-title}
-                            (for [[id name] known-imagery-sources]
-                              (if (keyword? id)
-                                (b/menu-item {:divider? true})
-                                (b/menu-item {:key       id
-                                              :on-select (fn []
-                                                           (om/transact! plasio-state/ro
-                                                                         #(assoc % :imagery-source id)))}
-                                             name))))
-                     (d/p {:class "tip"} "Note: The current scene will be reloaded with new imagery."))
+          (d/div
+           (d/div {:class "imagery-source"}
+                  (d/div {:class "text"} "Imagery Source")
+                  (apply b/dropdown {:bs-size "small"
+                                     :title   imager-source-title}
+                         (for [[id name] known-imagery-sources]
+                           (if (keyword? id)
+                             (b/menu-item {:divider? true})
+                             (b/menu-item {:key       id
+                                           :on-select (fn []
+                                                        (om/transact! plasio-state/ro
+                                                                      #(assoc % :imagery-source id)))}
+                                          name))))
+                  (d/p {:class "tip"} "Note: The current scene will be reloaded with new imagery.")
 
-              ;; imagery quality
-              (om/build w/labeled-slider
-                        {:text   "Imagery Quality"
-                         :min    0
-                         :max    2
-                         :step   1
-                         :guides ["Low" "High"]
-                         :start  (or (:imagery-quality @lo) 1)
-                         :f      (fn [nv]
-                                   (om/transact! plasio-state/ui-local-options
-                                                 #(assoc % :imagery-quality nv)))})
+                  (when (and (= "none" imagery-source)
+                             (not color?))
+                    (d/p {:class "tip-warn"}
+                         "You have chosen to not apply any imagery color to this point cloud which has no color information.  Point cloud visibility may be low."))
 
-              (d/p {:class "tip"} "Note: This setting only affects the newly fetched imagery.")))
+                  (when (and (util/overlayed-imagery? imagery-source)
+                             color?)
+                    (d/p {:class "tip-warn"}
+                         "You have chosen overlay imagery for coloring point cloud while the source has color. "
+                         "Image overlay may not match point cloud unless point cloud is projected with Web Mercator.")))
+
+           ;; imagery quality
+           (om/build w/labeled-slider
+                     {:text   "Imagery Quality"
+                      :min    0
+                      :max    2
+                      :step   1
+                      :guides ["Low" "High"]
+                      :start  (or (:imagery-quality @lo) 1)
+                      :f      (fn [nv]
+                                (om/transact! plasio-state/ui-local-options
+                                              #(assoc % :imagery-quality nv)))})
+
+           (d/p {:class "tip"} "Note: This setting only affects the newly fetched imagery."))
 
           ;; z-range override
           ;;
@@ -596,7 +607,21 @@
           zrange-lower (or (nth ramp-override 0) (nth zrange 0))
           zrange-upper (or (nth ramp-override 1) (nth zrange 1))
           map_f (get ro :map_f 0.0)
-          rgb_f (- 1 map_f)]
+          rgb_f (- 1 map_f)
+
+          ;; setting max color component is slightly more involved.  If we're using
+          ;; color as sent down by the source, we use whatever the current max-color-component
+          ;; is, if we have an imagery set, the color always needs to be 256
+          ;;
+          max-color-component (if (or (s/blank? (:imagery-source ro))
+                                      (= (:imagery-source ro) "none"))
+                                ;; no imagery source set, so set it to whatever the point source has set it to
+                                ;; make sure its not zero though
+                                (max 1 (get ro :max-color-component 256))
+                                ;; otherwise its always 256
+                                256)]
+
+      (println "-- -- max-color-component:" max-color-component ro)
       ;; standard render options
       ;;
       (.setRenderOptions r (js-obj
@@ -609,7 +634,7 @@
                              "clampHigher" (nth (:intensity-clamps ro) 1)
                              "colorClampHigher" color-ramp-end
                              "colorClampLower" color-ramp-start
-                             "maxColorComponent" (get ro :max-color-component 255)
+                             "maxColorComponent" max-color-component
                              "zrange" (array zrange-lower zrange-upper)
                              "rgb_f" rgb_f
                              "map_f" map_f
@@ -618,7 +643,6 @@
       ;; apply any screen rejection values
       (let [density (get ro :point-density 2)
             factor (+ 100 (- 500 (* density 100)))]
-        (js/console.log factor)
         (set! (.-REJECT_ON_SCREEN_SIZE_RADIUS js/PlasioLib.FrustumLODNodePolicy) factor))
 
       ;; do we need a flicker fix?
@@ -655,6 +679,7 @@
       (let [is (:imagery-source ro)
             pis (get-in pn [:ro :imagery-source])]
         (when-not (= is pis)
+          (println "-- -- imagery source has changed:" is pis)
           (let [policy (:policy @plasio-state/comps)
                 loader (get @plasio-state/comps :point-loader)]
             (.hookedReload policy

@@ -116,4 +116,10 @@
             (apply f @last-args)))))))
 
 
+(defn overlayed-imagery? [type]
+  ;; any imagery identifier which starts with mapbox for now is overlayed
+  ;;
+  (zero?
+   (.indexOf type "mapbox")))
+
 
