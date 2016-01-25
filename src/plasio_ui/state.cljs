@@ -272,8 +272,10 @@
 
     ;; attach a resize handler
     (let [handle-resize (fn []
-                          (let [w (.. js/window -innerWidth)
-                                h (.. js/window -innerHeight)]
+                          (let [r (.getBoundingClientRect e)
+                                w (.. r -width)
+                                h (.. r -height)]
+                            (println "-- -- renderer size is:" w h)
                             (.setRenderViewSize renderer w h)))]
       (set! (. js/window -onresize) handle-resize)
       (handle-resize))

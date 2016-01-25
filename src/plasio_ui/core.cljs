@@ -97,35 +97,33 @@
           op (-> @ui :open-panes set)
           dp (-> @ui :docked-panes set)]
       (d/div
+        {:class "main-container"}
         ;; setup render target
         (om/build aw/render-target {:renderer-state @root})
-        (d/div
-          {:class (str "app-container"
-                       (when-not (empty? dp) " with-dock"))}
 
-          ;; target location
-          #_(om/build aw/target-location {})
+        ;; target location
+        #_(om/build aw/target-location {})
 
-          ;; compass
-          (om/build aw/compass {})
+        ;; compass
+        (om/build aw/compass {})
 
-          ;; render all open panes
-          #_(om/build floating-panes {:panes (vec op)})
+        ;; render all open panes
+        #_(om/build floating-panes {:panes (vec op)})
 
-          ;; render all docked panes
-          (om/build docked-panes {:panes all-docked-panes})
+        ;; render all docked panes
+        (om/build docked-panes {:panes all-docked-panes})
 
-          (om/build aw/logo {})
+        (om/build aw/logo {})
 
-          ;; build the app bar
-          (let [res-name (str (:resource @root) "@" (:server @root))]
-            (om/build app-bar {:resource-name res-name}))
+        ;; build the app bar
+        (let [res-name (str (:resource @root) "@" (:server @root))]
+          (om/build app-bar {:resource-name res-name}))
 
-          (when (:search-box-visible? @ui-locals)
-            (om/build aw/search-widget {}))
+        (when (:search-box-visible? @ui-locals)
+          (om/build aw/search-widget {}))
 
-          #_(when-not (empty? @actions)
-            (om/build aw/context-menu @actions {:react-key @actions})))))))
+        #_(when-not (empty? @actions)
+            (om/build aw/context-menu @actions {:react-key @actions}))))))
 
 (defn resource-params [init-state]
   (go

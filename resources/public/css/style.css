@@ -45,7 +45,7 @@ a::-moz-focus-inner {
 }
 
 .app-bar-container {
-    position: fixed;
+    position: absolute;
     top: 0; left: 0; right: 0;
     height: auto;
     z-index: 1000;
@@ -150,8 +150,15 @@ input[type="checkbox"] {
 	background-color: #00BBD7;
 }
 
+.main-container {
+    position: absolute;
+    left:0; right:0; top: 0; bottom: 0;
+    overflow: hidden;
+}
+
 #app {
-    height: 100%;
+    position: relative;
+    height: 500px;
 }
 
 .select-radios {
@@ -212,11 +219,14 @@ select:disabled {
 }
 
 #render-target {
-    position: fixed;
-    left: 0px; top: 30px; right: 0px; bottom: 0px;
+    position: absolute;
+    left: 0px; top: 0px; right: 0px; bottom: 0px;
 }
 
-.app-container.with-dock #render-target {
+.app-container {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    overflow: hidden;
 }
 
 
@@ -398,7 +408,7 @@ table.key-val td:last-child {
 .compass {
     width: 96px;
     height: 96px;
-    position: fixed;
+    position: absolute;
     bottom: 5px;
     right: 25px;
 }
@@ -629,7 +639,7 @@ a:active,a:visited,a:focus {
 }
 
 .docker-widget {
-    position: fixed;
+    position: absolute;
     left: 0px;
     top: 30px;
     bottom: 0px;

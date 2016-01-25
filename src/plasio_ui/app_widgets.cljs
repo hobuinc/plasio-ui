@@ -766,7 +766,7 @@
 (defcomponentk logo []
   (render [_]
     (d/div {:class "entwine"
-            :style {:position "fixed"
+            :style {:position "absolute"
                     :bottom "10px"
                     :left "10px"}})))
 
