@@ -119,13 +119,13 @@
   (render [_]
     (om/build widget {})))
 
-(defcomponentk application-bar [[:data panes resource-name {widgets []}] state owner]
+(defcomponentk application-bar [[:data panes brand resource-name show-search? {widgets []}] state owner]
   (render [_]
     (d/div {:class "app-bar-container"}
            (d/div
              {:class "app-bar"}
              (d/div {:class "title"}
-                    "speck.ly"
+                    brand
                     (d/div {:class "resource"} resource-name))
              (d/div {:class "toolbar"}
                     ;; if we have any widgets to build, do that
@@ -133,12 +133,13 @@
                       (om/build-all widget-item wds {:key :id}))
 
                     ;; now any toolbar items
-                    (om/build-all toolbar-item
-                                  (cons
-                                    ;; make sure there's a sperator between the two things
-                                    {:id :separator/toolbar}
-                                    panes)
-                                  {:key :id}))))))
+                    (when show-search?
+                      (om/build-all toolbar-item
+                                    (cons
+                                      ;; make sure there's a sperator between the two things
+                                      {:id :separator/toolbar}
+                                      panes)
+                                    {:key :id})))))))
 
 (defn- px [v]
   (str v "px"))

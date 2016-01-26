@@ -166,6 +166,7 @@
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
   []
+
   (if-let [camera (.-activeCamera (:mode-manager @comps))]
     (history/push-state
       (merge
@@ -229,7 +230,8 @@
                          ;; record of this
                          ;;
                          (when (and final?
-                                    (not applying-state?))
+                                    (not applying-state?)
+                                    (:useBrowserHistory init-params))
                            (do-save-current-snapshot))
 
                          ;; make renderer show our new view

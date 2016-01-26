@@ -10,7 +10,8 @@
             [goog.string.format]
             [om.core :as om]
             [plasio-ui.util :as util]
-            cljsjs.gl-matrix)
+            cljsjs.gl-matrix
+            [clojure.string :as s])
 
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
@@ -49,7 +50,7 @@
 (def ^:private top-bar-panes
   #{:search-location})
 
-(defcomponentk app-bar [[:data resource-name] owner]
+(defcomponentk app-bar [[:data brand resource-name show-search?] owner]
   (render [_]
     (let [all-panes
           (->> panes
@@ -61,6 +62,8 @@
       (om/build w/application-bar {:panes         all-panes
                                    :widgets       [{:id "target-location"
                                                     :widget aw/target-location}]
+                                   :brand brand
+                                   :show-search? show-search?
                                    :resource-name resource-name}))))
 
 (defn coerce-panes [ids]
@@ -91,6 +94,7 @@
 (defcomponentk hud [owner]
   (render [_]
     (let [root (om/observe owner plasio-state/root)
+          settings (:init-params @root)
           ui (om/observe owner plasio-state/ui)
           ui-locals (om/observe owner plasio-state/ui-local-options)
           actions (om/observe owner plasio-state/current-actions)
@@ -105,19 +109,25 @@
         #_(om/build aw/target-location {})
 
         ;; compass
-        (om/build aw/compass {})
+        (when (:showCompass settings)
+          (om/build aw/compass {}))
 
         ;; render all open panes
         #_(om/build floating-panes {:panes (vec op)})
 
         ;; render all docked panes
-        (om/build docked-panes {:panes all-docked-panes})
+        (when (:showPanels settings)
+          (om/build docked-panes {:panes all-docked-panes}))
 
         (om/build aw/logo {})
 
         ;; build the app bar
-        (let [res-name (str (:resource @root) "@" (:server @root))]
-          (om/build app-bar {:resource-name res-name}))
+        (when (:showApplicationBar settings)
+          (let [res-name (or (:resourceName settings)
+                             (str (:resource @root) "@" (:server @root)))]
+            (om/build app-bar {:brand (:brand settings "speck.ly")
+                               :resource-name res-name
+                               :show-search? (:showSearch settings)})))
 
         (when (:search-box-visible? @ui-locals)
           (om/build aw/search-widget {}))
@@ -125,17 +135,18 @@
         #_(when-not (empty? @actions)
             (om/build aw/context-menu @actions {:react-key @actions}))))))
 
-(defn resource-params [init-state]
+(defn resource-params [{:keys [server resource] :as init-state}]
+  (when (or (s/blank? server)
+            (s/blank? resource))
+    (throw (js/Error. "Trying to fetch remote resource properties but no server or resource option is specified")))
+
   (go
-    (let [server (:server init-state)
-          resource (:resource init-state)
-          ;; get the bounds for the given pipeline
-          ;;
-          info (-> (util/info-url server resource)
+    (let [info (-> (util/info-url server resource)
                    (http/get {:with-credentials? false})
                    <!
                    :body)
 
+          ;; figure out remote properties
           bounds (:bounds info)
           num-points (:numPoints info)
           schema (:schema info)
@@ -167,23 +178,14 @@
                          ))))
 
 
-(defn config-with-build-id []
-  (if (clojure.string/blank? js/BuildID)
-    "config.json"
-    (str "config-" js/BuildID ".json")))
-
-(defn startup []
+(defn startup [div-element, options]
   (go
-    (let [defaults (-> (config-with-build-id)
-                       (http/get {:with-credentials? false})
-                       <! :body)
-
-          override (or (history/current-state-from-query-string) {})
-          local-settings (merge defaults override)
-          remote-settings (<! (resource-params local-settings))
-
-          settings (merge local-settings remote-settings)]
-
+    (let [url-state-settings (when (:useBrowserHistory options)
+                               (or (history/current-state-from-query-string) {}))
+          local-options (merge options
+                               url-state-settings)
+          settings (merge local-options
+                          (<! (resource-params local-options)))]
       ;; merge-with will fail if some of the non-vec settings are available in both
       ;; app-state and settings, we do a simple check to make sure that app-state doesn't
       ;; have what we'd like it to have
@@ -191,20 +193,16 @@
         (swap! plasio-state/app-state (fn [st] (merge-with conj st settings))))
 
       ;; put in initialization paramters
-      (swap! plasio-state/app-state assoc :init-params local-settings)
-
-      (if (not (get-in settings [:ro :imagery-source]))
-        (swap! plasio-state/app-state assoc-in [:ro :imagery-source]
-               (get-in (:imagery-sources defaults) [0 0])))
+      (swap! plasio-state/app-state assoc :init-params settings)
 
       ;; make sure the Z bounds are initialized correctly
-      (let [bounds (:bounds remote-settings)
+      (let [bounds (:bounds settings)
             zrange [(bounds 2) (bounds 5)]]
         (swap! plasio-state/app-state assoc-in [:ro :zrange] zrange))
 
       ;; The frustom LOD stuff needs to be configured here
       ;;
-      (let [point-count (:num-points remote-settings)
+      (let [point-count (:num-points settings)
             stop-split-depth (+ 1 (js/Math.ceil (util/log4 point-count)))]
         (println "-- -- stop-split-depth:" stop-split-depth)
         (set! (.-STOP_SPLIT_DEPTH js/PlasioLib.FrustumLODNodePolicy) stop-split-depth)
@@ -212,61 +210,104 @@
 
       (println "Startup state: " @plasio-state/app-state)
 
-      ;; whenever UI changes are made, we need to save a snapshot
-      (add-watch plasio-state/app-state "__ui-state-watcher"
-                 (fn [_ _ o n]
-                   ;; camera causes its own snapshot saving etc.
-                   ;; we only concern ourselves with app state here
-                   (when *save-snapshot-on-ui-update*
-                     (let [all-same? (util/identical-in-paths? (history/all-url-keys) o n)]
-                       (when-not all-same?
-                         (plasio-state/do-save-current-snapshot))))))
-
-      (let [state-id (str (:resource settings) "@" (:server settings))]
-        ;; some of the local state is persistant, keep it in sync
-        (add-watch plasio-state/app-state "__ui-local-state-watcher"
+      ;; if we're supposed to play around with the browser history, start the needed
+      ;; watcher
+      (when (:useBrowserHistory settings)
+        (add-watch plasio-state/app-state "__ui-state-watcher"
                    (fn [_ _ o n]
-                     (let [o' (select-keys o [:ui])
-                           n' (select-keys n [:ui])]
-                       (when-not (= o' n')
-                         (plasio-state/save-local-state! state-id n')))))
+                     ;; camera causes its own snapshot saving etc.
+                     ;; we only concern ourselves with app state here
+                     (println "going to push stae!")
+                     (when (and *save-snapshot-on-ui-update*)
+                       (let [all-same? (util/identical-in-paths? (history/all-url-keys) o n)]
+                         (when-not all-same?
+                           (plasio-state/do-save-current-snapshot)))))))
 
-        ;; also make sure the state is local state is loaded
-        (swap! plasio-state/app-state merge (plasio-state/load-local-state state-id))
+      (when (:rememberUIState settings)
+        (let [state-id (str (:resource settings) "@" (:server settings))]
+          ;; some of the local state is persistant, keep it in sync
+          (add-watch plasio-state/app-state "__ui-local-state-watcher"
+                     (fn [_ _ o n]
+                       (let [o' (select-keys o [:ui])
+                             n' (select-keys n [:ui])]
+                         (when-not (= o' n')
+                           (plasio-state/save-local-state! state-id n')))))
 
-        ;; certain UI properties are saved off in the URL and for now overrides the default
-        ;; state that the user may have locally, we override such properties all over again
-        ;; so that our initial state reflects the correct overriden value
-        (let [override-keys #{[:ui]}]
-          (swap! plasio-state/app-state
-                 merge (select-keys override override-keys)))))
+          ;; also make sure the state is local state is loaded, but only when
+          ;; we're saving state
+          (swap! plasio-state/app-state merge (plasio-state/load-local-state state-id))
 
-    ;; history stuff, on pops, we want to merge back the stuff
-    (history/listen
-      (fn [st]
-        ;; when poping for history we need to make sure that the update to
-        ;; root doesn't cause another state to be pushed onto our history stack
-        (binding [*save-snapshot-on-ui-update* false]
-          ;; since this is a history pop just update the paths we're interested in
-          (om/transact! plasio-state/root
-                        #(reduce
-                          (fn [s path]
-                            (assoc-in s path (get-in st path)))
-                          % (history/all-url-keys)))
+          ;; certain UI properties are saved off in the URL and for now overrides the default
+          ;; state that the user may have locally, we override such properties all over again
+          ;; so that our initial state reflects the correct overriden value
+          (let [override-keys #{[:ui]}]
+            (swap! plasio-state/app-state
+                   merge (select-keys url-state-settings override-keys)))))
 
-          ;; there needs to be a better way of restoring camera props
-          (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
-            (let [bbox (:bounds @plasio-state/root)]
-              (.deserialize camera (plasio-state/js-camera-props bbox (:camera st))))))))
+      ;; history stuff, on pops, we want to merge back the stuff
+      (when (:useBrowserHistory settings)
+        (history/listen
+          (fn [st]
+            ;; when poping for history we need to make sure that the update to
+            ;; root doesn't cause another state to be pushed onto our history stack
+            (binding [*save-snapshot-on-ui-update* false]
+              ;; since this is a history pop just update the paths we're interested in
+              (om/transact! plasio-state/root
+                            #(reduce
+                              (fn [s path]
+                                (assoc-in s path (get-in st path)))
+                              % (history/all-url-keys)))
 
-    (bind-system-key-handlers!)
+              ;; there needs to be a better way of restoring camera props
+              (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
+                (let [bbox (:bounds @plasio-state/root)]
+                  (.deserialize camera (plasio-state/js-camera-props bbox (:camera st)))))))))
 
-    (om/root hud
-             plasio-state/app-state
-             {:target (. js/document (getElementById "app"))})))
+      (when (:bindKeyHandlers settings)
+        (bind-system-key-handlers!))
+
+      (om/root hud
+               plasio-state/app-state
+               {:target div-element}))))
 
 
-(startup)
+(def ^:private default-options
+  {:showPanels true
+   :showCompass true
+   :showApplicationBar true
+   :showSearchWidget true
+   :brand "speck.ly"})
+
+(defn- assert-pipeline [{:keys [useBrowserHistory server resource]}]
+  ;; when the browser takeover is turned off, we need to make sure
+  ;; the user provided us with the pipeline and resource
+  ;;
+  (when (and (not useBrowserHistory)
+             (or (s/blank? server)
+                 (s/blank? resource)))
+    (throw (js/Error. "When useBrowserHistory is turned off, properties server and resource need to be specified."))))
+
+
+(defn validate-options [options]
+  (let [validators [assert-pipeline]
+        new-options (reduce (fn [opts v]
+                              ;; each validator can pass mutate the options object
+                              ;; but if it returns nil, we ignore it
+                              (if-let [r (v opts)] r opts))
+                            options
+                            validators)]
+    new-options))
+
+(defn ^:export createUI [divElement options]
+  ;; Use the default options overriden by the options passed down
+  ;; by the user.
+  ;;
+  (let [opts (merge default-options
+                    (js->clj (or options (js-obj)) :keywordize-keys true))
+        _ (println "-- -- passed in opts:" opts)
+        opts (validate-options opts)]
+    (println "-- -- using options:" opts)
+    (startup divElement, opts)))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
