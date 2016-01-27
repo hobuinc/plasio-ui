@@ -7,18 +7,18 @@ plasio-ui is a prefabricated, ready to use point cloud user interface which can 
 plasio-ui relies on 2 files (available under the `dist` directory).
 
  - `plasio-ui.js` - The machinery that powers the UI.
--  `plasio-ui.css` - A CSS file needed to style UI components.
+ - `plasio-ui.css` - A CSS file needed to style UI components.
 
 Once you have these two components included in your page.  Just add a `div` element somewhere, position and size it the way you want.  Make sure it has a non-static position (either relative, absolute or fixed).  Then just initialize the plasio user interface:
 
-    plasio_ui.core.createUI(divElement);
+    let ui = plasio_ui.core.createUI(divElement);
 
 And you should be good to go.  Note that with the code above we're not passing a second parameter which passes down the options that help you fine tune the UI.
 
 # Configuring the UI
-The createUI function accepts two paramters:
+The createUI function accepts two parameters:
 
-    plasio_ui.core.createUI(divElement, options);
+    let ui = plasio_ui.core.createUI(divElement, options);
 
 The following options are accepted:
 
@@ -36,7 +36,7 @@ The following options are accepted:
 
 E.g. to create a bare bone viewer without any of the UI components you could create a renderer like:
 
-      plasio_ui.core.createUI(divElement,  {
+      let ui = plasio_ui.core.createUI(divElement,  {
           useBrowserHistory: true,
           showPanels: false,
           showApplicationBar: false
@@ -44,7 +44,7 @@ E.g. to create a bare bone viewer without any of the UI components you could cre
 
 Or to create a renderer to view a point cloud without messing around with the browser history:
 
-      plasio_ui.core.createUI(divElement,  {
+      let ui = plasio_ui.core.createUI(divElement,  {
           server: "my.hostname.com",
           resource: "such-point-cloud",
           showPanels: false,
@@ -58,4 +58,9 @@ This is work in progress and will be available soon.
 
 # Destroying renderers.
 
-This is work in progress and will be available soon.
+The `plasio_ui.core.createUI` function returns an object which has a destroy method.  Calling this method will destroy
+the UI and empty out the `div` element it was hosted inside.
+
+    let ui = plasio_ui.core.createUI(divElement);
+    ui.destroy() // destroy the User Interface
+

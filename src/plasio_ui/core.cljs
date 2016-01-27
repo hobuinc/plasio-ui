@@ -307,7 +307,13 @@
         _ (println "-- -- passed in opts:" opts)
         opts (validate-options opts)]
     (println "-- -- using options:" opts)
-    (startup divElement, opts)))
+    (startup divElement, opts)
+
+    ;; return a JS object which can be used to interact with the UI
+    (js-obj "destroy" (fn []
+                        ;; destroy this player, unmount the component and clearout the app state
+                        (om/detach-root divElement)
+                        (plasio-state/reset-app-state!)))))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

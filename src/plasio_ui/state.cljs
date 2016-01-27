@@ -9,26 +9,30 @@
             [cljs.core.async :refer [<!]])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
-(defonce app-state (atom {:ui     {:open-panes   []
-                                   :docked-panes []
-                                   :locations {}
-                                   :local-options {:flicker-fix false}}
-                          :window {:width  0
-                                   :height 0}
-                          :ro     {:circular?              false
-                                   :point-size             2
-                                   :point-size-attenuation 0.1
-                                   :intensity-blend        0
-                                   :intensity-clamps       [0 255]
-                                   :color-ramp             :red-to-green
-                                   :color-ramp-range       [0 1]
-                                   :zrange                 [0 1]}
-                          :po     {:distance-hint            50
-                                   :max-depth-reduction-hint 5}
-                          :pm     {:z-exaggeration 1}
-                          :current-actions {}
-                          :histogram {}
-                          :comps  {}}))
+
+(def ^:private default-init-state
+  {:ui     {:open-panes   []
+            :docked-panes []
+            :locations {}
+            :local-options {:flicker-fix false}}
+   :window {:width  0
+            :height 0}
+   :ro     {:circular?              false
+            :point-size             2
+            :point-size-attenuation 0.1
+            :intensity-blend        0
+            :intensity-clamps       [0 255]
+            :color-ramp             :red-to-green
+            :color-ramp-range       [0 1]
+            :zrange                 [0 1]}
+   :po     {:distance-hint            50
+            :max-depth-reduction-hint 5}
+   :pm     {:z-exaggeration 1}
+   :current-actions {}
+   :histogram {}
+   :comps  {}})
+
+(defonce app-state (atom default-init-state))
 
 (def root-state (om/root-cursor app-state))
 
@@ -54,6 +58,10 @@
    ["Nepal" "nepal" "devdata.greyhound.io"]
    ["Autzen" "autzen" "devdata.greyhound.io"]
    ["Half Dome" "half-dome" "devdata.greyhound.io"]])
+
+
+(defn reset-app-state! []
+  (om/update! root default-init-state))
 
 
 (defn toggle-pane! [id]
