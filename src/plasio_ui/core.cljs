@@ -357,6 +357,11 @@
             (second %))
           deps)))
 
+(defn- make-production-absolute [file]
+  (if-let [prod-path (aget js/window "PRODUCTION_PLASIO_UI_BASE_PATH")]
+    (str prod-path file)
+    (throw (js/Error. "PRODUCTION_PLASIO_UI_BASE_BATH is not set for production build, cannot deduce resource path."))))
+
 (defn- include-resources [{:keys [includeExternalDependencies ignoreDependencies googleMapsAPIKey]}]
   (let [dev-mode? (true? (aget js/window "DEV_MODE"))
         scripts (concat
@@ -368,20 +373,22 @@
                   ;; standard includes
                   (if dev-mode?
                     dev-mode-standard-includes
-                    prod-mode-standard-includes))
+                    (map make-production-absolute prod-mode-standard-includes)))
         styles (concat
                  ;; external dependencies if needed
                  (when includeExternalDependencies
                    (filtered-with-ignore ignoreDependencies third-party-styles))
                  ;; standard css includes
-                 css-includes)
+                 (if dev-mode?
+                   css-includes
+                   (map make-production-absolute css-includes)))
         head (.-head js/document)]
 
     ;; set the worker path needed by plasio-lib
     (aset js/window "DECOMPRESS_WORKER_PATH"
           (if dev-mode?
             dev-mode-worker-location
-            prod-mode-worker-location))
+            (make-production-absolute prod-mode-worker-location)))
 
     ;; add all styles
     (go
@@ -424,10 +431,8 @@
 ;; the path to other resources
 (let [path (script-path)
       plasio? (re-find #"plasio-ui\.js$" path)]
-  (println "WHAT?:" path plasio?)
   (when plasio?
     (let [base-path (s/replace path #"plasio-ui\.js$" "")]
-      (println "BASE-PATH:" base-path)
       (aset js/window "PRODUCTION_PLASIO_UI_BASE_PATH" base-path))))
 
 (defn on-js-reload []
