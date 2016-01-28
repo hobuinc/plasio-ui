@@ -392,6 +392,9 @@
       (doseq [s scripts]
         (<! (load-script head s))))))
 
+(defn script-info []
+  (js/console.log (aget js/document "currentScript")))
+
 (defn ^:export createUI [divElement options]
   ;; Use the default options overriden by the options passed down
   ;; by the user.
@@ -399,6 +402,9 @@
   (let [opts (merge default-options
                     (js->clj (or options (js-obj)) :keywordize-keys true))
         opts (validate-options opts)]
+    (println "----- SCRIPT INFO")
+    (script-info)
+
     (go
       ;; include any resources we may need
       (<! (include-resources opts))
@@ -411,6 +417,8 @@
                         ;; destroy this player, unmount the component and clearout the app state
                         (om/detach-root divElement)
                         (plasio-state/reset-app-state!)))))
+
+(script-info)
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
