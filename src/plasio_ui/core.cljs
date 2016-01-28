@@ -420,7 +420,15 @@
                         (om/detach-root divElement)
                         (plasio-state/reset-app-state!)))))
 
-(println "script path:" (script-path))
+;; when this script is being loaded, we need to capture the path and figure out
+;; the path to other resources
+(let [path (script-path)
+      plasio? (re-find #"plasio_ui\.js$" path)]
+  (println "WHAT?:" path plasio?)
+  (when plasio?
+    (let [base-path (s/replace path #"plasio_io\.js$" "")]
+      (println "BASE-PATH:" base-path)
+      (aset js/window "PRODUCTION_PLASIO_UI_BASE_PATH" base-path))))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
