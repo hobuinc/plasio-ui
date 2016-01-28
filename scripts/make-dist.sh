@@ -26,8 +26,11 @@ validate() {
     fi
 }
 
-#validate
-LATEST_TAG=HEAD
+if [[ "$1" == "HEAD" ]] ; then
+    LATEST_TAG="HEAD"
+else
+    validate
+fi
 
 # print some information for the user
 echo ":: the latest ANNOTATED tag is: $LATEST_TAG, which points to commit: $LATEST_COMMIT, which is the current head."
@@ -64,12 +67,12 @@ mkdir -p $OUT_DIR/css
 mkdir -p $OUT_DIR/js
 mkdir -p $OUT_DIR/workers
 
-cp "$TEMP_DIR/resources/public/css/style.css" "$OUT_DIR/css/style.css"
+sass --scss -t compressed "$TEMP_DIR/scss/style.scss" "$OUT_DIR/css/style.css"
 cp "$TEMP_DIR/resources/public/js/compiled/plasio_ui.js" "$OUT_DIR/plasio-ui.js"
 cp "$TEMP_DIR/resources/public/js/plasio-renderer.js" "$OUT_DIR/js/plasio-renderer.js"
 cp "$TEMP_DIR/resources/public/lib/dist/plasio-lib.js" "$OUT_DIR/js/plasio-lib.js"
 cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.js" "$OUT_DIR/js/laz-perf.js"
-sed "s/^importScript.*/importScript(\"..\/js\/laz-perf.js\")/g" "$TEMP_DIR/resources/public/workers/decompress.js" > "$OUT_DIR/workers/decompress.js"
+sed "s/^importScript.*/importScripts(\"..\/js\/laz-perf.js\")/g" "$TEMP_DIR/resources/public/workers/decompress.js" > "$OUT_DIR/workers/decompress.js"
 
 # overwrite latest with the most recent build
 if [ -d "$LATEST_DIR" ] ; then
@@ -77,6 +80,9 @@ if [ -d "$LATEST_DIR" ] ; then
 fi
 
 cp -r $OUT_DIR $LATEST_DIR
+
+echo ":: cleaning up."
+rm -rf $TEMP_DIR
 
 echo ":: done"
 
