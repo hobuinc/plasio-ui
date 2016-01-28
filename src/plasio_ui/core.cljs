@@ -311,9 +311,9 @@
 
 (def ^:private prod-mode-worker-location "workers/decompress.js")
 (def ^:private prod-mode-standard-includes
-  ["components/plasio-renderer.js"
-   "components/laz-perf.js"
-   "components/plasio-lib.js"])
+  ["js/plasio-renderer.js"
+   "js/laz-perf.js"
+   "js/plasio-lib.js"])
 
 (def ^:private css-includes
   ["css/style.css"])
