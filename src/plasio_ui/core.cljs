@@ -353,20 +353,20 @@
 
 (defn filtered-with-ignore [ignore deps]
   (let [s (set (map s/lower-case ignore))]
-    (println "-- -- " s)
     (keep #(when-not (s (name (first %)))
             (second %))
           deps)))
 
 (defn- include-resources [{:keys [includeExternalDependencies ignoreDependencies googleMapsAPIKey]}]
-  (let [scripts (concat
+  (let [dev-mode? (true? (aget js/window "DEV_MODE"))
+        scripts (concat
                   ;; google maps api
                   [(str google-maps-base-url googleMapsAPIKey)]
                   ;; external dependencies if needed
                   (when includeExternalDependencies
                     (filtered-with-ignore ignoreDependencies third-party-scripts))
                   ;; standard includes
-                  (if js/DEV_MODE
+                  (if dev-mode?
                     dev-mode-standard-includes
                     prod-mode-standard-includes))
         styles (concat
@@ -379,7 +379,7 @@
 
     ;; set the worker path needed by plasio-lib
     (aset js/window "DECOMPRESS_WORKER_PATH"
-          (if js/DEV_MODE
+          (if dev-mode?
             dev-mode-worker-location
             prod-mode-worker-location))
 
