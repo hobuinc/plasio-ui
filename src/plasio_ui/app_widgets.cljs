@@ -691,7 +691,7 @@
             (get-in n [:ui :local-options :imagery-quality] 1))))
 
   (render [_]
-    (d/div {:id "render-target"})))
+    (d/div {:class "render-target"})))
 
 (def ^:private z-vec (array 0 0 -1))
 

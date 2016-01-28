@@ -1,0 +1,934 @@
+/* some style */
+
+.plasio-ui {
+  position: absolute;
+  left:0; right:0; top: 0; bottom: 0;
+  overflow: hidden;
+
+  a:focus {
+    outline: none;
+  }
+
+  .btn:focus {
+    outline: none !important;
+  }
+
+  button:focus {
+    outline: none;
+  }
+
+  input::-moz-focus-inner {
+    border: 0;
+  }
+
+  a::-moz-focus-inner {
+    border: 0;
+  }
+
+  .checkbox {
+    margin-top: 0px;
+  }
+
+  .noUi-connect {
+    background-color: RGB(0, 187, 215);
+  }
+
+  .app-bar-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: auto;
+    z-index: 1000;
+
+    .app-bar {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 30px;
+      background-color: #00BCD6;
+      box-shadow: 0px 1px 2px #333;
+      z-index: 1000;
+
+      .title {
+        color: white;
+        line-height: 28px;
+        padding-left: 10px;
+        font-weight: 700;
+        float: left;
+
+        .resource {
+          color: #eee;
+          padding-left: 10px;
+          line-height: 10px;
+          font-weight: 400;
+          display: inline-block;
+        }
+      }
+
+      .toolbar {
+        float: right;
+        margin-right: 10px;
+        margin-top: 3px;
+      }
+
+      .toolbar .btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.0em;
+        padding: 2px 3px;
+        position: relative;
+      }
+
+      .toolbar .separator {
+        display: inline;
+        margin-left: 10px;
+        margin-right: 10px;
+        border: 1px solid white;
+      }
+    }
+  }
+
+  .app-tooltip {
+    position: absolute;
+    right: -5px;
+    top: 35px;
+    background: RGB(0, 187, 215);
+    color: white;
+    padding: 5px 10px;
+    font-weight: normal;
+    font-size: 0.8em;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    opacity: 0.8;
+  }
+
+  input[type="checkbox"] {
+    margin-top: 2px;
+  }
+
+
+  ::-webkit-scrollbar-track
+  {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    background-color: #333;
+  }
+
+  ::-webkit-scrollbar
+  {
+    width: 6px;
+    background-color: #F5F5F5;
+  }
+
+  ::-webkit-scrollbar-thumb
+  {
+    background-color: #00BBD7;
+  }
+
+  .select-radios {
+    margin-bottom: 10px;
+
+    .radio {
+      margin-right: 10px;
+    }
+
+    input[type="radio"] {
+      margin-right: 5px;
+    }
+  }
+
+  a, a:active, a:visited, a:focus {
+    color: #eee;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: #EB7F00;
+  }
+
+
+  select {
+    margin-left: 5px;
+    margin-bottom: 10px;
+    background-color: RGBA(172, 240, 242, 1);
+    width: 100%;
+
+    &:focus {
+      outline: 0;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: #444;
+      background-color: #B8B8B8;
+    }
+  }
+
+  .noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  .loader {
+    text-align: center;
+    margin-top: 3em;
+  }
+
+  .container {
+    position: absolute;
+    left: 0px; top: 0px; right: 0px; bottom: 0px;
+  }
+
+  .render-target {
+    position: absolute;
+    left: 0px; top: 0px; right: 0px; bottom: 0px;
+  }
+
+  .app-container {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    overflow: hidden;
+  }
+
+
+  .brand {
+    font-size: 3em;
+    text-transform: lowercase;
+    font-weight: 700;
+    padding-left: 10px;
+    color: RGBA(34, 83, 120, 1);
+
+    .sub-brand {
+      font-size: 14px;
+      margin-top: -10px;
+      padding-left: 3px;
+      color: RGBA(22, 149, 163, 1);
+    }
+  }
+
+  .dataset-info {
+    font-size: 14px;
+    padding-left: 10px;
+
+    p {
+      color: #eee;
+      display: inline-block;
+      padding: 0px;
+      margin: 0px;
+    }
+
+    .points:after {
+      content: ' Points';
+    }
+  }
+
+
+  .app-panel {
+    position: relative;
+    padding: 5px;
+
+
+    .panel-section {
+      padding-bottom: 5px;
+      margin-bottom: 5px;
+    }
+
+    .title {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2px;
+      margin-bottom: 3px;
+      font-weight: 700;
+      color: RGBA(172, 240, 242, 1);
+    }
+
+    .close-button {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      font-size: 10px;
+    }
+
+  }
+
+  .slider-text {
+    .text {
+      margin-right: 20px;
+    }
+  }
+
+  .desc {
+    color: #ddd;
+    font-size: 0.9em;
+    padding-left: 0.5em;
+    padding-bottom: 0.2em;
+  }
+
+  table.key-val {
+    width: 100%;
+    border-collapse: collapse;
+
+    tr {
+      border-bottom: 1px dotted #ddd;
+    }
+
+    tr:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      padding: 10px 2px 2px 2px;
+      vertical-align: top;
+      white-space: nowrap;
+      float: left;
+    }
+
+    td:last-child {
+      text-align: right;
+      white-space: nowrap;
+      float: right;
+    }
+  }
+
+  .slider {
+    margin: 10px 5px 20px 5px;
+  }
+
+  .compass {
+    width: 96px;
+    height: 96px;
+    position: absolute;
+    bottom: 5px;
+    right: 25px;
+
+    .circle {
+      position: absolute;
+      box-sizing: border-box;
+      left: 0px;
+      top: 0px;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid RGBA(235, 240, 242, 0.4);
+    }
+
+    .arrow {
+      text-align: center;
+      width: 100%;
+      height: 100%;
+      font-size: 2em;
+      line-height: 1em;
+      color: RGBA(235, 127, 0, 1);
+      z-index: 100;
+    }
+
+    .arrow .n {
+      position:absolute;
+      left: 38px;
+      bottom: 48px;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 40px solid red;
+    }
+
+    .arrow .s {
+      position:absolute;
+      left: 38px;
+      top: 48px;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 40px solid white;
+    }
+  }
+
+  .toolbar {
+    margin-top: 10px;
+
+    .button {
+      text-align: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 3px;
+      background-color: RGBA(0, 163, 136, 1);
+      color: white;
+      display: inline-block;
+      font-size: 26px;
+      box-shadow: 0px 1px 1px black;
+      padding: 4px;
+      box-sizing: border-box;
+      margin-right: 5px;
+    }
+
+    .button.active {
+      background-color: RGBA(235, 127, 0, 1);
+    }
+
+    .button.disabled {
+      background-color: RGBA(128, 128, 128, 1);
+    }
+  }
+
+  .profile-view {
+    position: absolute;
+    width: 70%;
+    bottom: 10px;
+    left: 25px;
+    height: 200px;
+    background-color: RGBA(0,0,0,0.7);
+    border: 2px solid RGBA(0, 163, 136, 1);
+    border-radius: 3px;
+    box-shadow: 0px 2px 2px black;
+
+    .profile-series {
+      margin-top: 10px;
+    }
+
+    .close {
+      position: absolute;
+      top: 3px;
+      right: 5px;
+      color: white;
+    }
+  }
+
+
+  .line-info {
+    margin-left: 5px;
+    padding: 2px 0px 2px 10px;
+    font-weight: bold;
+  }
+
+  .status-message {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    background-color: RGBA(235, 127, 0, 1);
+    color: white;
+    z-index: 100000;
+    border-radius: 3px;
+    font-weight: bold;
+
+    &.error {
+      background-color: #d00;
+    }
+  }
+
+  .point-type {
+    label {
+      margin-right: 15px;
+    }
+
+    input[type="radio"] {
+      margin: 0 3px 0 0;
+    }
+  }
+
+  .floating-panel {
+    position: fixed;
+    left: 120px;
+    top: 50px;
+    min-width: 250px;
+    max-width: 250px;
+    min-height: 50px;
+    background-color: rgba(255,255,255,0.95);
+    box-shadow: 0px 0px 1px #222;
+
+    a {
+      color: white;
+
+      &:hover {
+        color: #ddd;
+      }
+
+      &:active,&:visited,&:focus {
+        color: white;
+      }
+    }
+
+
+    &.collapsed {
+      max-height: 32px;
+      min-height: 0px;
+      overflow: hidden;
+    }
+
+    &.dragging {
+      z-index: 100000;
+    }
+
+    .close-button {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      color: white;
+      font-size: 15px;
+    }
+
+    .toggle {
+      position: absolute;
+      right: 20px;
+      top: 5px;
+      font-size: 15px;
+    }
+
+    .title {
+      font-size: 0.9em;
+      padding: 5px 3px;
+      background-color: #00BBD7;
+      color: #eee;
+      cursor: default;
+      box-shadow: 0px 0px 1px #666;
+    }
+
+
+    .title .fa {
+      margin-left: 5px;
+      margin-right: 5px;
+    }
+
+    .title-docked .fa {
+      margin-left: 5px;
+      margin-right: 5px;
+    }
+
+    .floating-panel-body {
+      padding: 20px 20px;
+      margin: 3px;
+      border: 1px solid #ccc;
+      font-size: 0.8em;
+    }
+
+    .unpin {
+      position: absolute;
+      right: 40px;
+      top: 5px;
+      display: none;
+    }
+
+    .pin {
+      position: absolute;
+      right: 40px;
+      top: 5px;
+    }
+  }
+
+  .docker-widget {
+    position: absolute;
+    left: 0px;
+    top: 30px;
+    bottom: 0px;
+    width: 300px;
+    background-color: white;
+    transition: left 0.2s;
+
+    .toolbar {
+      margin-top: 0;
+      background-color: RGBA(0, 187, 215, 1);
+      padding: 10px 5px 10px 5px;
+      box-shadow: 0px 1px 2px #333;
+      width: 325px;
+    }
+
+    .toolbar-item {
+      position: relative;
+      font-size: 1.1em;
+      background-color: RGBA(0, 187, 215, 1);
+      margin-right: 2px;
+      border-radius: 2px;
+      box-shadow: 0px 1px 2px #333;
+      color: #ddd;
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      line-height: 32px;
+    }
+
+    .toolbar-item .tooltip {
+      display: none;
+      font-family: 'Lato', sans-serif;
+    }
+
+    .toolbar .current-toolbar-item {
+      color: white;
+      padding-top: 10px;
+    }
+
+    .toolbar-item.active {
+      background-color: RGBA(242, 105, 0, 1);
+      color: white;
+    }
+
+    .toolbar-item:hover {
+      color: #fff;
+    }
+
+    .toolbar-item:hover .tooltip {
+      display: inherit;
+    }
+
+    &.off {
+      left: -300px;
+    }
+
+    .toggle-docker {
+      position: absolute;
+      z-index: 1000;
+      top: 10px;
+      right: -20px;
+      color: #ddd;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .toggle-docker:hover {
+      color: white;
+    }
+
+    .active-pane {
+      padding: 20px 45px 65px 45px;
+      background-color: white;
+      font-size: 0.8em;
+      overflow: auto;
+      position: absolute;
+      top: 53px;
+      bottom: 0;
+      width: 100%;
+    }
+  }
+
+  .bool-field {
+    margin-bottom: 5px;
+  }
+
+  .bool-field label {
+    width: 100%;
+    font-weight: 400;
+  }
+
+  .bool-field {
+    .text {
+      margin-top: 3px;
+      float: left;
+    }
+
+    .value {
+      float: right;
+    }
+  }
+
+  .imagery {
+    .imagery-source .btn-group {
+      width: 100%;
+    }
+
+    .imagery-source .btn-group button {
+      width: 100%;
+      text-align: left;
+    }
+
+    .imagery-source .btn-group .caret {
+      float: right;
+      margin-top: 7px;
+    }
+
+    .imagery-source .dropdown-menu {
+      width: 100%;
+    }
+
+    .ramps-container {
+      width: 100%;
+      text-align: center;
+    }
+
+    .ramp-range {
+      margin-top: 5px;
+      text-align: center;
+    }
+  }
+
+  .local-settings {
+    .form-group {
+      margin: 0px;
+    }
+
+    .checkbox {
+      margin: 0px;
+    }
+  }
+
+  .search-location {
+    .addr-info {
+      margin-top: 10px;
+    }
+
+    .addr-info .addr {
+      margin-top: 5px;
+      border-top: 1px solid #ccc;
+      padding: 5px;
+    }
+
+    .addr-info .location {
+      padding: 5px;
+    }
+
+    .error {
+      color: red;
+      padding-top: 5px;
+    }
+  }
+  input:focus {
+    outline: none;
+  }
+
+
+  .search-widget {
+    position: absolute;
+    background-color: white;
+    width: 400px;
+    right: 0px;
+    color: #333;
+    transition: height 0.2s, top 0.2s;
+    -webkit-transition-timing-function: ease-out;
+    -moz-transition-timing-function: ease-out;
+    -ms-transition-timing-function: ease-out;
+    -o-transition-timing-function: ease-out;
+    transition-timing-function: ease-out;
+    background-color: RGB(0, 187, 215);
+
+    input[type="text"] {
+      font-size: 1.1em;
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 5px;
+      border: 1px solid transparent;
+      box-shadow: 0px 1px 2px #333;
+    }
+
+    .error {
+      font-size: 0.8em;
+      padding: 5px 20px;
+      color: #fff;
+      margin: 0px;
+    }
+
+    .addr-info {
+      font-size: 0.8em;
+      color: #eee;
+      padding: 10px;
+    }
+
+    .addr-info p {
+      margin: 0px;
+
+    }
+
+    .addr-info .coordinates {
+      padding-left: 10px;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .cancel-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.2em;
+      color: #ccc;
+    }
+
+    .cancel-button:hover {
+      color: #999;
+    }
+  }
+
+
+  .innundation-plane {
+    .current-height {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+  }
+
+  .z-histogram {
+    position: relative;
+
+    .histogram-base-region {
+      position: absolute;
+      height: 50px;
+    }
+  }
+
+  .histogram {
+    position: relative;
+    height: 50px;
+    width: 200px;
+
+    .histogram-item {
+      position: absolute;
+      background-color: #ccc;
+    }
+
+    .histogram-item:last-child {
+      border-right: none;
+    }
+  }
+
+  .value-present {
+    border-bottom: 1px dotted #ccc;
+    margin-bottom: 10px;
+
+    .key {
+      margin-top: 6px;
+
+    }
+
+    .value {
+      font-size: 1.4em;
+
+    }
+  }
+
+  .tip {
+    padding: 10px;
+    color: #aaa;
+  }
+
+  .tip-warn {
+    padding: 10px;
+    color: #FF530D;
+  }
+
+  .powered-by {
+    font-size: 12px;
+  }
+
+  .entwine {
+    display: inline-block;
+    background: url(../img/entwine.png);
+    background-size: contain;
+    background-repeat: no-repeat no-repeat;
+    background-position: 50% 50%;
+    width: 100px;
+    height: 30px;
+    z-index: 100000;
+  }
+
+  .slider-guides {
+    font-size: 0.8em;
+    margin-top: -15px;
+    text-transform: uppercase;
+    color: #ccc;
+    margin-bottom: 10px;
+  }
+
+
+  .switch-resource {
+    a {
+      display: block;
+      color: #00BBD9;
+      font-size: 1.3em;
+      padding: 5px;
+      border-bottom: 1px dashed #ccc;
+
+      &:hover {
+        color: white;
+        background: #00BBD9;
+        text-decoration: none;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .target-location {
+    color: white;
+    display: inline-block;
+    font-size: 0.9em;
+    i {
+      margin-right: 5px;
+    }
+  }
+
+
+  .context-menu {
+    position: relative;
+
+    .context-menu .item {
+      position: absolute;
+      background-color: #00BBD9;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      margin-left: -26px;
+      margin-top: -26px;
+      color: white;
+      border: 2px solid #006E7F;
+      z-index: 1;
+
+      transition: transform 0.1s ease-out, z-index 0.1s ease-out, left 0.1s ease-out, top 0.1s ease-out, opacity 0.1s;
+    }
+
+    .context-menu .item>.fa {
+      position: absolute;
+      font-size: 23px;
+      line-height: 23px;
+      font-weight: 700;
+      width: 100%;
+      text-align: center;
+      top:50%;
+      margin-top: -25%;
+    }
+
+    .context-menu .item>.fa-stack {
+      position: absolute;
+      font-size: 23px;
+      line-height: 23px;
+      font-weight: 700;
+      width: 100%;
+      text-align: center;
+      top:50%;
+      margin-top: -25%;
+    }
+
+    .context-menu .item .item-tip {
+      position: absolute;
+      width: 100%;
+      background: #006E7F;
+      border-radius:4px;
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 0.5em;
+      top: -10px;
+      display: none;
+      opacity: 0;
+    }
+
+    .context-menu .item:hover {
+      transform: scale(1.3);
+      z-index: 100;
+    }
+
+    .context-menu .item:hover .item-tip {
+      display: inherit;
+      opacity: 1;
+    }
+  }
+
+  .profile-view {
+    position: fixed;
+    right: 5px;
+    top: 100px;
+    background-color: black;
+    border: 2px solid #333;
+  }
+}

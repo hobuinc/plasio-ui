@@ -1,107 +1,70 @@
 /* some style */
-
-@import url(http://fonts.googleapis.com/css?family=Roboto:400,700);
-
-html, body {
-    height: 100%;
-}
-
-body {
-    font-family: 'Roboto', sans-serif;
-    font-size: 15px;
-    background-color: #001D21;
-    color: #999;
-    margin: 0px;
-    padding: 0px;
-    overflow: hidden;
-}
-
-a:focus {
-    outline: none;
-}
-
-.btn:focus {
-    outline: none !important;
-}
-
-button:focus {
-    outline: none;
-}
-
-input::-moz-focus-inner {
-    border: 0;
-}
-
-a::-moz-focus-inner {
-    border: 0;
-}
-
-.checkbox {
-    margin-top: 0px;
-}
-
-.noUi-connect {
-    background-color: RGB(0, 187, 215);
-}
-
-.app-bar-container {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: auto;
-    z-index: 1000;
-}
-
-.app-bar {
+.plasio-ui {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow: hidden; }
+  .plasio-ui a:focus {
+    outline: none; }
+  .plasio-ui .btn:focus {
+    outline: none !important; }
+  .plasio-ui button:focus {
+    outline: none; }
+  .plasio-ui input::-moz-focus-inner {
+    border: 0; }
+  .plasio-ui a::-moz-focus-inner {
+    border: 0; }
+  .plasio-ui .checkbox {
+    margin-top: 0px; }
+  .plasio-ui .noUi-connect {
+    background-color: RGB(0, 187, 215); }
+  .plasio-ui .app-bar-container {
     position: absolute;
     top: 0;
-    right: 0;
     left: 0;
-    height: 30px;
-    background-color: #00BCD6;
-    box-shadow: 0px 1px 2px #333;
-    z-index:1000;
-}
-
-.app-bar .title {
-    color: white;
-    line-height: 28px;
-    padding-left: 10px;
-    font-weight: 700;
-    float: left;
-}
-
-.app-bar .title .resource {
-    color: #eee;
-    padding-left: 10px;
-    line-height: 10px;
-    font-weight: 400;
-    display: inline-block;
-}
-
-
-.app-bar .toolbar {
-    float: right;
-    margin-right: 10px;
-    margin-top: 3px;
-}
-
-.app-bar .toolbar .btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.0em;
-    padding: 2px 3px;
-    position: relative;
-}
-
-.app-bar .toolbar .separator {
-    display: inline;
-    margin-left: 10px;
-    margin-right: 10px;
-    border: 1px solid white;
-}
-
-.app-tooltip {
+    right: 0;
+    height: auto;
+    z-index: 1000; }
+    .plasio-ui .app-bar-container .app-bar {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 30px;
+      background-color: #00BCD6;
+      box-shadow: 0px 1px 2px #333;
+      z-index: 1000; }
+      .plasio-ui .app-bar-container .app-bar .title {
+        color: white;
+        line-height: 28px;
+        padding-left: 10px;
+        font-weight: 700;
+        float: left; }
+        .plasio-ui .app-bar-container .app-bar .title .resource {
+          color: #eee;
+          padding-left: 10px;
+          line-height: 10px;
+          font-weight: 400;
+          display: inline-block; }
+      .plasio-ui .app-bar-container .app-bar .toolbar {
+        float: right;
+        margin-right: 10px;
+        margin-top: 3px; }
+      .plasio-ui .app-bar-container .app-bar .toolbar .btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.0em;
+        padding: 2px 3px;
+        position: relative; }
+      .plasio-ui .app-bar-container .app-bar .toolbar .separator {
+        display: inline;
+        margin-left: 10px;
+        margin-right: 10px;
+        border: 1px solid white; }
+  .plasio-ui .app-tooltip {
     position: absolute;
     right: -5px;
     top: 35px;
@@ -113,403 +76,209 @@ a::-moz-focus-inner {
     -webkit-border-radius: 3px;
     -moz-border-radius: 3px;
     border-radius: 3px;
-    opacity: 0.8;
-}
-
-.mui-app-bar {
-    min-height: 50px;
-}
-
-.mui-app-bar .mui-icon-button {
-    margin-top: 1px;
-}
-
-.mui-app-bar .mui-app-bar-title {
-    line-height: 45px;
-}
-
-input[type="checkbox"] {
-    margin-top: 2px;
-}
-
-
-::-webkit-scrollbar-track
-{
-	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
-	background-color: #333;
-}
-
-::-webkit-scrollbar
-{
-	width: 6px;
-	background-color: #F5F5F5;
-}
-
-::-webkit-scrollbar-thumb
-{
-	background-color: #00BBD7;
-}
-
-.main-container {
-    position: absolute;
-    left:0; right:0; top: 0; bottom: 0;
-    overflow: hidden;
-}
-
-#app {
-    position: relative;
-    height: 500px;
-}
-
-.select-radios {
-    margin-bottom: 10px;
-}
-
-.select-radios .radio {
-    margin-right: 10px;
-}
-
-.select-radios input[type="radio"] {
-    margin-right: 5px;
-}
-
-a, a:active, a:visited, a:focus {
+    opacity: 0.8; }
+  .plasio-ui input[type="checkbox"] {
+    margin-top: 2px; }
+  .plasio-ui ::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    background-color: #333; }
+  .plasio-ui ::-webkit-scrollbar {
+    width: 6px;
+    background-color: #F5F5F5; }
+  .plasio-ui ::-webkit-scrollbar-thumb {
+    background-color: #00BBD7; }
+  .plasio-ui .select-radios {
+    margin-bottom: 10px; }
+    .plasio-ui .select-radios .radio {
+      margin-right: 10px; }
+    .plasio-ui .select-radios input[type="radio"] {
+      margin-right: 5px; }
+  .plasio-ui a, .plasio-ui a:active, .plasio-ui a:visited, .plasio-ui a:focus {
     color: #eee;
-    text-decoration: none;
-}
-
-a:hover {
-    color: #EB7F00;
-}
-
-select:focus {
-    outline: 0;
-}
-
-select {
+    text-decoration: none; }
+  .plasio-ui a:hover {
+    color: #EB7F00; }
+  .plasio-ui select {
     margin-left: 5px;
     margin-bottom: 10px;
     background-color: RGBA(172, 240, 242, 1);
-    width: 100%;
-}
-
-select:disabled {
-    cursor: not-allowed;
-    color: #444;
-    background-color: #B8B8B8;
-}
-
-.noselect {
+    width: 100%; }
+    .plasio-ui select:focus {
+      outline: 0; }
+    .plasio-ui select:disabled {
+      cursor: not-allowed;
+      color: #444;
+      background-color: #B8B8B8; }
+  .plasio-ui .noselect {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    user-select: none;
-}
-
-.loader {
+    user-select: none; }
+  .plasio-ui .loader {
     text-align: center;
-    margin-top: 3em;
-}
-
-.container {
+    margin-top: 3em; }
+  .plasio-ui .container {
     position: absolute;
-    left: 0px; top: 0px; right: 0px; bottom: 0px;
-}
-
-#render-target {
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px; }
+  .plasio-ui .render-target {
     position: absolute;
-    left: 0px; top: 0px; right: 0px; bottom: 0px;
-}
-
-.app-container {
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px; }
+  .plasio-ui .app-container {
     position: absolute;
-    left: 0; right: 0; top: 0; bottom: 0;
-    overflow: hidden;
-}
-
-
-#brand {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    overflow: hidden; }
+  .plasio-ui .brand {
     font-size: 3em;
     text-transform: lowercase;
     font-weight: 700;
     padding-left: 10px;
-    color: RGBA(34, 83, 120, 1);
-}
-
-#brand #sub-brand {
+    color: RGBA(34, 83, 120, 1); }
+    .plasio-ui .brand .sub-brand {
+      font-size: 14px;
+      margin-top: -10px;
+      padding-left: 3px;
+      color: RGBA(22, 149, 163, 1); }
+  .plasio-ui .dataset-info {
     font-size: 14px;
-    margin-top: -10px;
-    padding-left: 3px;
-    color: RGBA(22, 149, 163, 1);
-}
-
-.dataset-info {
-    font-size: 14px;
-    padding-left: 10px;
-}
-
-.dataset-info p {
-    color: #eee;
-    display: inline-block;
-    padding: 0px;
-    margin: 0px;
-}
-
-.dataset-info .points:after {
-    content: ' Points';
-}
-
-.hud-container {
-    position: absolute;
-    top: 0px;
-    bottom: 0px;
-    overflow-y: hidden;
-    background-color: RGBA(0,0,0,0.7);
-    width: 300px;
-}
-
-.hud-container.active {
-    background-color: RGBA(235, 127, 0, 0.5);
-}
-
-.hud-container.hud-left {
-    -webkit-transition: left 0.5s;
-    transition: left 0.2s;
-    left: 0px;
-    border-right: 3px solid RGBA(0, 163, 136, 1);
-}
-
-.hud-container.hud-right {
-    -webkit-transition: right 0.5s;
-    transition: right 0.2s;
-    width: 300px;
-    right: 0px;
-    border-left: 3px solid RGBA(0, 163, 136, 1);
-}
-
-.hud-container a {
-    font-size: 1.4em;
-    font-weight: 700;
-}
-
-.hud-container.hud-left.hud-collapsed {
-    left: -280px;
-    overflow: hidden;
-}
-
-.hud-container.hud-right.hud-collapsed {
-    right: -280px;
-    overflow: hidden;
-}
-
-.hud-container .hud-contents {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
-    padding: 5px;
-    overflow-y: auto;
-}
-
-.hud-container .hud-contents.left-contents {
-    top: 165px;
-}
-
-.hud-left .hud-collapse {
-    position: absolute;
-    right: 3px;
-    top: 0px;
-}
-
-.hud-right .hud-collapse {
-    position: absolute;
-    left: 3px;
-    top: 0px;
-}
-
-.hud-right .hud-contents {
-    left: 20px;
-}
-
-.hud-left .hud-contents {
-    right: 20px;
-}
-
-.app-panel {
+    padding-left: 10px; }
+    .plasio-ui .dataset-info p {
+      color: #eee;
+      display: inline-block;
+      padding: 0px;
+      margin: 0px; }
+    .plasio-ui .dataset-info .points:after {
+      content: ' Points'; }
+  .plasio-ui .app-panel {
     position: relative;
-    padding: 5px;
-}
-
-.app-panel .panel-section {
-    padding-bottom: 5px;
-    margin-bottom: 5px;
-}
-
-.app-panel .title {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 2px;
-    margin-bottom: 3px;
-    font-weight: 700;
-    color: RGBA(172, 240, 242, 1);
-}
-
-.app-panel .close-button {
-    position: absolute;
-    right: 5px;
-    top: 5px;
-    font-size: 10px;
-}
-
-.slider-text .text {
-    margin-right: 20px;
-}
-
-.desc {
+    padding: 5px; }
+    .plasio-ui .app-panel .panel-section {
+      padding-bottom: 5px;
+      margin-bottom: 5px; }
+    .plasio-ui .app-panel .title {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2px;
+      margin-bottom: 3px;
+      font-weight: 700;
+      color: RGBA(172, 240, 242, 1); }
+    .plasio-ui .app-panel .close-button {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      font-size: 10px; }
+  .plasio-ui .slider-text .text {
+    margin-right: 20px; }
+  .plasio-ui .desc {
     color: #ddd;
     font-size: 0.9em;
     padding-left: 0.5em;
-    padding-bottom: 0.2em;
-}
-
-table.key-val {
-  width: 100%;
-  color: #999;
-  border-collapse: collapse;
-}
-
-table.key-val tr {
-    border-bottom: 1px dotted #ddd;
-}
-
-table.key-val tr:last-child {
-    border-bottom: none;
-}
-
-table.key-val td {
-    padding: 2px 2px 10px 2px;
-    vertical-align: top;
-    white-space: nowrap;
-    float: left;
-}
-
-table.key-val td:last-child {
-  text-align: right;
-  white-space: nowrap;
-  float: right;
-}
-
-.slider {
-    margin: 10px 5px 20px 5px;
-}
-
-.compass {
+    padding-bottom: 0.2em; }
+  .plasio-ui table.key-val {
+    width: 100%;
+    border-collapse: collapse; }
+    .plasio-ui table.key-val tr {
+      border-bottom: 1px dotted #ddd; }
+    .plasio-ui table.key-val tr:last-child {
+      border-bottom: none; }
+    .plasio-ui table.key-val td {
+      padding: 10px 2px 2px 2px;
+      vertical-align: top;
+      white-space: nowrap;
+      float: left; }
+    .plasio-ui table.key-val td:last-child {
+      text-align: right;
+      white-space: nowrap;
+      float: right; }
+  .plasio-ui .slider {
+    margin: 10px 5px 20px 5px; }
+  .plasio-ui .compass {
     width: 96px;
     height: 96px;
     position: absolute;
     bottom: 5px;
-    right: 25px;
-}
-
-.compass .circle {
-    position: absolute;
-    box-sizing: border-box;
-    left: 0px;
-    top: 0px;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 4px solid RGBA(235, 240, 242, 0.4);
-}
-
-.compass .arrow {
-    text-align: center;
-    width: 100%;
-    height: 100%;
-    font-size: 2em;
-    line-height: 1em;
-    color: RGBA(235, 127, 0, 1);
-    z-index: 100;
-}
-
-.compass .arrow .n {
-    position:absolute;
-    left: 38px;
-    bottom: 48px;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-bottom: 40px solid red;
-}
-
-.compass .arrow .s {
-    position:absolute;
-    left: 38px;
-    top: 48px;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 40px solid white;
-}
-
-.toolbar {
-    margin-top: 10px;
-}
-
-.toolbar .button {
-    text-align: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 3px;
-    background-color: RGBA(0, 163, 136, 1);
-    color: white;
-    display: inline-block;
-    font-size: 26px;
-    box-shadow: 0px 1px 1px black;
-    padding: 4px;
-    box-sizing: border-box;
-    margin-right: 5px;
-}
-
-.toolbar .button.active {
-    background-color: RGBA(235, 127, 0, 1);
-}
-
-.toolbar .button.disabled {
-    background-color: RGBA(128, 128, 128, 1);
-}
-
-.profile-view {
+    right: 25px; }
+    .plasio-ui .compass .circle {
+      position: absolute;
+      box-sizing: border-box;
+      left: 0px;
+      top: 0px;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid RGBA(235, 240, 242, 0.4); }
+    .plasio-ui .compass .arrow {
+      text-align: center;
+      width: 100%;
+      height: 100%;
+      font-size: 2em;
+      line-height: 1em;
+      color: RGBA(235, 127, 0, 1);
+      z-index: 100; }
+    .plasio-ui .compass .arrow .n {
+      position: absolute;
+      left: 38px;
+      bottom: 48px;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 40px solid red; }
+    .plasio-ui .compass .arrow .s {
+      position: absolute;
+      left: 38px;
+      top: 48px;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 40px solid white; }
+  .plasio-ui .toolbar {
+    margin-top: 10px; }
+    .plasio-ui .toolbar .button {
+      text-align: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 3px;
+      background-color: RGBA(0, 163, 136, 1);
+      color: white;
+      display: inline-block;
+      font-size: 26px;
+      box-shadow: 0px 1px 1px black;
+      padding: 4px;
+      box-sizing: border-box;
+      margin-right: 5px; }
+    .plasio-ui .toolbar .button.active {
+      background-color: RGBA(235, 127, 0, 1); }
+    .plasio-ui .toolbar .button.disabled {
+      background-color: RGBA(128, 128, 128, 1); }
+  .plasio-ui .profile-view {
     position: absolute;
     width: 70%;
     bottom: 10px;
     left: 25px;
     height: 200px;
-    background-color: RGBA(0,0,0,0.7);
+    background-color: RGBA(0, 0, 0, 0.7);
     border: 2px solid RGBA(0, 163, 136, 1);
     border-radius: 3px;
-    box-shadow: 0px 2px 2px black;
-}
-
-.profile-view .profile-series {
-    margin-top: 10px;
-}
-
-.profile-view .close {
-    position: absolute;
-    top: 3px;
-    right: 5px;
-    color: white;
-}
-
-
-.line-info {
+    box-shadow: 0px 2px 2px black; }
+    .plasio-ui .profile-view .profile-series {
+      margin-top: 10px; }
+    .plasio-ui .profile-view .close {
+      position: absolute;
+      top: 3px;
+      right: 5px;
+      color: white; }
+  .plasio-ui .line-info {
     margin-left: 5px;
     padding: 2px 0px 2px 10px;
-    font-weight: bold;
-}
-
-.status-message {
+    font-weight: bold; }
+  .plasio-ui .status-message {
     position: fixed;
     bottom: 10px;
     left: 10px;
@@ -518,285 +287,177 @@ table.key-val td:last-child {
     color: white;
     z-index: 100000;
     border-radius: 3px;
-    font-weight: bold;
-}
-
-.status-message.error {
-    background-color: #d00;
-}
-
-.c3-axis-y .tick {
-    font-weight: 700;
-    fill: white;
-}
-
-
-.c3-axis-y .tick line {
-    stroke: white;
-}
-
-.c3-axis-y .domain {
-    stroke: white;
-}
-
-
-.point-type label {
-    margin-right: 15px;
-}
-
-.point-type input[type="radio"] {
-    margin: 0 3px 0 0;
-}
-
-.floating-panel {
+    font-weight: bold; }
+    .plasio-ui .status-message.error {
+      background-color: #d00; }
+  .plasio-ui .point-type label {
+    margin-right: 15px; }
+  .plasio-ui .point-type input[type="radio"] {
+    margin: 0 3px 0 0; }
+  .plasio-ui .floating-panel {
     position: fixed;
     left: 120px;
     top: 50px;
     min-width: 250px;
     max-width: 250px;
     min-height: 50px;
-    background-color: rgba(255,255,255,0.95);
-    box-shadow: 0px 0px 1px #222;
-}
-
-.floating-panel a {
-    color: white;
-}
-
-.floating-panel a:hover {
-    color: #ddd;
-}
-
-
-.floating-panel
-a:active,a:visited,a:focus {
-                       color: white;
-                   }
-
-.floating-panel.collapsed {
-    max-height: 32px;
-    min-height: 0px;
-    overflow: hidden;
-}
-
-.floating-panel.dragging {
-    z-index: 100000;
-}
-
-.floating-panel .close-button {
-    position: absolute;
-    right: 5px;
-    top: 5px;
-    color: white;
-    font-size: 15px;
-}
-
-.floating-panel .toggle {
-    position: absolute;
-    right: 20px;
-    top: 5px;
-    font-size: 15px;
-}
-
-.floating-panel .title {
-    font-size: 0.9em;
-    padding: 5px 3px;
-    background-color: #00BBD7;
-    color: #eee;
-    cursor: default;
-    box-shadow: 0px 0px 1px #666;
-}
-
-
-.floating-panel .title .fa {
-    margin-left: 5px;
-    margin-right: 5px;
-}
-
-.floating-panel .title-docked .fa {
-    margin-left: 5px;
-    margin-right: 5px;
-}
-
-.floating-panel .floating-panel-body {
-    padding: 20px 20px;
-    margin: 3px;
-    border: 1px solid #ccc;
-    font-size: 0.8em;
-}
-
-.floating-panel .unpin {
-    position: absolute;
-    right: 40px;
-    top: 5px;
-    display: none;
-}
-
-.floating-panel .pin {
-    position: absolute;
-    right: 40px;
-    top: 5px;
-}
-
-.docker-widget {
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0px 0px 1px #222; }
+    .plasio-ui .floating-panel a {
+      color: white; }
+      .plasio-ui .floating-panel a:hover {
+        color: #ddd; }
+      .plasio-ui .floating-panel a:active, .plasio-ui .floating-panel a:visited, .plasio-ui .floating-panel a:focus {
+        color: white; }
+    .plasio-ui .floating-panel.collapsed {
+      max-height: 32px;
+      min-height: 0px;
+      overflow: hidden; }
+    .plasio-ui .floating-panel.dragging {
+      z-index: 100000; }
+    .plasio-ui .floating-panel .close-button {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      color: white;
+      font-size: 15px; }
+    .plasio-ui .floating-panel .toggle {
+      position: absolute;
+      right: 20px;
+      top: 5px;
+      font-size: 15px; }
+    .plasio-ui .floating-panel .title {
+      font-size: 0.9em;
+      padding: 5px 3px;
+      background-color: #00BBD7;
+      color: #eee;
+      cursor: default;
+      box-shadow: 0px 0px 1px #666; }
+    .plasio-ui .floating-panel .title .fa {
+      margin-left: 5px;
+      margin-right: 5px; }
+    .plasio-ui .floating-panel .title-docked .fa {
+      margin-left: 5px;
+      margin-right: 5px; }
+    .plasio-ui .floating-panel .floating-panel-body {
+      padding: 20px 20px;
+      margin: 3px;
+      border: 1px solid #ccc;
+      font-size: 0.8em; }
+    .plasio-ui .floating-panel .unpin {
+      position: absolute;
+      right: 40px;
+      top: 5px;
+      display: none; }
+    .plasio-ui .floating-panel .pin {
+      position: absolute;
+      right: 40px;
+      top: 5px; }
+  .plasio-ui .docker-widget {
     position: absolute;
     left: 0px;
     top: 30px;
     bottom: 0px;
     width: 300px;
     background-color: white;
-    transition: left 0.2s;
-}
-
-.docker-widget .toolbar {
-    margin-top: 0;
-    background-color: RGBA(0, 187, 215, 1);
-    padding: 10px 5px 10px 5px;
-    box-shadow: 0px 1px 2px #333;
-    width: 325px;
-}
-
-.docker-widget .toolbar-item {
-    position: relative;
-    font-size: 1.1em;
-    background-color: RGBA(0, 187, 215, 1);
-    margin-right: 2px;
-    border-radius: 2px;
-    box-shadow: 0px 1px 2px #333;
-    color: #ddd;
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    text-align: center;
-    line-height: 32px;
-}
-
-.docker-widget .toolbar-item .tooltip {
-    display: none;
-    font-family: 'Roboto', sans-serif;
-}
-
-.docker-widget .toolbar .current-toolbar-item {
-    color: white;
-    padding-top: 10px;
-}
-
-.docker-widget .toolbar-item.active {
-    background-color: RGBA(242, 105, 0, 1);
-    color: white;
-}
-
-.docker-widget .toolbar-item:hover {
-    color: #fff;
-}
-
-.docker-widget .toolbar-item:hover .tooltip {
-    display: inherit;
-}
-
-.docker-widget.off {
-    left: -300px;
-}
-
-.docker-widget .toggle-docker {
-    position: absolute;
-    z-index: 1000;
-    top: 10px;
-    right: -20px;
-    color: #ddd;
-    font-size: 22px;
-    font-weight: 700;
-}
-
-.docker-widget .toggle-docker:hover {
-    color: white;
-}
-
-.docker-widget .active-pane {
-    padding: 20px 45px 65px 45px;
-    background-color: white;
-    font-size: 0.8em;
-    overflow: auto;
-    position: absolute;
-    top: 53px;
-    bottom: 0;
+    transition: left 0.2s; }
+    .plasio-ui .docker-widget .toolbar {
+      margin-top: 0;
+      background-color: RGBA(0, 187, 215, 1);
+      padding: 10px 5px 10px 5px;
+      box-shadow: 0px 1px 2px #333;
+      width: 325px; }
+    .plasio-ui .docker-widget .toolbar-item {
+      position: relative;
+      font-size: 1.1em;
+      background-color: RGBA(0, 187, 215, 1);
+      margin-right: 2px;
+      border-radius: 2px;
+      box-shadow: 0px 1px 2px #333;
+      color: #ddd;
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      line-height: 32px; }
+    .plasio-ui .docker-widget .toolbar-item .tooltip {
+      display: none;
+      font-family: 'Lato', sans-serif; }
+    .plasio-ui .docker-widget .toolbar .current-toolbar-item {
+      color: white;
+      padding-top: 10px; }
+    .plasio-ui .docker-widget .toolbar-item.active {
+      background-color: RGBA(242, 105, 0, 1);
+      color: white; }
+    .plasio-ui .docker-widget .toolbar-item:hover {
+      color: #fff; }
+    .plasio-ui .docker-widget .toolbar-item:hover .tooltip {
+      display: inherit; }
+    .plasio-ui .docker-widget.off {
+      left: -300px; }
+    .plasio-ui .docker-widget .toggle-docker {
+      position: absolute;
+      z-index: 1000;
+      top: 10px;
+      right: -20px;
+      color: #ddd;
+      font-size: 22px;
+      font-weight: 700; }
+    .plasio-ui .docker-widget .toggle-docker:hover {
+      color: white; }
+    .plasio-ui .docker-widget .active-pane {
+      padding: 20px 45px 65px 45px;
+      background-color: white;
+      font-size: 0.8em;
+      overflow: auto;
+      position: absolute;
+      top: 53px;
+      bottom: 0;
+      width: 100%; }
+  .plasio-ui .bool-field {
+    margin-bottom: 5px; }
+  .plasio-ui .bool-field label {
     width: 100%;
-}
-
-.bool-field {
-    margin-bottom: 5px;
-}
-
-.bool-field label {
-    width: 100%;
-    font-weight: 400;
-}
-
-.bool-field .text {
+    font-weight: 400; }
+  .plasio-ui .bool-field .text {
     margin-top: 3px;
-    float: left;
-}
-
-.bool-field .value {
+    float: left; }
+  .plasio-ui .bool-field .value {
+    float: right; }
+  .plasio-ui .imagery .imagery-source .btn-group {
+    width: 100%; }
+  .plasio-ui .imagery .imagery-source .btn-group button {
+    width: 100%;
+    text-align: left; }
+  .plasio-ui .imagery .imagery-source .btn-group .caret {
     float: right;
-}
-
-.imagery .imagery-source .btn-group {
+    margin-top: 7px; }
+  .plasio-ui .imagery .imagery-source .dropdown-menu {
+    width: 100%; }
+  .plasio-ui .imagery .ramps-container {
     width: 100%;
-}
-
-.imagery .imagery-source .btn-group button {
-    width: 100%;
-    text-align: left;
-}
-
-.imagery .imagery-source .btn-group .caret {
-    float: right;
-    margin-top: 7px;
-}
-
-.imagery .imagery-source .dropdown-menu {
-    width: 100%;
-}
-
-.imagery .ramps-container {
-    width: 100%;
-    text-align: center;
-}
-
-.imagery .ramp-range {
+    text-align: center; }
+  .plasio-ui .imagery .ramp-range {
     margin-top: 5px;
-    text-align: center;
-}
-
-.local-settings .form-group {
-    margin: 0px;
-}
-
-.local-settings .checkbox {
-    margin: 0px;
-}
-
-.search-location .addr-info {
-    margin-top: 10px;
-}
-
-.search-location .addr-info .addr {
+    text-align: center; }
+  .plasio-ui .local-settings .form-group {
+    margin: 0px; }
+  .plasio-ui .local-settings .checkbox {
+    margin: 0px; }
+  .plasio-ui .search-location .addr-info {
+    margin-top: 10px; }
+  .plasio-ui .search-location .addr-info .addr {
     margin-top: 5px;
     border-top: 1px solid #ccc;
-    padding: 5px;
-}
-
-.search-location .addr-info .location {
-    padding: 5px;
-}
-
-.search-location .error {
+    padding: 5px; }
+  .plasio-ui .search-location .addr-info .location {
+    padding: 5px; }
+  .plasio-ui .search-location .error {
     color: red;
-    padding-top: 5px;
-}
-
-.search-widget {
+    padding-top: 5px; }
+  .plasio-ui input:focus {
+    outline: none; }
+  .plasio-ui .search-widget {
     position: absolute;
     background-color: white;
     width: 400px;
@@ -808,118 +469,70 @@ a:active,a:visited,a:focus {
     -ms-transition-timing-function: ease-out;
     -o-transition-timing-function: ease-out;
     transition-timing-function: ease-out;
-    background-color: RGB(0, 187, 215);
-}
-
-input:focus {
-    outline: none;
-}
-
-.search-widget input[type="text"] {
-    font-size: 1.1em;
-    padding: 10px;
-    width: 100%;
-    margin-bottom: 5px;
-    border: 1px solid transparent;
-    box-shadow: 0px 1px 2px #333;
-}
-
-.search-widget .error {
-    font-size: 0.8em;
-    padding: 5px 20px;
-    color: #fff;
-    margin: 0px;
-}
-
-.search-widget .addr-info {
-    font-size: 0.8em;
-    color: #eee;
-    padding: 10px;
-}
-
-.search-widget .addr-info p {
-    margin: 0px;
-
-}
-
-.search-widget .addr-info .coordinates {
-    padding-left: 10px;
-    color: #fff;
-    font-weight: bold;
-}
-
-.search-widget .cancel-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 1.2em;
-    color: #ccc;
-}
-
-.search-widget .cancel-button:hover {
-    color: #999;
-}
-
-.innundation-plane .current-height {
+    background-color: RGB(0, 187, 215); }
+    .plasio-ui .search-widget input[type="text"] {
+      font-size: 1.1em;
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 5px;
+      border: 1px solid transparent;
+      box-shadow: 0px 1px 2px #333; }
+    .plasio-ui .search-widget .error {
+      font-size: 0.8em;
+      padding: 5px 20px;
+      color: #fff;
+      margin: 0px; }
+    .plasio-ui .search-widget .addr-info {
+      font-size: 0.8em;
+      color: #eee;
+      padding: 10px; }
+    .plasio-ui .search-widget .addr-info p {
+      margin: 0px; }
+    .plasio-ui .search-widget .addr-info .coordinates {
+      padding-left: 10px;
+      color: #fff;
+      font-weight: bold; }
+    .plasio-ui .search-widget .cancel-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.2em;
+      color: #ccc; }
+    .plasio-ui .search-widget .cancel-button:hover {
+      color: #999; }
+  .plasio-ui .innundation-plane .current-height {
     font-size: 1.5em;
-    margin-bottom: 10px;
-}
-
-.z-histogram {
-    position: relative;
-}
-
-.z-histogram .histogram-base-region {
-    position: absolute;
-    height: 50px;
-}
-
-.histogram {
+    margin-bottom: 10px; }
+  .plasio-ui .z-histogram {
+    position: relative; }
+    .plasio-ui .z-histogram .histogram-base-region {
+      position: absolute;
+      height: 50px; }
+  .plasio-ui .histogram {
     position: relative;
     height: 50px;
-    width: 200px;
-}
-
-.histogram .histogram-item {
-    position: absolute;
-    background-color: #ccc;
-}
-
-.histogram .histogram-item:last-child {
-    border-right: none;
-}
-
-
-.value-present {
+    width: 200px; }
+    .plasio-ui .histogram .histogram-item {
+      position: absolute;
+      background-color: #ccc; }
+    .plasio-ui .histogram .histogram-item:last-child {
+      border-right: none; }
+  .plasio-ui .value-present {
     border-bottom: 1px dotted #ccc;
-    margin-bottom: 10px;
-}
-
-.value-present .key {
-    margin-top: 6px;
-
-}
-
-.value-present .value {
-    font-size: 1.4em;
-
-}
-
-.tip {
+    margin-bottom: 10px; }
+    .plasio-ui .value-present .key {
+      margin-top: 6px; }
+    .plasio-ui .value-present .value {
+      font-size: 1.4em; }
+  .plasio-ui .tip {
     padding: 10px;
-    color: #aaa;
-}
-
-.tip-warn {
+    color: #aaa; }
+  .plasio-ui .tip-warn {
     padding: 10px;
-    color: #FF530D;
-}
-
-.powered-by {
-    font-size: 12px;
-}
-
-.entwine {
+    color: #FF530D; }
+  .plasio-ui .powered-by {
+    font-size: 12px; }
+  .plasio-ui .entwine {
     display: inline-block;
     background: url(../img/entwine.png);
     background-size: contain;
@@ -927,115 +540,85 @@ input:focus {
     background-position: 50% 50%;
     width: 100px;
     height: 30px;
-    z-index: 100000;
-}
-
-.slider-guides {
+    z-index: 100000; }
+  .plasio-ui .slider-guides {
     font-size: 0.8em;
     margin-top: -15px;
     text-transform: uppercase;
     color: #ccc;
-    margin-bottom: 10px;
-}
-
-
-.switch-resource a {
+    margin-bottom: 10px; }
+  .plasio-ui .switch-resource a {
     display: block;
     color: #00BBD9;
     font-size: 1.3em;
     padding: 5px;
-    border-bottom: 1px dashed #ccc;
-}
-
-.switch-resource a:hover {
-    color: white;
-    background: #00BBD9;
-    text-decoration: none;
-}
-
-.switch-resource a:last-child {
-    border-bottom: none;
-}
-
-.target-location {
+    border-bottom: 1px dashed #ccc; }
+    .plasio-ui .switch-resource a:hover {
+      color: white;
+      background: #00BBD9;
+      text-decoration: none; }
+    .plasio-ui .switch-resource a:last-child {
+      border-bottom: none; }
+  .plasio-ui .target-location {
     color: white;
     display: inline-block;
-    font-size: 0.9em;
-}
-
-.target-location i {
-    margin-right: 5px;
-}
-
-
-.context-menu {
-    position: relative;
-}
-
-.context-menu .item {
-    position: absolute;
-    background-color: #00BBD9;
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    margin-left: -26px;
-    margin-top: -26px;
-    color: white;
-    border: 2px solid #006E7F;
-    z-index: 1;
-
-    transition: transform 0.1s ease-out, z-index 0.1s ease-out, left 0.1s ease-out, top 0.1s ease-out, opacity 0.1s;
-}
-
-.context-menu .item>.fa {
-    position: absolute;
-    font-size: 23px;
-    line-height: 23px;
-    font-weight: 700;
-    width: 100%;
-    text-align: center;
-    top:50%;
-    margin-top: -25%;
-}
-
-.context-menu .item>.fa-stack {
-    position: absolute;
-    font-size: 23px;
-    line-height: 23px;
-    font-weight: 700;
-    width: 100%;
-    text-align: center;
-    top:50%;
-    margin-top: -25%;
-}
-
-.context-menu .item .item-tip {
-    position: absolute;
-    width: 100%;
-    background: #006E7F;
-    border-radius:4px;
-    text-align: center;
-    text-transform: uppercase;
-    font-size: 0.5em;
-    top: -10px;
-    display: none;
-    opacity: 0;
-}
-
-.context-menu .item:hover {
-    transform: scale(1.3);
-    z-index: 100;
-}
-
-.context-menu .item:hover .item-tip {
-    display: inherit;
-    opacity: 1;
-}
-
-#profile-view {
+    font-size: 0.9em; }
+    .plasio-ui .target-location i {
+      margin-right: 5px; }
+  .plasio-ui .context-menu {
+    position: relative; }
+    .plasio-ui .context-menu .context-menu .item {
+      position: absolute;
+      background-color: #00BBD9;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      margin-left: -26px;
+      margin-top: -26px;
+      color: white;
+      border: 2px solid #006E7F;
+      z-index: 1;
+      transition: transform 0.1s ease-out, z-index 0.1s ease-out, left 0.1s ease-out, top 0.1s ease-out, opacity 0.1s; }
+    .plasio-ui .context-menu .context-menu .item > .fa {
+      position: absolute;
+      font-size: 23px;
+      line-height: 23px;
+      font-weight: 700;
+      width: 100%;
+      text-align: center;
+      top: 50%;
+      margin-top: -25%; }
+    .plasio-ui .context-menu .context-menu .item > .fa-stack {
+      position: absolute;
+      font-size: 23px;
+      line-height: 23px;
+      font-weight: 700;
+      width: 100%;
+      text-align: center;
+      top: 50%;
+      margin-top: -25%; }
+    .plasio-ui .context-menu .context-menu .item .item-tip {
+      position: absolute;
+      width: 100%;
+      background: #006E7F;
+      border-radius: 4px;
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 0.5em;
+      top: -10px;
+      display: none;
+      opacity: 0; }
+    .plasio-ui .context-menu .context-menu .item:hover {
+      transform: scale(1.3);
+      z-index: 100; }
+    .plasio-ui .context-menu .context-menu .item:hover .item-tip {
+      display: inherit;
+      opacity: 1; }
+  .plasio-ui .profile-view {
     position: fixed;
     right: 5px;
     top: 100px;
     background-color: black;
-    border: 2px solid #333;
-}
+    border: 2px solid #333; }
+
+/*# sourceMappingURL=style.css.map */

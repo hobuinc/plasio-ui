@@ -12,7 +12,6 @@
             [plasio-ui.util :as util]
             cljsjs.gl-matrix
             [clojure.string :as s])
-
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
@@ -101,7 +100,7 @@
           op (-> @ui :open-panes set)
           dp (-> @ui :docked-panes set)]
       (d/div
-        {:class "main-container"}
+        {:class "plasio-ui"}
         ;; setup render target
         (om/build aw/render-target {:renderer-state @root})
 
@@ -272,10 +271,11 @@
 
 
 (def ^:private default-options
-  {:showPanels true
+  {:includeExternalDependencies true
+   :showPanels true
    :showCompass true
    :showApplicationBar true
-   :showSearchWidget true
+   :showSearch true
    :brand "speck.ly"})
 
 (defn- assert-pipeline [{:keys [useBrowserHistory server resource]}]
@@ -287,9 +287,14 @@
                  (s/blank? resource)))
     (throw (js/Error. "When useBrowserHistory is turned off, properties server and resource need to be specified."))))
 
+(defn- assert-google-maps-key [{:keys [includeExternalDependencies googleMapsAPIKey]}]
+  (when (and includeExternalDependencies
+             (s/blank? googleMapsAPIKey))
+    (throw (js/Error. "When includeExternalDependencies is turned on, googleMapsAPIKey needs to be specified."))))
+
 
 (defn validate-options [options]
-  (let [validators [assert-pipeline]
+  (let [validators [assert-pipeline assert-google-maps-key]
         new-options (reduce (fn [opts v]
                               ;; each validator can pass mutate the options object
                               ;; but if it returns nil, we ignore it
@@ -298,16 +303,108 @@
                             validators)]
     new-options))
 
+(def ^:private dev-mode-worker-location "workers/decompress.js")
+(def ^:private dev-mode-standard-includes
+  ["js/plasio-renderer.js"
+   "lib/dist/laz-perf.js"
+   "lib/dist/plasio-lib.js"])
+
+(def ^:private prod-mode-worker-location "workers/decompress.js")
+(def ^:private prod-mode-standard-includes
+  ["components/plasio-renderer.js"
+   "components/laz-perf.js"
+   "components/plasio-lib.js"])
+
+(def ^:private css-includes
+  ["css/style.css"])
+
+(def ^:private third-party-scripts
+  [[:jquery "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"]
+   [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.2.1/nouislider.min.js"]
+   [:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"]])
+
+(def ^:private third-party-styles
+  [[:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"]
+   [:font-awesome "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"]
+   [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.2.1/nouislider.min.css"]])
+
+(def ^:private google-maps-base-url
+  "https://maps.googleapis.com/maps/api/js?libraries=places&key=")
+
+(defn load-css [head src]
+  (let [c (async/chan)
+        tag (doto (.createElement js/document "link")
+              (.setAttribute "rel" "stylesheet")
+              (.setAttribute "type" "text/css")
+              (.setAttribute "href" src)
+              (aset "onload" #(async/close! c)))]
+    (.appendChild head tag)
+    c))
+
+
+(defn load-script [head src]
+  (let [c (async/chan)
+        tag (doto (.createElement js/document "script")
+              (.setAttribute "type" "text/javascript")
+              (.setAttribute "src" src)
+              (aset "onload" #(async/close! c)))]
+    (.appendChild head tag)
+    c))
+
+(defn filtered-with-ignore [ignore deps]
+  (let [s (set (map s/lower-case ignore))]
+    (println "-- -- " s)
+    (keep #(when-not (s (name (first %)))
+            (second %))
+          deps)))
+
+(defn- include-resources [{:keys [includeExternalDependencies ignoreDependencies googleMapsAPIKey]}]
+  (let [scripts (concat
+                  ;; google maps api
+                  [(str google-maps-base-url googleMapsAPIKey)]
+                  ;; external dependencies if needed
+                  (when includeExternalDependencies
+                    (filtered-with-ignore ignoreDependencies third-party-scripts))
+                  ;; standard includes
+                  (if js/DEV_MODE
+                    dev-mode-standard-includes
+                    prod-mode-standard-includes))
+        styles (concat
+                 ;; external dependencies if needed
+                 (when includeExternalDependencies
+                   (filtered-with-ignore ignoreDependencies third-party-styles))
+                 ;; standard css includes
+                 css-includes)
+        head (.-head js/document)]
+
+    ;; set the worker path needed by plasio-lib
+    (aset js/window "DECOMPRESS_WORKER_PATH"
+          (if js/DEV_MODE
+            dev-mode-worker-location
+            prod-mode-worker-location))
+
+    ;; add all styles
+    (go
+      (doseq [s styles]
+        (<! (load-css head s)))
+
+      ;; add all scripts
+      (doseq [s scripts]
+        (<! (load-script head s))))))
+
 (defn ^:export createUI [divElement options]
   ;; Use the default options overriden by the options passed down
   ;; by the user.
   ;;
   (let [opts (merge default-options
                     (js->clj (or options (js-obj)) :keywordize-keys true))
-        _ (println "-- -- passed in opts:" opts)
         opts (validate-options opts)]
-    (println "-- -- using options:" opts)
-    (startup divElement, opts)
+    (go
+      ;; include any resources we may need
+      (<! (include-resources opts))
+
+      ;; startup
+      (startup divElement, opts))
 
     ;; return a JS object which can be used to interact with the UI
     (js-obj "destroy" (fn []
