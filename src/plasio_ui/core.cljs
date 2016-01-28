@@ -392,11 +392,13 @@
       (doseq [s scripts]
         (<! (load-script head s))))))
 
-(defn script-info []
+(defn script-path []
   (let [cs (aget js/document "currentScript")]
     (if cs
-      (js/console.log cs)
-      (js/console.log (.-scripts js/document)))))
+      (.-src cs)
+      (let [scripts (.-scripts js/document)
+            current (.item scripts (dec (.-length scripts)))]
+        (.-src current)))))
 
 (defn ^:export createUI [divElement options]
   ;; Use the default options overriden by the options passed down
@@ -405,9 +407,6 @@
   (let [opts (merge default-options
                     (js->clj (or options (js-obj)) :keywordize-keys true))
         opts (validate-options opts)]
-    (println "----- SCRIPT INFO")
-    (script-info)
-
     (go
       ;; include any resources we may need
       (<! (include-resources opts))
@@ -421,7 +420,7 @@
                         (om/detach-root divElement)
                         (plasio-state/reset-app-state!)))))
 
-(script-info)
+(println "script path:" (script-path))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
