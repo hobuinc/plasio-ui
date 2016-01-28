@@ -393,7 +393,10 @@
         (<! (load-script head s))))))
 
 (defn script-info []
-  (js/console.log (aget js/document "currentScript")))
+  (let [cs (aget js/document "currentScript")]
+    (if cs
+      (js/console.log cs)
+      (js/console.log (.-scripts js/document)))))
 
 (defn ^:export createUI [divElement options]
   ;; Use the default options overriden by the options passed down
