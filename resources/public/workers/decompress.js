@@ -2,9 +2,6 @@
 // webworker for decompressing stuff
 //
 
-importScripts("../lib/dist/laz-perf.js");
-
-
 function swapSpace(buffer, worldBoundsX, pointSize, numPoints, normalize) {
 	// we assume we have x, y and z as the first three floats per point
 	// we are useless without points anyway

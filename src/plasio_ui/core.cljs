@@ -306,13 +306,11 @@
 (def ^:private dev-mode-worker-location "workers/decompress.js")
 (def ^:private dev-mode-standard-includes
   ["js/plasio-renderer.js"
-   "lib/dist/laz-perf.js"
    "lib/dist/plasio-lib.js"])
 
 (def ^:private prod-mode-worker-location "workers/decompress.js")
 (def ^:private prod-mode-standard-includes
   ["js/plasio-renderer.js"
-   "js/laz-perf.js"
    "js/plasio-lib.js"])
 
 (def ^:private css-includes
@@ -389,6 +387,10 @@
           (if dev-mode?
             dev-mode-worker-location
             (make-production-absolute prod-mode-worker-location)))
+
+    ;; set the lazperf path for production builds
+    (aset js/window "LAZPERF_LOCATION"
+          (make-production-absolute "js/laz-perf.js"))
 
     ;; add all styles
     (go
