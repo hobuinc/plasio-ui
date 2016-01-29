@@ -66,6 +66,7 @@ mkdir -p $OUT_DIR
 mkdir -p $OUT_DIR/css
 mkdir -p $OUT_DIR/js
 mkdir -p $OUT_DIR/workers
+mkdir -p $OUT_DIR/img
 
 sass --scss -t compressed "$TEMP_DIR/scss/style.scss" "$OUT_DIR/css/style.css"
 cp "$TEMP_DIR/resources/public/js/compiled/plasio_ui.js" "$OUT_DIR/plasio-ui.js"
@@ -73,6 +74,7 @@ cp "$TEMP_DIR/resources/public/js/plasio-renderer.js" "$OUT_DIR/js/plasio-render
 cp "$TEMP_DIR/resources/public/lib/dist/plasio-lib.js" "$OUT_DIR/js/plasio-lib.js"
 cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.js" "$OUT_DIR/js/laz-perf.js"
 cp "$TEMP_DIR/resources/public/workers/decompress.js" "$OUT_DIR/workers/decompress.js"
+cp "$TEMP_DIR/resources/public/img/entwine.png" "$OUT_DIR/img/entwine.png"
 
 
 # overwrite latest with the most recent build
