@@ -8,6 +8,7 @@ pom.xml
 /classes/
 /out/
 /deploy/
+/speckly/
 /target/
 .lein-deps-sum
 .lein-repl-history

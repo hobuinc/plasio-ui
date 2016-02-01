@@ -19,7 +19,7 @@
    [[:ro :point-size-attenuation] "pa" :number]
    [[:ro :intensity-blend] "ib" :number]
    [[:ro :intensity-clamps] "ic" :vector2]
-   [[:ro :imagery-source] "is" :string3]
+   [[:ro :imagery-source] "is" :string]
    [[:ro :color-ramp] "cr" :keyword]
    [[:ro :color-ramp-range] "ccr" :vector2]
    [[:ro :map_f] "mapf" :number]
