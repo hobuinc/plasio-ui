@@ -16,15 +16,20 @@
       (repeat how-many 0))))
 
 
+(defn- strip-trailing-slash [s]
+  (if (= (last s) "/")
+    (subs s 0 (dec (count s)))
+    s))
+
 (defn urlify [s]
-  (if (re-find #"https?://" s)
+  (if (re-find #"^https?://" s)
     s
     (str "http://" s)))
 
 
 (defn info-url [server resource]
   (urlify
-    (str server "/resource/" resource "/info")))
+    (str (strip-trailing-slash server) "/resource/" resource "/info")))
 
 (defn schema->point-size [schema]
   (apply + (map :size schema)))

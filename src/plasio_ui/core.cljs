@@ -216,7 +216,6 @@
                    (fn [_ _ o n]
                      ;; camera causes its own snapshot saving etc.
                      ;; we only concern ourselves with app state here
-                     (println "going to push stae!")
                      (when (and *save-snapshot-on-ui-update*)
                        (let [all-same? (util/identical-in-paths? (history/all-url-keys) o n)]
                          (when-not all-same?

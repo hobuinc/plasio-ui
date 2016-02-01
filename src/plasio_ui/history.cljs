@@ -18,13 +18,13 @@
    [[:ro :point-size] "ps" :number]
    [[:ro :point-size-attenuation] "pa" :number]
    [[:ro :intensity-blend] "ib" :number]
-   [[:ro :intensity-clamps] "ic" :vector3]
+   [[:ro :intensity-clamps] "ic" :vector2]
    [[:ro :imagery-source] "is" :string3]
    [[:ro :color-ramp] "cr" :keyword]
-   [[:ro :color-ramp-range] "ccr" :vector3]
+   [[:ro :color-ramp-range] "ccr" :vector2]
    [[:ro :map_f] "mapf" :number]
    [[:pm :z-exaggeration] "ze" :number]
-   [[:ui :local-options :color-ramp-override] "cro" :vector3]])
+   [[:ui :local-options :color-ramp-override] "cro" :vector2]])
 
 (defn all-url-keys []
   (mapv first path-mappers))
@@ -46,8 +46,14 @@
 (defmethod compress-entity :string [[_ val]]
   val)
 
-(defmethod compress-entity :vector3 [[_ val]]
+(defn unparse-vec [val]
   (clojure.string/join "," (map #(compress-entity [:number %]) val)))
+
+(defmethod compress-entity :vector3 [[_ val]]
+  (unparse-vec val))
+
+(defmethod compress-entity :vector2 [[_ val]]
+  (unparse-vec val))
 
 (defmethod compress-entity :boolean [[_ val]]
   (if (true? val) "1" "0"))
@@ -64,13 +70,31 @@
 (defmethod decompress-entity :string [[_ val]]
   val)
 
-(defmethod decompress-entity :vector3 [[_ val]]
+
+(defn- parse-vec [val]
   (let [parts (clojure.string/split val #",")
         res (into [] (map js/parseFloat parts))]
-    (when-not (= 3 (count res))
-      (throw
-        (js/Error.
-          (str "Validation failed for vector3 entity, 3 items were expected but only " (count res) " found"))))))
+    res))
+
+(defn validate-vec-size [v size]
+  (if-not (= size (count v))
+    (throw
+      (js/Error.
+        (str "Validation failed for vector entity, "
+             size
+             " items were expected but only "
+             (count v) " found")))
+    v))
+
+(defmethod decompress-entity :vector3 [[_ val]]
+  (-> val
+      parse-vec
+      (validate-vec-size 3)))
+
+(defmethod decompress-entity :vector2 [[_ val]]
+  (-> val
+      parse-vec
+      (validate-vec-size 2)))
 
 (defmethod decompress-entity :boolean [[_ val]]
   (= val "1"))
