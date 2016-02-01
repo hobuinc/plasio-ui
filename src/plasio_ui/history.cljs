@@ -7,38 +7,88 @@
 ;; define all paths from to compressed name mappings, this will be used to construct URLs and to
 ;; decode information back from these URLs
 (def ^:private path-mappers
-  [[[:server] "s"]
-   [[:resource] "r"]
-   [[:camera :azimuth] "ca"]
-   [[:camera :elevation] "ce"]
-   [[:camera :target] "ct"]
-   [[:camera :distance] "cd"]
-   [[:camera :max-distance] "cmd"]
-   [[:ro :circular?] "cp"]
-   [[:ro :point-size] "ps"]
-   [[:ro :point-size-attenuation] "pa"]
-   [[:ro :intensity-blend] "ib"]
-   [[:ro :intensity-clamps] "ic"]
-   [[:ro :imagery-source] "is"]
-   [[:ro :color-ramp] "cr" keyword]
-   [[:ro :color-ramp-range] "ccr"]
-   [[:ro :map_f] "mapf"]
-   [[:pm :z-exaggeration] "ze"]
-   [[:ui :local-options :color-ramp-override] "cro"]])
+  [[[:server] "s" :string]
+   [[:resource] "r" :string]
+   [[:camera :azimuth] "ca" :number]
+   [[:camera :elevation] "ce" :number]
+   [[:camera :target] "ct" :vector3]
+   [[:camera :distance] "cd" :number]
+   [[:camera :max-distance] "cmd" :number]
+   [[:ro :circular?] "cp" :boolean]
+   [[:ro :point-size] "ps" :number]
+   [[:ro :point-size-attenuation] "pa" :number]
+   [[:ro :intensity-blend] "ib" :number]
+   [[:ro :intensity-clamps] "ic" :vector3]
+   [[:ro :imagery-source] "is" :string3]
+   [[:ro :color-ramp] "cr" :keyword]
+   [[:ro :color-ramp-range] "ccr" :vector3]
+   [[:ro :map_f] "mapf" :number]
+   [[:pm :z-exaggeration] "ze" :number]
+   [[:ui :local-options :color-ramp-override] "cro" :vector3]])
 
 (defn all-url-keys []
   (mapv first path-mappers))
+
+(defmulti compress-entity first)
+(defmulti decompress-entity first)
+
+(defn- required-precision [val]
+  (let [scaled (js/Math.floor (* 1000 val))]
+    (cond
+      (pos? (rem scaled 10)) 3
+      (pos? (rem scaled 100)) 2
+      (pos? (rem scaled 1000)) 1
+      :else 0)))
+
+(defmethod compress-entity :number [[_ val]]
+  (.toFixed val (required-precision val)))
+
+(defmethod compress-entity :string [[_ val]]
+  val)
+
+(defmethod compress-entity :vector3 [[_ val]]
+  (clojure.string/join "," (map #(compress-entity [:number %]) val)))
+
+(defmethod compress-entity :boolean [[_ val]]
+  (if (true? val) "1" "0"))
+
+(defmethod compress-entity :keyword [[_ val]]
+  (name val))
+
+(defmethod compress-entity :default [[t val]]
+  (throw (js/Error. (str "Don't know how to compress URL entity of type: " t " with value: " val))))
+
+(defmethod decompress-entity :number [[_ val]]
+  (js/parseFloat val))
+
+(defmethod decompress-entity :string [[_ val]]
+  val)
+
+(defmethod decompress-entity :vector3 [[_ val]]
+  (let [parts (clojure.string/split val #",")
+        res (into [] (map js/parseFloat parts))]
+    (when-not (= 3 (count res))
+      (throw
+        (js/Error.
+          (str "Validation failed for vector3 entity, 3 items were expected but only " (count res) " found"))))))
+
+(defmethod decompress-entity :boolean [[_ val]]
+  (= val "1"))
+
+(defmethod decompress-entity :keyword [[_ val]]
+  (name val))
+
+(defmethod decompress-entity :default [[t val]]
+  (throw (js/Error. (str "Don't know how to compress URL entity of type: " t " with value: " val))))
 
 (defn- compress [obj]
   (let [pairs (for [[ks token t] path-mappers
                     :let [val (get-in obj ks)]
                     :when val]
-                [token val])]
+                [token val t])]
     (join "&"
-          (map (fn [[token val]]
-                 (str token "=" (-> val
-                                    clj->js
-                                    js/JSON.stringify
+          (map (fn [[token val t]]
+                 (str token "=" (-> (compress-entity [t val])
                                     js/encodeURIComponent)))
                pairs))))
 
@@ -51,12 +101,8 @@
     (reduce
      (fn [acc [k v]]
        (if-let [[p t] (get reverse-map k)]
-         (let [val (-> v
-                       js/decodeURIComponent
-                       js/JSON.parse
-                       js->clj)]
-           (assoc-in acc p
-                     (if t (t val) val)))))
+         (let [val (decompress-entity [t (js/decodeURIComponent v)])]
+           (assoc-in acc p val))))
      {}
      tokens)))
 
@@ -88,13 +134,16 @@
       (let [[to-store url-qs] (prep-state obj)]
         (.replaceState history to-store title url-qs)))))
 
-
 (defn current-state-from-query-string
   ([]
     (current-state-from-query-string (.. js/window -location -search)))
   ([qs]
-    (when-not (clojure.string/blank? qs)
-      (decompress (subs qs 1)))))
+   (try
+     (when-not (clojure.string/blank? qs)
+       (decompress (subs qs 1)))
+     (catch js/Error e
+       (js/console.log "URL was malformed:" e)
+       {}))))
 
 (defn listen
   "bind to state pop event if its available, call f with the popped state"

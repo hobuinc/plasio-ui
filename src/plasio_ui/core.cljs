@@ -358,7 +358,7 @@
 (defn- make-production-absolute [file]
   (if-let [prod-path (aget js/window "PRODUCTION_PLASIO_UI_BASE_PATH")]
     (str prod-path file)
-    (throw (js/Error. "PRODUCTION_PLASIO_UI_BASE_BATH is not set for production build, cannot deduce resource path."))))
+    (throw (js/Error. "PRODUCTION_PLASIO_UI_BASE_PATH is not set for production build, cannot deduce resource path."))))
 
 (defn- include-resources [{:keys [includeExternalDependencies ignoreDependencies googleMapsAPIKey]}]
   (let [dev-mode? (true? (aget js/window "DEV_MODE"))
@@ -390,7 +390,9 @@
 
     ;; set the lazperf path for production builds
     (aset js/window "LAZPERF_LOCATION"
-          (make-production-absolute "js/laz-perf.js"))
+          (if dev-mode?
+            "lib/dist/laz-perf.js"
+            (make-production-absolute "js/laz-perf.js")))
 
     ;; add all styles
     (go
