@@ -1,4 +1,4 @@
-(defproject plasio-ui "0.0.8"
+(defproject plasio-ui "0.0.9"
   :description "FIXME: write this!"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -38,6 +38,8 @@
                          :externs ["vendor/externs/nouislider.js"
                                    "vendor/externs/plasiolib.js"
                                    "vendor/externs/extras.js"
+                                   "vendor/externs/react-dom.ext.js"
+                                   "vendor/externs/react.ext.js"
                                    "vendor/externs/google_maps_api_v3_11.js"]
                          :pretty-print false}}]}
 
