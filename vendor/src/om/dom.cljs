@@ -4,7 +4,7 @@
   (:require [cljsjs.react]
             [goog.object :as gobject]))
 
-(dom/gen-react-dom-fns)
+
 
 (defn wrap-form-element [ctor display-name]
   (js/React.createFactory
@@ -38,11 +38,11 @@
                     :children (aget (.-props this) "children")})
              (ctor props))))})))
 
-(def input (wrap-form-element js/React.DOM.input "input"))
-
-(def textarea (wrap-form-element js/React.DOM.textarea "textarea"))
-
-(def option (wrap-form-element js/React.DOM.option "option"))
+(defn initialize []
+  (dom/gen-react-dom-fns)
+  (def input (wrap-form-element js/React.DOM.input "input"))
+  (def textarea (wrap-form-element js/React.DOM.textarea "textarea"))
+  (def option (wrap-form-element js/React.DOM.option "option")))
 
 (defn render
   "Equivalent to React.render"

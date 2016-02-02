@@ -9,6 +9,7 @@
             [cljs-http.client :as http]
             [goog.string.format]
             [om.core :as om]
+            [om.dom :as dom]
             [plasio-ui.util :as util]
             cljsjs.gl-matrix
             [clojure.string :as s])
@@ -318,7 +319,10 @@
 (def ^:private third-party-scripts
   [[:jquery "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"]
    [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.2.1/nouislider.min.js"]
-   [:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"]])
+   [:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"]
+   [:react ["https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.min.js"
+            "https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.min.js"]]])
+
 
 (def ^:private third-party-styles
   [[:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"]
@@ -395,11 +399,12 @@
 
     ;; add all styles
     (go
-      (doseq [s styles]
+      (doseq [s (flatten styles)]
         (<! (load-css head s)))
 
       ;; add all scripts
-      (doseq [s scripts]
+      (println "scripts!" scripts)
+      (doseq [s (flatten scripts)]
         (<! (load-script head s))))))
 
 (defn script-path []
@@ -420,6 +425,9 @@
     (go
       ;; include any resources we may need
       (<! (include-resources opts))
+
+      ;; as a side effect of loading react lazily, we need to explicitly tell react dom to initialize
+      (dom/initialize)
 
       ;; startup
       (startup divElement, opts))
