@@ -101,7 +101,7 @@
           op (-> @ui :open-panes set)
           dp (-> @ui :docked-panes set)]
       (d/div
-        {:class "plasio-ui"}
+        {:class     "plasio-ui"}
         ;; setup render target
         (om/build aw/render-target {:renderer-state @root})
 
@@ -178,7 +178,7 @@
                          ))))
 
 
-(defn startup [div-element, options]
+(defn startup [div-element options]
   (go
     (let [url-state-settings (when (:useBrowserHistory options)
                                (or (history/current-state-from-query-string) {}))
@@ -430,7 +430,7 @@
       (dom/initialize)
 
       ;; startup
-      (startup divElement, opts))
+      (startup divElement opts))
 
     ;; return a JS object which can be used to interact with the UI
     (js-obj "destroy" (fn []
@@ -445,6 +445,7 @@
   (when plasio?
     (let [base-path (s/replace path #"plasio-ui\.js$" "")]
       (aset js/window "PRODUCTION_PLASIO_UI_BASE_PATH" base-path))))
+
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

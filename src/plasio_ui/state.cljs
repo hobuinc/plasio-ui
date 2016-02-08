@@ -218,11 +218,17 @@
         loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
                    server resource
                    (clj->js schema)
-                   ;; the default startup imagery is different based on whether you have color or not
-                   (or (:imagery-source ro)
-                       (if (:color? color-info)
-                         "none"
-                         "mapbox.satellite")))
+                   (js-obj
+                     ;; the default startup imagery is different based on whether you have color or not
+                     "imagerySource"
+                     (or (:imagery-source ro)
+                         (if (:color? color-info)
+                           "none"
+                           "mapbox.satellite"))
+
+                     ;; should we send down withCredentials = true for greyhound requests?
+                     "allowGreyhoundCredentials"
+                     (true? (:allowGreyhoundCredentials init-params))))
                  (js/PlasioLib.Loaders.TransformLoader.)]
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (apply array loaders)
