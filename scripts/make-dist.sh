@@ -40,8 +40,8 @@ echo ":: OK to proceed... press a key"
 
 read
 
-TEMP_DIR=`mktemp -d -t plasio-ui`
-echo ":: checking out code..."
+TEMP_DIR=`mktemp -d`
+echo ":: checking out code to $TEMP_DIR ... "
 git --work-tree=$TEMP_DIR checkout $LATEST_TAG -- .
 
 echo ":: building ... may take a moment."
