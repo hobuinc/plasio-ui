@@ -1,4 +1,4 @@
-(defproject plasio-ui "0.0.11"
+(defproject plasio-ui "0.0.12"
   :description "FIXME: write this!"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"

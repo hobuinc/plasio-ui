@@ -142,7 +142,7 @@
 
   (go
     (let [info (-> (util/info-url server resource)
-                   (http/get {:with-credentials? false})
+                   (http/get {:with-credentials? (true? (:allowGreyhoundCredentials init-state))})
                    <!
                    :body)
 
