@@ -30,6 +30,7 @@
    :pm     {:z-exaggeration 1}
    :current-actions {}
    :histogram {}
+   :intensity-histogram {}
    :comps  {}})
 
 (defonce app-state (atom default-init-state))
@@ -46,6 +47,7 @@
 (def pm (om/ref-cursor (:pm root-state)))
 (def comps (om/ref-cursor (:comps root-state)))
 (def histogram (om/ref-cursor (:histogram root-state)))
+(def intensity-histogram (om/ref-cursor (:intensity-histogram root-state)))
 (def current-actions (om/ref-cursor (:current-actions root-state)))
 
 
@@ -199,6 +201,12 @@
           ;; the index hasn't changed since we were queued for save
           (save-current-snapshot!))))))
 
+(defn- sources-array [channels]
+  (apply array
+         (for [i (range 4)
+               :let [c (keyword (str "channel" i))]]
+           (get-in channels [c :source]))))
+
 (defn initialize-for-resource [e {:keys [server resource
                                          schema
                                          bounds ro
@@ -215,20 +223,21 @@
         
         bbox [(nth bounds 0) (nth bounds 2) (nth bounds 1)
               (nth bounds 3) (nth bounds 5) (nth bounds 4)]
+
+        ;; if there are any sources that are specified in the render options, set them up
+        sources (sources-array (:channels ro))
+
+        
         loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
                    server resource
                    (clj->js schema)
                    (js-obj
-                     ;; the default startup imagery is different based on whether you have color or not
-                     "imagerySource"
-                     (or (:imagery-source ro)
-                         (if (:color? color-info)
-                           "none"
-                           "mapbox.satellite"))
+                     ;; load whichever sources were were asked to
+                    "imagerySources" (sources-array (:channels ro))
 
-                     ;; should we send down withCredentials = true for greyhound requests?
-                     "allowGreyhoundCredentials"
-                     (true? (:allowGreyhoundCredentials init-params))))
+                    ;; should we send down withCredentials = true for greyhound requests?
+                    "allowGreyhoundCredentials"
+                    (true? (:allowGreyhoundCredentials init-params))))
                  (js/PlasioLib.Loaders.TransformLoader.)]
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (apply array loaders)
@@ -317,16 +326,8 @@
     ;;
     (.setRenderOptions renderer
                        (js-obj "circularPoints" 0
-                               "overlay_f" 0
-                               "rgb_f" 1
-                               "map_f" 0
-                               "intensity_f" 1
-                               "clampLower" (nth (:intensity-clamps ro) 0)
-                               "clampHigher" (nth (:intensity-clamps ro) 1)
-                               "maxColorComponent" 8
                                "pointSize" (:point-size ro)
                                "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
-                               "intensityBlend" (:intensity-blend ro)
                                "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
     (.setClearColor renderer 0 (/ 29 256) (/ 33 256))
     (.start policy)
@@ -412,3 +413,25 @@
     (println "-- -- computed: " x' y')
     ;; may need to do something about easting
     (.transitionTo camera x' nil y')))
+
+
+(defn set-channel-source! [channel source]
+  ;; setting a new source on a channel will wipe out all settings
+  (om/transact! ro #(assoc-in % [:channels channel] {:source source})))
+
+(defn set-channel-contribution! [channel source]
+  (om/transact! ro #(assoc-in % [:channels channel :contribution] source)))
+
+(defn mute-channel! [channel mute?]
+  (om/transact! ro #(-> %
+                        (assoc-in [:channels channel :mute?] mute?)
+                        (assoc-in [:channels channel :solo?] false))))
+
+(defn solo-channel! [channel solo?]
+  (om/transact! ro #(-> %
+                        (assoc-in [:channels channel :solo?] solo?)
+                        (assoc-in [:channels channel :mute?] false))))
+
+(defn set-channel-ramp! [channel ramp]
+  (om/transact! ro #(assoc-in % [:channels channel :range-clamps] ramp)))
+

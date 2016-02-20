@@ -76,9 +76,12 @@
                           (:min props)
                           (:max props)
                           (fn [_] (f (slider-val node)))))
-        (when (not= (:start props)
-                    (slider-val node))
-          (.set (.-noUiSlider node) (clj->js (:start props)))))))
+        (let [slider (.-noUiSlider node)]
+          (.set slider (clj->js (:start props)))
+          (when-not (= (:disabled? props) (:disabled? pp))
+            (if (:disabled? props)
+              (.setAttribute node "disabled" true)
+              (.removeAttribute node "disabled")))))))
 
 
   (render [_]

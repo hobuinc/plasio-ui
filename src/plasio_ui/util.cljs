@@ -127,4 +127,15 @@
   (zero?
    (.indexOf type "mapbox")))
 
-
+(defn adjust-channels [channels]
+  ;; figure if we have a solo channel, if we do, it means that all other channels
+  ;; are automatically mute, unless they have a solo on too?
+  (if (some (fn [[k v]] (:solo? v)) channels)
+    ;; we have at least one channel with solo
+    (into {} (for [i (range 4)
+                   :let [c (keyword (str "channel" i))
+                         v (get channels c)]]
+               [c (if-not (:solo? v)
+                    (assoc v :mute? true)
+                    v)]))
+    channels))

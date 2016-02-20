@@ -17,14 +17,24 @@
    [[:ro :circular?] "cp" :boolean]
    [[:ro :point-size] "ps" :number]
    [[:ro :point-size-attenuation] "pa" :number]
-   [[:ro :intensity-blend] "ib" :number]
-   [[:ro :intensity-clamps] "ic" :vector2]
-   [[:ro :imagery-source] "is" :string]
-   [[:ro :color-ramp] "cr" :keyword]
-   [[:ro :color-ramp-range] "ccr" :vector2]
-   [[:ro :map_f] "mapf" :number]
    [[:pm :z-exaggeration] "ze" :number]
-   [[:ui :local-options :color-ramp-override] "cro" :vector2]])
+
+   ;; per channel values
+   [[:ro :channels :channel0 :source] "c0s" :string]
+   [[:ro :channels :channel0 :contribution] "c0c" :number]
+   [[:ro :channels :channel0 :range-clamps] "c0r" :vector2]
+
+   [[:ro :channels :channel1 :source] "c1s" :string]
+   [[:ro :channels :channel1 :contribution] "c1c" :number]
+   [[:ro :channels :channel1 :range-clamps] "c1r" :vector2]
+
+   [[:ro :channels :channel2 :source] "c2s" :string]
+   [[:ro :channels :channel2 :contribution] "c2c" :number]
+   [[:ro :channels :channel2 :range-clamps] "c2r" :vector2]
+
+   [[:ro :channels :channel3 :source] "c3s" :string]
+   [[:ro :channels :channel3 :contribution] "c3c" :number]
+   [[:ro :channels :channel3 :range-clamps] "c3r" :vector2]])
 
 (defn all-url-keys []
   (mapv first path-mappers))

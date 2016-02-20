@@ -14,7 +14,8 @@
             [clojure.string :as s]
             [plasio-ui.math :as math]
             [cljs.core.async :refer [<!]]
-            [plasio-ui.util :as util])
+            [plasio-ui.util :as util]
+            [clojure.string :as str])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (let [id :rendering-options]
@@ -544,6 +545,29 @@
         (d/p {:class "error"} error)))))
 
 
+(defn- sources-changed? [old-chans new-chans]
+  (println old-chans new-chans)
+  (some (fn [i]
+          (let [c (keyword (str "channel" i))
+                old-source (get-in old-chans [c :source])
+                new-source (get-in new-chans [c :source])]
+            (not= old-source new-source)))
+        (range 4)))
+
+
+(defn- default-ramp-for-source [source-name root-state renderer-state]
+  (let [bounds (:bounds root-state)]
+    (cond
+      (zero? (.indexOf source-name "local://elevation"))
+      (get-in renderer-state [:ro :zrange] [(bounds 2) (bounds 5)])
+
+      (zero? (.indexOf source-name "local://intensity"))
+      (get-in renderer-state [:ro :irange] [0 255])
+
+      ;; probably just color
+      :else
+      [0 255])))
+
 (defcomponentk render-target [[:data renderer-state] state owner]
   (did-mount [_]
     ;; time to intialize the renderer and set it up
@@ -567,25 +591,24 @@
                                    ;; update the state of our renderer based on what we get from the histogram
                                    (om/update! plasio-state/ro :zrange [nn xx])
                                    (om/update! plasio-state/histogram hist))))))
+        (.addStatsListener r "intensity" "intensity-collector"
+                           (fn [_ n]
+                             (println "------- INTENSITY!")
+                             (let [hist (js->clj n)]
+                               (when-not (empty? hist)
+                                 (let [hist (into {} (for [[k v] hist]
+                                                       [(js/parseInt k) v]))
+                                       nn (apply min (keys hist))
+                                       xx (apply max (keys hist))
+                                       hist (merge (util/zero-histogram nn xx 10)
+                                                   hist)]
+                                   ;; update the state of our renderer based on what we get from the histogram
+                                   (om/update! plasio-state/ro :irange [nn xx])
+                                   (om/update! plasio-state/intensity-histogram hist))))))
         (swap! state assoc :cleanup-fn
                (fn []
-                 (.removeStatsListener r "z" "z-collector")))
-
-        ;; to determine the correct range for the colors, we need to wait for a color range to arrive
-        ;; and then based on that we determine whether colors are 16bit or 32bit.
-        ;;
-        (.addStatsListener r "red" "red-collector"
-                           (fn [_ n]
-                             (when n
-                               (let [hist (js->clj n)
-                                     red-comp (->> hist
-                                                   keys
-                                                   (map js/parseInt)
-                                                   (filter #(> % 255))
-                                                   first)]
-                                 (.removeStatsListener r "red" "red-collector")
-                                 (om/transact! plasio-state/ro
-                                               #(assoc % :max-color-component (if red-comp 65535 255))))))))
+                 (.removeStatsListener r "z" "z-collector")
+                 (.removeStatsListener r "intensity" "intensity-collector"))))
 
       ;; save intialized state
       (om/update! plasio-state/comps comps)))
@@ -594,54 +617,65 @@
     (when-let [cfn (:cleanup-fn @state)]
       (cfn)))
 
+
   (did-update [_ prev-props prev-state]
     ;; apply any state that needs to be applied here
-    (let [r (get-in @plasio-state/root [:comps :renderer])
+    (let [root @plasio-state/root
+
+          r (get-in root [:comps :renderer])
           pn (:renderer-state prev-props)
           n (:renderer-state (om/get-props owner))
           ro (:ro n)
           lo (get-in n [:ui :local-options])
-          [ramp-sc ramp-ec] (get config/color-ramps (:color-ramp ro))
-          [color-ramp-start color-ramp-end] (:color-ramp-range ro)
-          p (get-in @plasio-state/root [:comps :policy])
-          zrange (or (:zrange ro) (:bounds n))
-          ramp-override (:color-ramp-override lo)
-          zrange-lower (or (nth ramp-override 0) (nth zrange 0))
-          zrange-upper (or (nth ramp-override 1) (nth zrange 1))
-          map_f (get ro :map_f 0.0)
-          rgb_f (- 1 map_f)
+          p (get-in root [:comps :policy])
 
-          ;; setting max color component is slightly more involved.  If we're using
-          ;; color as sent down by the source, we use whatever the current max-color-component
-          ;; is, if we have an imagery set, the color always needs to be 256
-          ;;
-          max-color-component (if (or (s/blank? (:imagery-source ro))
-                                      (= (:imagery-source ro) "none"))
-                                ;; no imagery source set, so set it to whatever the point source has set it to
-                                ;; make sure its not zero though
-                                (max 1 (get ro :max-color-component 256))
-                                ;; otherwise its always 256
-                                256)]
+          bounds (:bounds root)
+          zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
 
-      (println "-- -- max-color-component:" max-color-component ro)
+          adjusted-chans (util/adjust-channels (get-in ro [:channels]))
+
+          ;; get channels
+          chans (->> (range 4)
+                     (map #(keyword (str "channel" %)))
+                     (keep (fn [channel]
+                             (let [data (get adjusted-chans channel)]
+                               (when-not (str/blank? (:source data))
+                                 data)))))
+
+          available-chans (count chans)
+
+          ;; blending contributions
+          blending-contributions (apply array (for [i (range 4)]
+                                                (if (< i available-chans)
+                                                  (let [c (nth chans i)]
+                                                    (cond
+                                                      (:mute? c) 0
+                                                      :else (/ (:contribution c 50) 100)))
+                                                  0)))
+
+          ramps (for [i (range 4)]
+                  (if (< i available-chans)
+                    (let [c (nth chans i)]
+                      (:range-clamps c (default-ramp-for-source (:source c) root n)))
+                    [0 0]))
+
+          ramp-lows (apply array (map first ramps))
+          ramp-highs (apply array (map second ramps))]
+
+      (println "contributions:" blending-contributions)
+      (println "ramps:" ramp-lows ramp-highs)
+
       ;; standard render options
       ;;
       (.setRenderOptions r (js-obj
                              "circularPoints" (if (true? (:circular? ro)) 1 0)
+                             "colorBlendWeights" blending-contributions
+                             "clampsLow" ramp-lows
+                             "clampsHigh" ramp-highs
                              "pointSize" (:point-size ro)
                              "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
-                             "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)
-                             "intensityBlend" (:intensity-blend ro)
-                             "clampLower" (nth (:intensity-clamps ro) 0)
-                             "clampHigher" (nth (:intensity-clamps ro) 1)
-                             "colorClampHigher" color-ramp-end
-                             "colorClampLower" color-ramp-start
-                             "maxColorComponent" max-color-component
-                             "zrange" (array zrange-lower zrange-upper)
-                             "rgb_f" rgb_f
-                             "map_f" map_f
-                             "rampColorStart" (apply array ramp-sc)
-                             "rampColorEnd" (apply array ramp-ec)))
+                             "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
+     
       ;; apply any screen rejection values
       (let [density (get ro :point-density 2)
             factor (+ 100 (- 500 (* density 100)))]
@@ -676,19 +710,25 @@
                         size)
           (.removePlane r "innundation")))
 
-      ;; if the imagery source has changed we need to update that
+      ;; if the color channels have changed, update
       ;;
-      (let [is (:imagery-source ro)
-            pis (get-in pn [:ro :imagery-source])]
-        (when-not (= is pis)
-          (println "-- -- imagery source has changed:" is pis)
+      (let [current-chans (:channels ro)
+            old-chans (get-in pn [:ro :channels])]
+        (when (sources-changed? current-chans old-chans)
           (let [policy (:policy @plasio-state/comps)
-                loader (get @plasio-state/comps :point-loader)]
-            (.hookedReload policy
-                           #(.setColorSourceImagery loader is)))))
+                loader (get @plasio-state/comps :point-loader)
 
-      (set! (.-IMAGE_QUALITY js/PlasioLib.Loaders.MapboxLoader)
-            (get-in n [:ui :local-options :imagery-quality] 1))))
+                ;; all this hackery because the channels cannot be out of order
+                all-chans (->> current-chans
+                               seq
+                               (sort-by first)
+                               (map second))]
+            (.hookedReload policy
+                           (fn []
+                             (doall
+                              (map-indexed (fn [idx {s :source}]
+                                             (.setColorChannel loader idx s))
+                                           all-chans)))))))))
 
   (render [_]
     (d/div {:class "render-target"})))
@@ -874,3 +914,133 @@
                    (let [icon (get menu-item-mapping id :fa-exclamation-triangle)]
                      (->icon icon))
                    (d/div {:class "item-tip"} title)))))))))
+
+(defcomponentk sources-dropdown [[:data selected all f-changed]]
+  (render [_]
+    (let [all-options (->> all
+                           seq
+                           (sort-by second)
+                           (cons [nil "None"]))
+          selected-option (fn [e]
+                            (let [index (aget e "selectedIndex")
+                                  item  (aget e "options" index "value")]
+                              item))]
+
+      (println "seleceted:" selected ", all:" all)
+      (apply b/dropdown {:bs-size "small"
+                         :title   (if (nil? selected) "None"  (get all selected))}
+             (for [[id name] all-options]
+               (b/menu-item {:key       id
+                             :on-select (fn []
+                                          (f-changed id))}
+                            name))))))
+
+
+(defn- source->needed-tools [source]
+  (cond
+    (zero? (.indexOf source "local://elevation"))
+    #{:zrange}
+
+    (zero? (.indexOf source "local://intensity"))
+    #{:irange}
+
+    :else
+    #{}))
+
+
+(defcomponentk channel-control [[:data name data channel all-sources
+                                 zbounds histogram
+                                 ibounds intensity-histogram]]
+  (render [_]
+    (d/div
+     {:class "channel"}
+     (d/div
+      {:class "clearfix"})
+     (d/div {:class "name pull-left"} name)
+     (d/div {:class "controls pull-right"}
+            (d/a {:class (str "mute" (when (:mute? data) " enabled"))
+                  :href "javascript:"
+                  :on-click #(plasio-state/mute-channel! channel (not (:mute? data)))} "Mute")
+            (d/a {:class (str "solo" (when (:solo? data) " enabled"))
+                  :href "javascript:"
+                  on-click #(plasio-state/solo-channel! channel (not (:solo? data)))} "Solo"))
+     (d/div {:class "source"}
+            (om/build sources-dropdown {:selected (:source data)
+                                        :f-changed #(plasio-state/set-channel-source! channel %)
+                                        :all all-sources}))
+     (when-not (str/blank? (:source data))
+       (let [needed-tools (source->needed-tools (:source data))]
+         (d/div
+          (d/div {:class "channel-options"}
+                 ;; channel contribution
+                 (let [{:keys [mute? solo? contribution]} data]
+                   (om/build w/labeled-slider
+                             {:min     1
+                              :max     100
+                              :start   (cond
+                                         mute? 0
+                                         :else (or contribution 50))
+                              :step 1
+                              :connect "lower"
+                              :disabled? mute?
+                              :f       (fn [val]
+                                         (when-not mute?
+                                           (plasio-state/set-channel-contribution! channel val)))})))
+
+          (when (needed-tools :zrange)
+            (d/div {:class "ramp-control"}
+                   (let [[ss se] (get data :range-clamps zbounds)]
+                     (om/build w/z-histogram-slider
+                               {:text      ""
+                                :min       (zbounds 0)
+                                :max       (zbounds 1)
+                                :start     [ss se]
+                                :histogram histogram
+                                :f         #(plasio-state/set-channel-ramp! channel %)}))))
+
+          (when (needed-tools :irange)
+            (d/div {:class "intensity-control"}
+                   (let [[ss se] (get data :range-clamps ibounds)]
+                     (om/build w/z-histogram-slider
+                               {:text      ""
+                                :min       (ibounds 0)
+                                :max       (ibounds 1)
+                                :start     [ss se]
+                                :histogram intensity-histogram
+                                :f         #(plasio-state/set-channel-ramp! channel %)})))
+
+            )
+          ))))))
+
+(let [id :channels]
+  (defcomponentk channels-pane [state owner]
+    (render-state [_ _]
+      (let [ro (om/observe owner plasio-state/ro)
+            as (om/observe owner plasio-state/root)
+            lo (om/observe owner plasio-state/ui-local-options)
+
+            histogram (om/observe owner plasio-state/histogram)
+            intensity-histogram (om/observe owner plasio-state/intensity-histogram)
+
+            bounds (:bounds @as)
+            zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
+            ibounds (or (:irange @ro) [0 255])
+
+            schema-info (util/schema->color-info (:schema @as))
+            color-sources (get-in @as [:init-params :colorSources])]
+
+        (d/div
+         {:class "channels"}
+         (let [ac (util/adjust-channels (get @ro :channels))]
+           (for [i (range 4)
+                 :let [channel (keyword (str "channel" i))]]
+             (om/build channel-control {:name (str "Channel " (inc i))
+                                        :data (get ac channel)
+                                        :channel channel
+                                        :zbounds zbounds
+                                        :ibounds ibounds
+
+                                        :histogram @histogram
+                                        :intensity-histogram @intensity-histogram
+
+                                        :all-sources color-sources}))))))))

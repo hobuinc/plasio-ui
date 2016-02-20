@@ -98,17 +98,6 @@
     text-decoration: none; }
   .plasio-ui a:hover {
     color: #EB7F00; }
-  .plasio-ui select {
-    margin-left: 5px;
-    margin-bottom: 10px;
-    background-color: RGBA(172, 240, 242, 1);
-    width: 100%; }
-    .plasio-ui select:focus {
-      outline: 0; }
-    .plasio-ui select:disabled {
-      cursor: not-allowed;
-      color: #444;
-      background-color: #B8B8B8; }
   .plasio-ui .noselect {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -440,6 +429,37 @@
   .plasio-ui .imagery .ramp-range {
     margin-top: 5px;
     text-align: center; }
+  .plasio-ui .channels {
+    margin-left: -5px;
+    margin-right: -5px; }
+    .plasio-ui .channels .channel {
+      background-color: #efefef;
+      border-radius: 3px;
+      padding: 10px;
+      margin-bottom: 3px; }
+      .plasio-ui .channels .channel .controls {
+        text-transform: uppercase;
+        margin-top: 5px; }
+        .plasio-ui .channels .channel .controls a {
+          color: #999;
+          margin-right: 5px;
+          font-weight: 700; }
+          .plasio-ui .channels .channel .controls a.enabled {
+            color: #a00; }
+          .plasio-ui .channels .channel .controls a:hover {
+            color: #333; }
+          .plasio-ui .channels .channel .controls a:last-child {
+            margin-right: 0; }
+      .plasio-ui .channels .channel .btn {
+        display: block;
+        width: 100%; }
+      .plasio-ui .channels .channel .btn-group {
+        width: 100%; }
+      .plasio-ui .channels .channel .name {
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #666;
+        padding: 5px; }
   .plasio-ui .local-settings .form-group {
     margin: 0px; }
   .plasio-ui .local-settings .checkbox {

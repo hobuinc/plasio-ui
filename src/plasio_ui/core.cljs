@@ -29,6 +29,7 @@
 (def ^:private panes
   [[:switch-resource "Switch Resource" :database aw/switch-resource-pane]
    [:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
+   [:channels "Color Channels" :picture-o aw/channels-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
    [:innundation-plane "Innundation Plane" :street-view aw/innundation-plane-pane]
@@ -40,7 +41,7 @@
 
 (def ^:private all-docked-panes
   [:rendering-options
-   :imagery
+   :channels
    :point-manipulation
    :innundation-plane
    :information
@@ -200,6 +201,11 @@
             zrange [(bounds 2) (bounds 5)]]
         (swap! plasio-state/app-state assoc-in [:ro :zrange] zrange))
 
+      ;; if we don't have any channels, enable the first specified source
+      (when-not (seq (get-in @plasio-state/app-state [:ro :channels]))
+        (swap! plasio-state/app-state assoc-in [:ro :channels :channel0 :source]
+               (ffirst (:colorSources options))))
+
       ;; The frustom LOD stuff needs to be configured here
       ;;
       (let [point-count (:num-points settings)
@@ -292,9 +298,13 @@
              (s/blank? googleMapsAPIKey))
     (throw (js/Error. "When includeExternalDependencies is turned on, googleMapsAPIKey needs to be specified."))))
 
+(defn- assert-color-sources [{:keys [colorSources]}]
+  (if-not (seq colorSources)
+    (throw (js/Error. "No colorSources specified, you need at least one."))))
+
 
 (defn validate-options [options]
-  (let [validators [assert-pipeline assert-google-maps-key]
+  (let [validators [assert-pipeline assert-google-maps-key assert-color-sources]
         new-options (reduce (fn [opts v]
                               ;; each validator can pass mutate the options object
                               ;; but if it returns nil, we ignore it
@@ -421,7 +431,13 @@
   ;;
   (let [opts (merge default-options
                     (js->clj (or options (js-obj)) :keywordize-keys true))
+
+        ;; convert everything to keywords except the colorChannels map
+        opts (assoc opts :colorSources (js->clj (aget options "colorSources")))
+        
         opts (validate-options opts)]
+
+    (println "-- input options:" opts)
     (go
       ;; include any resources we may need
       (<! (include-resources opts))

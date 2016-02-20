@@ -133,77 +133,92 @@ var getColorChannelOffsets = function(schema) {
 	return null;
 };
 
+var getIntensityOffset = function(schema) {
+    var offset = null;
+    schema.forEach(function(s, i) {
+        if (s.name === "Intensity")
+            offset = i;
+    });
+
+    return offset;
+}
+
 var totalSaved = 0;
 var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize) {
-	var x = new Module.DynamicLASZip();
+    var x = new Module.DynamicLASZip();
 
-	var abInt = new Uint8Array(ab);
-	var buf = Module._malloc(ab.byteLength);
+    var abInt = new Uint8Array(ab);
+    var buf = Module._malloc(ab.byteLength);
 
-	Module.HEAPU8.set(abInt, buf);
-	x.open(buf, ab.byteLength);
+    Module.HEAPU8.set(abInt, buf);
+    x.open(buf, ab.byteLength);
 
-	var pointSize = 0;
-	var needUnpack = false;
+    var pointSize = 0;
+    var needUnpack = false;
 
-	schema.forEach(function(f) {
-		pointSize += f.size;
-		if (f.type === "floating")
-			x.addFieldFloating(f.size);
-		else if (f.type === "unsigned") {
-			x.addFieldUnsigned(f.size);
-			needUnpack = true;
-		}
-		else
-			throw new Error("Unrecognized field desc:", f);
-	});
+    schema.forEach(function(f) {
+        pointSize += f.size;
+        if (f.type === "floating")
+            x.addFieldFloating(f.size);
+        else if (f.type === "unsigned") {
+            x.addFieldUnsigned(f.size);
+            needUnpack = true;
+        }
+        else
+            throw new Error("Unrecognized field desc:", f);
+    });
 
-	totalSaved += (numPoints * pointSize) - ab.byteLength;
-	var out = Module._malloc(numPoints * pointSize);
+    totalSaved += (numPoints * pointSize) - ab.byteLength;
+    var out = Module._malloc(numPoints * pointSize);
 
-	for (var i = 0 ; i < numPoints ; i ++) {
-		x.getPoint(out + i * pointSize);
-	}
+    for (var i = 0 ; i < numPoints ; i ++) {
+        x.getPoint(out + i * pointSize);
+    }
 
-	var ret = new Uint8Array(numPoints * pointSize);
-	ret.set(Module.HEAPU8.subarray(out, out + numPoints * pointSize));
+    var ret = new Uint8Array(numPoints * pointSize);
+    ret.set(Module.HEAPU8.subarray(out, out + numPoints * pointSize));
 
-	Module._free(out);
-	Module._free(buf);
+    Module._free(out);
+    Module._free(buf);
 
-	// we only need to unpack buffer if we have any non-floating point items in schema
-	//
-	var b = needUnpack ?
-		unpackBuffer(ret.buffer, numPoints, pointSize, schema) :
-		new Float32Array(ret.buffer);
+    // we only need to unpack buffer if we have any non-floating point items in schema
+    //
+    var b = needUnpack ?
+        unpackBuffer(ret.buffer, numPoints, pointSize, schema) :
+        new Float32Array(ret.buffer);
 
-	// the point size beyond this point has probably been updated, if the unpack happened we
-	// our point size is now different than what it was before, its always going to be
-	// 4 bytes per components since everything is converted to floats.
-	//
-	pointSize = schema.length * 4;
+    // the point size beyond this point has probably been updated, if the unpack happened we
+    // our point size is now different than what it was before, its always going to be
+    // 4 bytes per components since everything is converted to floats.
+    //
+    pointSize = schema.length * 4;
 
-	// if we got any points, swap them
-	if (numPoints > 0)
-		swapSpace(b, worldBoundsX, pointSize, numPoints, normalize);
+    // if we got any points, swap them
+    if (numPoints > 0)
+        swapSpace(b, worldBoundsX, pointSize, numPoints, normalize);
 
-	// stats collection, if we have color, collect color stats
-	//
-	var statsToCollect = [
-		["z", 1, 10]
-	];
+    // stats collection, if we have color, collect color stats
+    //
+    var statsToCollect = [
+        ["z", 1, 10]
+    ];
 
-	var colorOffsets = getColorChannelOffsets(schema);
+    var colorOffsets = getColorChannelOffsets(schema);
 
-	if (colorOffsets !== null) {
-		statsToCollect.push(["red", colorOffsets[0], 10]);
-		statsToCollect.push(["green", colorOffsets[1], 10]);
-		statsToCollect.push(["blue", colorOffsets[2], 10]);
-	}
+    if (colorOffsets !== null) {
+        statsToCollect.push(["red", colorOffsets[0], 10]);
+        statsToCollect.push(["green", colorOffsets[1], 10]);
+        statsToCollect.push(["blue", colorOffsets[2], 10]);
+    }
 
-	var stats = collectStats(b, pointSize, numPoints, statsToCollect);
+    var intensityOffset = getIntensityOffset(schema);
+    if (intensityOffset !== null) {
+        statsToCollect.push(["intensity", intensityOffset, 10]);
+    }
 
-	return [b, stats];
+    var stats = collectStats(b, pointSize, numPoints, statsToCollect);
+
+    return [b, stats];
 };
 
 self.onmessage = function(e) {

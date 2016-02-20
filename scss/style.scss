@@ -149,24 +149,6 @@
     color: #EB7F00;
   }
 
-
-  select {
-    margin-left: 5px;
-    margin-bottom: 10px;
-    background-color: RGBA(172, 240, 242, 1);
-    width: 100%;
-
-    &:focus {
-      outline: 0;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      color: #444;
-      background-color: #B8B8B8;
-    }
-  }
-
   .noselect {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -653,6 +635,57 @@
       text-align: center;
     }
   }
+
+    .channels {
+      margin-left: -5px;
+      margin-right: -5px;
+      .channel {
+        background-color: #efefef;
+        border-radius: 3px;
+        padding: 10px;
+
+        margin-bottom: 3px;
+
+        .controls {
+          text-transform: uppercase;
+          margin-top: 5px;
+
+          a {
+            color: #999;
+            margin-right: 5px;
+            font-weight: 700;
+
+            &.enabled {
+              color: #a00;
+            }
+
+            &:hover {
+              color: #333;
+            }
+
+            &:last-child {
+              margin-right: 0;
+            }
+          }
+        }
+
+        .btn {
+          display: block;
+          width: 100%;
+        }
+
+        .btn-group {
+          width: 100%;
+        }
+
+        .name {
+          text-transform: uppercase;
+          font-weight: 700;
+          color: #666;
+          padding: 5px;
+        }
+      }
+    }
 
   .local-settings {
     .form-group {
