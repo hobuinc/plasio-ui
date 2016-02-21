@@ -90,7 +90,7 @@ The following options are accepted:
  - `showSearch` - Default `true`.  Shows the little search icon on the right end of the application bar, which triggers a search dropdown for region local searches.  This value is only considered when the application bar is visible, i.e.  `showApplicationBar` is `true`.
  - `brand` - The brand to show in the application bar. Defaults to **speck.ly**.
  - `resourceName` - The resource name to show in the application bar.  Defaults to `resource@server`. Specifying an empty string for this value will result in no resource name showing up.
- - `colorSources` - You need at least one color source.  You can specify any number of color sources.  These sources will become available as the color channels for user to choose from.  See details below.  The first color source is used as default when no channel information is available (e.g. from the URL).
+ - `colorSources` - You need at least one color source.  You can specify any number of color sources.  These sources will become available as the color channels for user to choose from.  See details below.  The first color source is used as default when no default channel information is available (e.g. from the URL).
 
 E.g. to create a bare bone viewer without any of the UI components you could create a renderer like:
 
@@ -98,7 +98,7 @@ E.g. to create a bare bone viewer without any of the UI components you could cre
           useBrowserHistory: true,
           showPanels: false,
           showApplicationBar: false,
-          colorSources: { ... }
+          colorSources: [ ... ]
       });
 
 Or to create a renderer to view a point cloud without messing around with the browser history:
@@ -108,10 +108,12 @@ Or to create a renderer to view a point cloud without messing around with the br
           resource: "such-point-cloud",
           showPanels: false,
           showApplicationBar: false,
-          colorSources: { ... }
+          colorSources: [ ... ]
       });
 
 # Configuring Color Sources
+
+Color sources are specified as an array of pairs.  The first element of each pair is the color source description and the second element is a user friendly name for the source.
 
 Several inbuilt configurable color sources are provided.  There are two kinds of sources:
 
@@ -132,7 +134,7 @@ The user interface will provide appropriate controls to adjust the ramping stop 
 
 ## Remote Sources
 
-For now, remote sources are imagery services, which provide tiles in either TMS or Google style layout.  A remote source can be configured using the service's URL.  The user would need to make sure that the 3 placeholders are available in the specified URL.  These are the `{{x}}`, `{{y}}` and `{{z}}`, which stand for the X, Y and Zomm values for TMS/Google tiling scheme.
+For now, remote sources are imagery services which provide tiles in either TMS or Google style layout.  A remote source can be configured using the service's URL.  The user would need to make sure that the 3 placeholders are available in the specified URL.  These are the `{{x}}`, `{{y}}` and `{{z}}`, which stand for the X, Y and Zomm values for TMS/Google tiling scheme.
 
 E.g. you can specify a mapbox tiling source like: `http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=...`.
 
@@ -141,14 +143,17 @@ E.g. you can specify a mapbox tiling source like: `http://api.tiles.mapbox.com/v
 Here is an example of setting color sources:
 
 ```
-colorSources: {
-    "local://elevation?start=#FF0000&end=#00FF00": "Elevation RED -> GREEN",
-    "local://color": "Color",
-    "local://intensity": "Intensity",
-    "local://origin": "Origin",
-    "local://point-source-id": "Point Source ID",
-    "http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=....": "Mapbox Satellite Imagery"
-}
+colorSources: [
+    ["http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw", "Mapbox Satellite Imagery"],
+    ["http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}.jpg", "ArcGIS Satellite Imagery"],
+    ["local://elevation", "Elevation"],
+    ["local://elevation?start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
+    ["local://elevation?start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
+    ["local://color", "Color"],
+    ["local://intensity", "Intensity"],
+    ["local://origin", "Origin"],
+    ["local://point-source-id", "Point Source ID"]
+]
 ```
 
 # Hosting multiple Plasio UIs on a Single Page

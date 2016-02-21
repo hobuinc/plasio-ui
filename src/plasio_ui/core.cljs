@@ -432,9 +432,6 @@
   (let [opts (merge default-options
                     (js->clj (or options (js-obj)) :keywordize-keys true))
 
-        ;; convert everything to keywords except the colorChannels map
-        opts (assoc opts :colorSources (js->clj (aget options "colorSources")))
-        
         opts (validate-options opts)]
 
     (println "-- input options:" opts)

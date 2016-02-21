@@ -20,7 +20,7 @@ Renderer.prototype.removeHighlightSegment = function() {};
 PlasioLib = {};
 PlasioLib.Loaders = {};
 PlasioLib.Loaders.GreyhoundPipelineLoader = {};
-PlasioLib.Loaders.GreyhoundPipelineLoader.prototype.setColorSourceImagery = function() {};
+PlasioLib.Loaders.GreyhoundPipelineLoader.prototype.setColorChannel = function() {};
 
 PlasioLib.Loaders.MapboxLoader = {};
 PlasioLib.Loaders.MapboxLoader.IMAGE_QUALITY = {};

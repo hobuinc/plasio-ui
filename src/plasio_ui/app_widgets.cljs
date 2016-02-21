@@ -919,8 +919,8 @@
   (render [_]
     (let [all-options (->> all
                            seq
-                           (sort-by second)
                            (cons [nil "None"]))
+          all-as-map (into {} all)
           selected-option (fn [e]
                             (let [index (aget e "selectedIndex")
                                   item  (aget e "options" index "value")]
@@ -928,7 +928,7 @@
 
       (println "seleceted:" selected ", all:" all)
       (apply b/dropdown {:bs-size "small"
-                         :title   (if (nil? selected) "None"  (get all selected))}
+                         :title   (if (nil? selected) "None"  (get all-as-map selected))}
              (for [[id name] all-options]
                (b/menu-item {:key       id
                              :on-select (fn []
