@@ -64,6 +64,7 @@
           node (om/get-node owner "slider")]
       ;; if the range changed, we need to recreate the slider, otherwise
       ;; just update what needs to be
+
       (if (or (not= (:step props) (:step pp))
               (not= (:connect props) (:connect pp))
               (not= (:min props) (:min pp))
@@ -77,7 +78,10 @@
                           (:max props)
                           (fn [_] (f (slider-val node)))))
         (let [slider (.-noUiSlider node)]
-          (.set slider (clj->js (:start props)))
+          (when (not= (:start props)
+                      (slider-val node))
+            (.set slider (clj->js (:start props))))
+
           (when-not (= (:disabled? props) (:disabled? pp))
             (if (:disabled? props)
               (.setAttribute node "disabled" true)

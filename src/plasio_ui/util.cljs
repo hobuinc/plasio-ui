@@ -4,9 +4,12 @@
 
 (defn mapr
   "maps v which is in range ins -> ine, to the range outs -> oute"
-  [v ins ine outs oute]
-  (let [f (/ (- v ins) (- ine ins))]
-    (+ outs (* f (- oute outs)))))
+  ([v ins ine]
+   (mapr v ins ine 0 1))
+
+  ([v ins ine outs oute]
+   (let [f (/ (- v ins) (- ine ins))]
+     (+ outs (* f (- oute outs))))))
 
 (defn- zero-histogram [lower higher step]
   (let [how-many (inc (quot (- higher lower) step))]

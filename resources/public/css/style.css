@@ -403,6 +403,8 @@
       top: 53px;
       bottom: 0;
       width: 100%; }
+      .plasio-ui .docker-widget .active-pane table {
+        font-size: 1em; }
   .plasio-ui .bool-field {
     margin-bottom: 5px; }
   .plasio-ui .bool-field label {

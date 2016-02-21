@@ -944,8 +944,48 @@
     (zero? (.indexOf source "local://intensity"))
     #{:irange}
 
+    (zero? (.indexOf source "local://color-ramp"))
+    #{:zrange}
+
     :else
     #{}))
+
+(defn parse-query-string-params [source]
+  (let [qindex (.indexOf source "?")
+        qs->params (fn [p]
+                     (let [parts (str/split p #"&")]
+                       (into {}
+                             (for [p parts
+                                   :let [[k v] (str/split p #"=")]]
+                               [(keyword k) (js/decodeURIComponent v)]))))]
+    (when-not (neg? qindex)
+      (qs->params (subs source (inc qindex))))))
+
+(defn parse-color [c]
+  (when (and (not (str/blank? c))
+             (re-matches #"(?i)^#[0-9a-f]{6}$" c))
+    [(/ (js/parseInt (subs c 1 3) 16) 255)
+     (/ (js/parseInt (subs c 3 5) 16) 255)
+     (/ (js/parseInt (subs c 5 7) 16) 255)]))
+
+(defn parse-colors-for-ramp [source]
+  (let [params (parse-query-string-params source)
+        start (:start params)
+        end (:end params)]
+    (when (or start end)
+      [(or (parse-color start) [0 0 0])
+       (or (parse-color end) [0 0 0])])))
+
+(defcomponentk ramp-view [[:data data range value]]
+  (render [_]
+    (when-let [[start end] (parse-colors-for-ramp (:source data))]
+      (let [[m n] range
+            [s e] value]
+        (d/div
+         (grad-svg start end
+                   200 15
+                   (util/mapr s m n)
+                   (util/mapr e m n)))))))
 
 
 (defcomponentk channel-control [[:data name data channel all-sources
@@ -988,8 +1028,12 @@
                                            (plasio-state/set-channel-contribution! channel val)))})))
 
           (when (needed-tools :zrange)
-            (d/div {:class "ramp-control"}
-                   (let [[ss se] (get data :range-clamps zbounds)]
+            (let [[ss se] (get data :range-clamps zbounds)]
+              (d/div {:class "ramp-control"}
+                     (om/build ramp-view
+                               {:range zbounds
+                                :value [ss se]
+                                :data  data})
                      (om/build w/z-histogram-slider
                                {:text      ""
                                 :min       (zbounds 0)
@@ -998,19 +1042,21 @@
                                 :histogram histogram
                                 :f         #(plasio-state/set-channel-ramp! channel %)}))))
 
+
           (when (needed-tools :irange)
-            (d/div {:class "intensity-control"}
-                   (let [[ss se] (get data :range-clamps ibounds)]
+            (let [[ss se] (get data :range-clamps ibounds)]
+              (d/div {:class "intensity-control"}
+                     (om/build ramp-view
+                               {:range zbounds
+                                :value [ss se]
+                                :data  data})
                      (om/build w/z-histogram-slider
                                {:text      ""
                                 :min       (ibounds 0)
                                 :max       (ibounds 1)
                                 :start     [ss se]
                                 :histogram intensity-histogram
-                                :f         #(plasio-state/set-channel-ramp! channel %)})))
-
-            )
-          ))))))
+                                :f         #(plasio-state/set-channel-ramp! channel %)}))))))))))
 
 (let [id :channels]
   (defcomponentk channels-pane [state owner]
