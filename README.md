@@ -124,11 +124,11 @@ Several inbuilt configurable color sources are provided.  There are two kinds of
 
 Local sources use the available point description (from schema) to compute a color.  Some of the local sources available are:
 
-    - `elevation` - Compute a color based on points Z value.  Can be ramped using a start and end color like: `http://elevation?start=#FF0000&end=#00FF00` will use elevation to generate a red to green color ramp.
-    - `intensity` - Compute a color based on points intensity if available, black otherwise.  Can be ramped.
-    - `color` - Use the point color information if available, black otherwise.
-    - `origin` - Use the origin of the point to generate point color.
-    - `point-source-id` - Use the point source ID of the point to generate color information.
+  - `elevation` - Compute a color based on points Z value.  Can be ramped using a start and end color like: `http://elevation?start=#FF0000&end=#00FF00` will use elevation to generate a red to green color ramp.
+  - `intensity` - Compute a color based on points intensity if available, black otherwise.  Can be ramped.
+  - `color` - Use the point color information if available, black otherwise.
+  - `origin` - Use the origin of the point to generate point color.
+  - `point-source-id` - Use the point source ID of the point to generate color information.
 
 The user interface will provide appropriate controls to adjust the ramping stop points and histograms over Z values and Intensity values.
 
@@ -144,7 +144,7 @@ Here is an example of setting color sources:
 
 ```
 colorSources: [
-    ["http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw", "Mapbox Satellite Imagery"],
+    ["http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=...", "Mapbox Satellite Imagery"],
     ["http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}.jpg", "ArcGIS Satellite Imagery"],
     ["local://elevation", "Elevation"],
     ["local://elevation?start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
