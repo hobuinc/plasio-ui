@@ -62,6 +62,8 @@ echo ":: staging release $LATEST_TAG in $CWD/releases ..."
 # Make the needed directories
 OUT_DIR=$CWD/releases/$LATEST_TAG
 LATEST_DIR=$CWD/releases/latest
+DIST_DIR=$CWD/dist
+
 mkdir -p $OUT_DIR
 mkdir -p $OUT_DIR/css
 mkdir -p $OUT_DIR/js
@@ -86,6 +88,11 @@ cp -r $OUT_DIR $LATEST_DIR
 
 echo ":: cleaning up."
 rm -rf $TEMP_DIR
+
+echo ":: building dist archive."
+OUTPUTARCHIVE=$DIST_DIR/plasio-ui-$LATEST_TAG.zip
+
+cd $OUT_DIR && zip -r $OUTPUTARCHIVE *
 
 echo ":: done"
 

@@ -64,6 +64,10 @@ Remember to substitute in your [Google Maps API](https://developers.google.com/m
         
 The `includeExternalDependencies` value is `false` here.
 
+# Self-hosting plasio-ui
+
+It is recommended that you refer to plasio-ui on the provided CDN location.  If that wouldn't work for you, pick the latest version from under the `dist/` directory and extract it somewhere your web-page can access it.  You would still just need to directly include `plasio-ui.js`.  It will find all needed dependencies as long as you don't mess with the directory structure from the zip archive.
+
 # Configuring the UI
 The createUI function accepts two parameters:
 
