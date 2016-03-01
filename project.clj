@@ -12,8 +12,8 @@
                  [racehub/om-bootstrap "0.5.3"]
                  [cljs-http "0.1.31"]]
 
-  :plugins [[lein-cljsbuild "1.0.5"]
-                [lein-figwheel "0.5.0-6"]]
+  :plugins [[lein-cljsbuild "1.1.2"]
+            [lein-figwheel "0.5.0-6"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}}
