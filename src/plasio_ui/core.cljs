@@ -100,7 +100,9 @@
           ui-locals (om/observe owner plasio-state/ui-local-options)
           actions (om/observe owner plasio-state/current-actions)
           op (-> @ui :open-panes set)
-          dp (-> @ui :docked-panes set)]
+          dp (-> @ui :docked-panes set)
+
+          panes-to-hide (set (map keyword (:hiddenPanes settings)))]
       (d/div
         {:class     "plasio-ui"}
         ;; setup render target
@@ -118,7 +120,8 @@
 
         ;; render all docked panes
         (when (:showPanels settings)
-          (om/build docked-panes {:panes all-docked-panes}))
+          (println "panes-to-hide:" panes-to-hide)
+          (om/build docked-panes {:panes (remove panes-to-hide all-docked-panes)}))
 
         (om/build aw/logo {})
 
@@ -204,7 +207,8 @@
       ;; if we don't have any channels, enable the first specified source
       (when-not (seq (get-in @plasio-state/app-state [:ro :channels]))
         (swap! plasio-state/app-state assoc-in [:ro :channels :channel0 :source]
-               (ffirst (:colorSources options))))
+               (first (nth (:colorSources options)
+                           (:defaultColorChannelIndex options 0)))))
 
       ;; The frustom LOD stuff needs to be configured here
       ;;
@@ -431,7 +435,6 @@
   ;;
   (let [opts (merge default-options
                     (js->clj (or options (js-obj)) :keywordize-keys true))
-
         opts (validate-options opts)]
 
     (println "-- input options:" opts)

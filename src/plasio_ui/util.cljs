@@ -31,8 +31,7 @@
 
 
 (defn info-url [server resource]
-  (urlify
-    (str (strip-trailing-slash server) "/resource/" resource "/info")))
+  (str server "resource/" resource "/info"))
 
 (defn schema->point-size [schema]
   (apply + (map :size schema)))

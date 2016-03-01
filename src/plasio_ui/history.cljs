@@ -190,5 +190,5 @@
 (defn resource-url [server resource]
   (let [origin (aget js/location "origin")]
     (str origin
-         "/?s=\"" server "\"&r=\"" resource "\"")))
+         "/?s=" server "&r=" resource)))
 

@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.28"]
+                 [org.clojure/clojurescript "1.7.228"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [prismatic/om-tools "0.3.12"]
                  [cljsjs/gl-matrix "2.3.0-jenanwise-0"]
@@ -13,7 +13,10 @@
                  [cljs-http "0.1.31"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
-            [lein-figwheel "0.3.1"]]
+                [lein-figwheel "0.5.0-6"]]
+
+  :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
+                   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}}
 
   :source-paths ["src"]
 
