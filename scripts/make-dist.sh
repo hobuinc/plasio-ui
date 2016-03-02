@@ -89,7 +89,7 @@ cp -r $OUT_DIR $LATEST_DIR
 echo ":: cleaning up."
 rm -rf $TEMP_DIR
 
-echo ":: building dist archive."
+echo ":: building dist archive from: $OUT_DIR"
 OUTPUTARCHIVE=$DIST_DIR/plasio-ui-$LATEST_TAG.zip
 
 cd $OUT_DIR && zip -r $OUTPUTARCHIVE *
@@ -112,7 +112,7 @@ function create-release () {
     bail-if-empty "$RELEASE_TAG" "No release tag specified"
     bail-if-empty "$RELEASE_NAME" "No release name specified"
     
-    RELEASE_INFO="{\"tag_name\":\"$RELEASE_TAG\",\"name\":\"$RELEASE_NAME\"}"
+    RELEASE_INFO="{\"tag_name\":\"$RELEASE_TAG\",\"name\":\"$RELEASE_NAME\",\"prerelease\":true}"
 
     UPLOAD_URL=`curl -X POST -d $RELEASE_INFO -H "Content-Type: application/json" -s -u $AUTH https://api.github.com/repos/verma/$REPONAME/releases | jq -r ".upload_url"`
 
