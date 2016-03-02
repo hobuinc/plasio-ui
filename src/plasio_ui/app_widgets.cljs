@@ -344,19 +344,26 @@
     (render [_]
       (let [root (om/observe owner plasio-state/root)
             schema (:schema @root)
+            init-params (:init-params @root)
             [points size] (index-size @root)
-            col-info (util/schema->color-info schema)]
+            col-info (util/schema->color-info schema)
+
+            credits (:credits init-params)]
         (om/build w/key-val-table
-                  {:data [["Server" (:server @root)]
-                          ["Resource" (:resource @root)]
-                          ["Points" points]
-                          ["Uncompressed Size" size]
-                          ["Point Size" (util/schema->point-size schema )]
-                          ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
-                          ["Color?" (if (:color? col-info) "Yes" "No")]
-                          ["Powered By" "entwine"]
-                          ["Caching" "Amazon CloudFront"]
-                          ["Backend" "Amazon EC2"]]})))))
+                  {:data (->> [["Server" (:server @root)]
+                               ["Resource" (:resource @root)]
+                               ["Points" points]
+                               ["Uncompressed Size" size]
+                               ["Point Size" (util/schema->point-size schema )]
+                               ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
+                               ["Color?" (if (:color? col-info) "Yes" "No")]
+                               (when-let [v (:poweredBy credits)]
+                                 ["Powered By" v])
+                               (when-let [v (:cachingProvider credits)]
+                                 ["Caching" v])
+                               (when-let [v (:backendProvider credits)]
+                                 ["Backend" v])]
+                              (filterv some?))})))))
 
 
 (let [id :local-settings]

@@ -94,5 +94,66 @@ OUTPUTARCHIVE=$DIST_DIR/plasio-ui-$LATEST_TAG.zip
 
 cd $OUT_DIR && zip -r $OUTPUTARCHIVE *
 
-echo ":: done"
+TOKEN=`cat $HOME/.github-access-token`
+REPONAME=plasio-ui
+AUTH="verma:"$TOKEN 
+
+function bail-if-empty {
+    if [[ "$1" == "" ]] ; then
+        echo $2
+        exit 1
+    fi
+}
+
+function create-release () {
+    RELEASE_TAG=$1
+    RELEASE_NAME=$2
+
+    bail-if-empty "$RELEASE_TAG" "No release tag specified"
+    bail-if-empty "$RELEASE_NAME" "No release name specified"
+    
+    RELEASE_INFO="{\"tag_name\":\"$RELEASE_TAG\",\"name\":\"$RELEASE_NAME\"}"
+
+    UPLOAD_URL=`curl -X POST -d $RELEASE_INFO -H "Content-Type: application/json" -s -u $AUTH https://api.github.com/repos/verma/$REPONAME/releases | jq -r ".upload_url"`
+
+    echo $UPLOAD_URL
+}
+
+function upload-asset () {
+    URL=$1
+    FILE=$2
+    NAME=$3
+
+    bail-if-empty $1 "No URL specified for upload-asset"
+    bail-if-empty $2 "No FILE specified for upload-asset"
+    bail-if-empty $3 "No NAME specified for upload-asset"
+
+
+
+    FIXED_URL=`echo $URL | sed -e "s/{.*}$//g"`
+    UPLOAD_URL=$FIXED_URL"?name=$NAME"
+
+    STATUS=`curl -X POST -H "Content-Type: application/zip" -s -o /dev/null -w "%{http_code}" -u $AUTH --data-binary @"$FILE" "$UPLOAD_URL"`
+    echo $STATUS
+}
+
+function publish-dist() {
+    TAG=$1
+    FILE=$2
+
+    bail-if-empty "$TAG" "No tag specified for publishing"
+    bail-if-empty "$FILE" "No release file specified for publishing"
+
+    URL=$(create-release $TAG "v"$TAG)
+    bail-if-empty "$URL" "Could not create release, didn't get an upload URL"
+
+    FILENAME=$(basename $FILE)
+    RESULT=$(upload-asset $URL $FILE $FILENAME)
+
+    
+    echo $RESULT
+}
+
+PUBSTATUS=$(publish-dist $LATEST_TAG $OUTPUTARCHIVE)
+echo ":: done, upload status: $PUBSTATUS"
 
