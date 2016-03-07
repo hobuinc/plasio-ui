@@ -40,13 +40,13 @@
 
 
 (def ^:private all-docked-panes
-  [:rendering-options
+  [:switch-resource
+   :rendering-options
    :channels
    :point-manipulation
    :innundation-plane
    :information
-   :local-settings
-   :switch-resource])
+   :local-settings])
 
 (def ^:private top-bar-panes
   #{:search-location})

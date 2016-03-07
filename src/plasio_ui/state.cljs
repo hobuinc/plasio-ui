@@ -52,14 +52,15 @@
 
 
 (def known-resources
-  [["New York City" "nyc" "http://devdata.greyhound.io/"]
-   ["St. Paul, MN" "st-paul" "http://devdata.greyhound.io/"]
+  [["Autzen" "autzen" "http://devdata.greyhound.io/"]
    ["Delaware" "sandy" "http://devdata.greyhound.io/"]
+   ["Half Dome" "half-dome" "http://devdata.greyhound.io/"]
    ["Iowa" "iowa" "http://devdata.greyhound.io/"]
    ["Lake Isabella" "isa" "http://devdata.greyhound.io/"]
+   ["Minnesota" "min" "http://devdata.greyhound.io/"]
    ["Nepal" "nepal" "http://devdata.greyhound.io/"]
-   ["Autzen" "autzen" "http://devdata.greyhound.io/"]
-   ["Half Dome" "half-dome" "http://devdata.greyhound.io/"]])
+   ["New York City" "nyc" "http://devdata.greyhound.io/"]
+   ["St. Paul, MN" "st-paul" "http://devdata.greyhound.io/"]])
 
 
 (defn reset-app-state! []

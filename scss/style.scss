@@ -269,12 +269,34 @@
       vertical-align: top;
       white-space: nowrap;
       float: left;
+
+      a {
+        color: #333;
+        &:hover {
+          text-decoration: underline;
+        }
+        &:visited,
+        &:focus,
+        &:active {
+          color: #333;
+        }
+      }
     }
 
     td:last-child {
       text-align: right;
       white-space: nowrap;
       float: right;
+    }
+  }
+
+  .additional-info {
+    padding: 10px;
+    a {
+      color: #999;
+      &:hover {
+          color: #EB7F00;
+      }
     }
   }
 

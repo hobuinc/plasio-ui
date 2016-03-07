@@ -40,6 +40,16 @@
                      :f       (fn [val]
                                 (om/transact! plasio-state/ro #(assoc % :point-size val)))})
 
+          ;; slider for point size attentuation
+          (om/build w/labeled-slider
+                    {:text    "Point Size Attenuation.  Points closer to you are bloated up."
+                     :min     0.0
+                     :max 0.5
+                     :start (get @ro :point-size-attenuation 0.1) :step 0.01
+                     :connect "lower"
+                     :f       (fn [val]
+                                (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))})
+
           ;; point density loading
           (om/build w/labeled-slider
                     {:text "Point Density"
@@ -55,18 +65,9 @@
                "WARNING: Setting this value to higher values may render your browser unusable. "
                "Changes will take effect next time you move your camera around.")
 
-          ;; slider for point size attentuation
-          #_(om/build w/labeled-slider
-                    {:text    "Point Size Attenuation"
-                     :min     0.0
-                     :max 2.0
-                     :start (get @ro :point-size-attenuation 0.1) :step 0.1
-                     :connect "lower"
-                     :f       (fn [val]
-                                (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))})
 
           ;; intensity blending
-          (om/build w/labeled-slider
+          #_(om/build w/labeled-slider
                     {:text    "Color/Intensity Blending"
                      :min     0.0
                      :max 1.0
@@ -76,7 +77,7 @@
                                 (om/transact! plasio-state/ro #(assoc % :intensity-blend val)))})
 
           ;; intensity blend ranging
-          (om/build w/labeled-slider
+          #_(om/build w/labeled-slider
                     {:text    "Intensity Values Scaling"
                      :min     0
                      :max 255
@@ -349,21 +350,27 @@
             col-info (util/schema->color-info schema)
 
             credits (:credits init-params)]
-        (om/build w/key-val-table
-                  {:data (->> [["Server" (:server @root)]
-                               ["Resource" (:resource @root)]
-                               ["Points" points]
-                               ["Uncompressed Size" size]
-                               ["Point Size" (util/schema->point-size schema )]
-                               ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
-                               ["Color?" (if (:color? col-info) "Yes" "No")]
-                               (when-let [v (:poweredBy credits)]
-                                 ["Powered By" v])
-                               (when-let [v (:cachingProvider credits)]
-                                 ["Caching" v])
-                               (when-let [v (:backendProvider credits)]
-                                 ["Backend" v])]
-                              (filterv some?))})))))
+        (d/div
+         (om/build w/key-val-table
+                   {:data (->> [["Server" (:server @root)]
+                                ["Resource" (:resource @root)]
+                                ["Point Cloud Info"
+                                 (d/a {:href (str (:server @root)
+                                                  "resource/" (:resource @root) "/info")
+                                       :target "_blank"}
+                                      "Click here")]
+
+                                ["Points" points]
+                                ["Uncompressed Size" size]
+                                ["Point Size" (util/schema->point-size schema )]
+                                ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
+                                ["Color?" (if (:color? col-info) "Yes" "No")]]
+                               (filterv some?))})
+         (let [info (:additionalInformation init-params)]
+           (when-not (s/blank? info)
+             (d/div
+              {:class "additional-info"
+               :dangerouslySetInnerHTML {:__html info}}))))))))
 
 
 (let [id :local-settings]
@@ -415,7 +422,7 @@
           {:class "innundation-plane"}
           (d/form
             (i/input {:type      "checkbox"
-                      :label     "Show Innundation Plane?"
+                      :label     "Show Inundation Plane?"
                       :checked   (:innundation? @ui-locals)
                       :on-change (fn [] (om/transact!
                                           plasio-state/ui-local-options
@@ -435,7 +442,7 @@
 
           ;; build the slider that will help us change the position
           ;;
-          (om/build w/labeled-slider {:text    "Adjust the current innundation plane height."
+          (om/build w/labeled-slider {:text    "Adjust the current inundation plane height."
                                       :min     start-s
                                       :max     start-e
                                       :connect false
@@ -447,7 +454,7 @@
 
           ;; the innundation plane opacity slider
           (d/div
-            (om/build w/labeled-slider {:text  "Innundation plane opacity"
+            (om/build w/labeled-slider {:text  "Inundation plane opacity"
                                         :min   0.1
                                         :step  0.01
                                         :max   1
@@ -812,10 +819,12 @@
 
 (defcomponentk logo []
   (render [_]
-    (d/div {:class "entwine"
-            :style {:position "absolute"
-                    :bottom "10px"
-                    :left "10px"}})))
+    (d/a {:class "entwine"
+          :target "_blank"
+          :href "http://github.com/connormanning/entwine"
+          :style {:position "absolute"
+                  :bottom "10px"
+                  :left "10px"}})))
 
 
 (def ^:private menu-item-mapping
