@@ -51,7 +51,7 @@
 (def current-actions (om/ref-cursor (:current-actions root-state)))
 
 
-(def known-resources
+(def default-resources
   [["New York City" "nyc" "http://devdata.greyhound.io/"]
    ["St. Paul, MN" "st-paul" "http://devdata.greyhound.io/"]
    ["Delaware" "sandy" "http://devdata.greyhound.io/"]

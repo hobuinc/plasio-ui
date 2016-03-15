@@ -12,7 +12,8 @@
             [om.dom :as dom]
             [plasio-ui.util :as util]
             cljsjs.gl-matrix
-            [clojure.string :as s])
+            [clojure.string :as s]
+            [clojure.string :as str])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)

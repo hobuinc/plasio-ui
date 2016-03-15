@@ -85,6 +85,7 @@ The following options are accepted:
 |Option|Default|Description |
 |---|---|---|
 |`allowGreyhoundCredentials` | `false`| Requests binary data from greyhound service with `withCredentials` flag set to true.  Note that this will most likely only work when your UI and data are hosted on the same domain, or you have the appropriate CORS headers set on your greyhound server.|
+|`availableResources` | Predefined default resources. | When the resource switcher panel is visible, this array of resources define what resources should be listed.|
 |`bindKeyHandlers`  | `false`|  This options installs global keyboard hooks which control certain aspects of the UI.  This is not recommended when you're trying to embed plasio-ui in your own UI.  The hooks are installed on the bubble up phase of event handlers, so it would still be possible to override the offending keystrokes in your own control.|
 |`brand`|speck.ly|The brand to show in the application bar. |
 |`colorSources`|| You need at least one color source.  You can specify any number of color sources.  These sources will become available as the color channels for user to choose from.  See details below.  The first color source is used as default when no default channel information is available (e.g. from the URL).|
@@ -162,6 +163,19 @@ colorSources: [
     ["local://origin", "Origin"],
     ["local://point-source-id", "Point Source ID"]
 ]
+```
+
+# Specifying available resources
+
+When the `switch-resource` panel is available, you can specify the `availableResources` option to specify the list of resources to show.  Plasio-ui will list them as direct links on the `switch-resource` panel. E.g.
+
+```
+...
+availableResources: [
+    ["Resource Name To Show", "resource-name", "server-address"],
+    ["Nepal", "nepal-h", "http://myserver.com/resources"]
+],
+...
 ```
 
 # Hosting multiple Plasio UIs on a Single Page

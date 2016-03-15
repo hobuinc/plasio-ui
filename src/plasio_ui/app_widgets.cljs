@@ -301,14 +301,17 @@
   (defcomponentk resource-item [[:data title resource server]]
     (render [_]
       (d/a {:href (history/resource-url server resource)} title)))
+
   (defcomponentk switch-resource-pane [owner]
     (render [_]
-      (let [resources (map (fn [[title resource server]]
+      (let [root (om/observe owner plasio-state/root)
+            all-resources (get-in @root [:init-params :availableResources] plasio-state/default-resources)
+            resources (map (fn [[title resource server]]
                              {:title title
                               :resource resource
                               :server server
                               :id (str resource "@" server)})
-                           plasio-state/known-resources)]
+                           all-resources)]
         (d/div
           {:class "switch-resource"}
           (om/build-all resource-item resources {:key :id}))))))
