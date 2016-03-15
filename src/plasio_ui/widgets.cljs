@@ -340,7 +340,6 @@
 
 (defn- -drag-start! [id owner state e]
   (when (zero? (.-button e))
-    (println "starting drag!")
     (let [drag-move
           (fn [e]
             (let [pos (mp e)

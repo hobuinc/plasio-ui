@@ -184,10 +184,22 @@
       vertical-align: top;
       white-space: nowrap;
       float: left; }
+      .plasio-ui table.key-val td a {
+        color: #333; }
+        .plasio-ui table.key-val td a:hover {
+          text-decoration: underline; }
+        .plasio-ui table.key-val td a:visited, .plasio-ui table.key-val td a:focus, .plasio-ui table.key-val td a:active {
+          color: #333; }
     .plasio-ui table.key-val td:last-child {
       text-align: right;
       white-space: nowrap;
       float: right; }
+  .plasio-ui .additional-info {
+    padding: 10px; }
+    .plasio-ui .additional-info a {
+      color: #999; }
+      .plasio-ui .additional-info a:hover {
+        color: #EB7F00; }
   .plasio-ui .slider {
     margin: 10px 5px 20px 5px; }
   .plasio-ui .compass {

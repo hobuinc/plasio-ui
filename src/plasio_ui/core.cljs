@@ -41,13 +41,13 @@
 
 
 (def ^:private all-docked-panes
-  [:rendering-options
+  [:switch-resource
+   :rendering-options
    :channels
    :point-manipulation
    :innundation-plane
    :information
-   :local-settings
-   :switch-resource])
+   :local-settings])
 
 (def ^:private top-bar-panes
   #{:search-location})
@@ -333,7 +333,7 @@
 
 (def ^:private third-party-scripts
   [[:jquery "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"]
-   [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.2.1/nouislider.min.js"]
+   [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.0.2/nouislider.min.js"]
    [:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"]
    [:react ["https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.min.js"
             "https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.min.js"]]])
@@ -342,7 +342,7 @@
 (def ^:private third-party-styles
   [[:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"]
    [:font-awesome "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"]
-   [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.2.1/nouislider.min.css"]])
+   [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.0.2/nouislider.min.css"]])
 
 (def ^:private google-maps-base-url
   "https://maps.googleapis.com/maps/api/js?libraries=places&key=")
