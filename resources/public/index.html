@@ -83,9 +83,6 @@
          server: "http://54.158.231.26/",
          resource: "nepal",
          defaultColorChannelIndex: 2,
-         availableResources: [
-             ["Nepal", "nepal", "http://54.158.231.26/"]
-         ],
          additionalInformation: "<p>What <a href='http://google.com'>Google</a></p>",
          colorSources: [
              ["http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw", "Mapbox Satellite Imagery"],
@@ -94,6 +91,7 @@
              ["local://elevation?start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
              ["local://elevation?start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
              ["local://color", "Color"],
+             ["local://classification", "Classification"],
              ["local://intensity", "Intensity"],
              ["local://origin", "Origin"],
              ["local://point-source-id", "Point Source ID"]
