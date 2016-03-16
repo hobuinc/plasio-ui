@@ -179,8 +179,20 @@
                                       (.-keyCode e))]
                          (case code
                            9 (plasio-state/toggle-docker!)
-                           nil)
-                         ))))
+                           nil)))))
+
+(defn determine-default-color-channel [schema rules]
+  (let [schema-attrs (->> schema
+                          (sequence (comp (map :name)
+                                          (map str/lower-case)))
+                          set)
+        selection (first
+                   (keep (fn [[name index]]
+                           (when (schema-attrs (str/lower-case name))
+                             index))
+                         rules))]
+    (println "-- ii" schema-attrs selection)
+    selection))
 
 
 (defn startup [div-element options]
@@ -209,7 +221,12 @@
       (when-not (seq (get-in @plasio-state/app-state [:ro :channels]))
         (swap! plasio-state/app-state assoc-in [:ro :channels :channel0 :source]
                (first (nth (:colorSources options)
-                           (:defaultColorChannelIndex options 0)))))
+                           (or
+                            ;; do we have any channel selection rules?
+                            (when-let [rules (:colorChannelRules options)]
+                              (determine-default-color-channel (:schema settings) rules))
+                            ;; do we have any default color channels specified
+                            (:defaultColorChannelIndex options 0))))))
 
       ;; The frustom LOD stuff needs to be configured here
       ;;

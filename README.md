@@ -88,6 +88,7 @@ The following options are accepted:
 |`availableResources` | Predefined default resources. | When the resource switcher panel is visible, this array of resources define what resources should be listed.|
 |`bindKeyHandlers`  | `false`|  This options installs global keyboard hooks which control certain aspects of the UI.  This is not recommended when you're trying to embed plasio-ui in your own UI.  The hooks are installed on the bubble up phase of event handlers, so it would still be possible to override the offending keystrokes in your own control.|
 |`brand`|speck.ly|The brand to show in the application bar. |
+|`colorChannelRules`||The color channel rules to use to determine a good candidate for color source for the default color channel.  See discussion below on how this process works.|
 |`colorSources`|| You need at least one color source.  You can specify any number of color sources.  These sources will become available as the color channels for user to choose from.  See details below.  The first color source is used as default when no default channel information is available (e.g. from the URL).|
 |`credits`|No credits|The credits property should be an `object` which could optionally have three fields in it: `poweredBy`, `cachingProvider` and `backendProvider`, these properties appear in the Information pane after all the point cloud information.|
 |`defaultColorChannelIndex`|`0`|When the color channel information is not available (e.g. from the URL), plasio-ui will choose a default color channel so that the point cloud doesn't look all black.  This option controls which color channel is used as default under this scenario.  This value is the index of a pair in the specified `colorSources` property.|
@@ -166,7 +167,7 @@ colorSources: [
 ]
 ```
 
-# Specifying available resources
+# Specifying Available Resources
 
 When the `switch-resource` panel is available, you can specify the `availableResources` option to specify the list of resources to show.  Plasio-ui will list them as direct links on the `switch-resource` panel. E.g.
 
@@ -178,6 +179,26 @@ availableResources: [
 ],
 ...
 ```
+
+# Default Color Channel Selection
+
+The property `defaultColorChannelIndex` controls the default fallback color channel to use if no color channel information is available through the URL.  This is however, not sufficient.  E.g. you wouldn't want to choose the Satellite Imagery Color Source when your data hasn't been projected to Web Mercator or might have its own color information available. In that case using the `local://color` color source would be a better option.
+
+You can specify the `colorChannelRules` property to control this behavior.  This property is defined as an array of 2-tuples (also arrays) like:
+
+```
+colorChannelRules: [
+    ["Red", 5],
+    ["Intensity", 7]
+    ["Classification", 6],
+]
+```
+
+The attribute names are case insensitive.
+
+The rules are simple: check if a schema attribute identified by the first member of the 2-tuple is available.  If it is, then select the color channel identified by the index from the second member of the 2-tuple.  E.g. for the above rules, if `Red` schema attribute is available for the data source, plasio-ui will pick the 5th index (zero based) from your specified `colorSources` as your default color channel.
+
+Plasio-ui will keep doing down the rules list till it finds a match, if it goes through all the rules and doesn't find a match, or there are no `colorChannelRules` specified, then index specified by `defaultColorChannelIndex` is used.  If `defaultColorChannelIndex` is missing then the first color source from `colorSources` is used.
 
 # Hosting multiple Plasio UIs on a Single Page
 
