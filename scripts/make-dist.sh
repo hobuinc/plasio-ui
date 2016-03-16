@@ -90,6 +90,7 @@ echo ":: cleaning up."
 rm -rf $TEMP_DIR
 
 echo ":: building dist archive from: $OUT_DIR"
+mkdir -p $DIST_DIR
 OUTPUTARCHIVE=$DIST_DIR/plasio-ui-$LATEST_TAG.zip
 
 cd $OUT_DIR && zip -r $OUTPUTARCHIVE *
