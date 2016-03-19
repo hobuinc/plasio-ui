@@ -315,10 +315,10 @@
                  (s/blank? resource)))
     (throw (js/Error. "When useBrowserHistory is turned off, properties server and resource need to be specified."))))
 
-(defn- assert-google-maps-key [{:keys [includeExternalDependencies googleMapsAPIKey]}]
-  (when (and includeExternalDependencies
+(defn- assert-google-maps-key [{:keys [showSearch googleMapsAPIKey]}]
+  (when (and showSearch
              (s/blank? googleMapsAPIKey))
-    (throw (js/Error. "When includeExternalDependencies is turned on, googleMapsAPIKey needs to be specified."))))
+    (throw (js/Error. "When showSearch is turned on(its on by default), googleMapsAPIKey needs to be specified."))))
 
 (defn- assert-color-sources [{:keys [colorSources]}]
   (if-not (seq colorSources)
@@ -395,26 +395,29 @@
     (str prod-path file)
     (throw (js/Error. "PRODUCTION_PLASIO_UI_BASE_PATH is not set for production build, cannot deduce resource path."))))
 
-(defn- include-resources [{:keys [includeExternalDependencies ignoreDependencies googleMapsAPIKey]}]
+(defn- include-resources [{:keys [includeExternalDependencies ignoreDependencies googleMapsAPIKey showSearch]}]
   (let [dev-mode? (true? (aget js/window "DEV_MODE"))
         scripts (concat
-                  ;; google maps api
-                  [(str google-maps-base-url googleMapsAPIKey)]
-                  ;; external dependencies if needed
-                  (when includeExternalDependencies
-                    (filtered-with-ignore ignoreDependencies third-party-scripts))
-                  ;; standard includes
-                  (if dev-mode?
-                    dev-mode-standard-includes
-                    (map make-production-absolute prod-mode-standard-includes)))
-        styles (concat
+                 ;; google maps api
+                 (when showSearch
+                   [(str google-maps-base-url googleMapsAPIKey)])
+
                  ;; external dependencies if needed
                  (when includeExternalDependencies
-                   (filtered-with-ignore ignoreDependencies third-party-styles))
-                 ;; standard css includes
+                   (filtered-with-ignore ignoreDependencies third-party-scripts))
+
+                 ;; standard includes
                  (if dev-mode?
-                   css-includes
-                   (map make-production-absolute css-includes)))
+                   dev-mode-standard-includes
+                   (map make-production-absolute prod-mode-standard-includes)))
+        styles (concat
+                ;; external dependencies if needed
+                (when includeExternalDependencies
+                  (filtered-with-ignore ignoreDependencies third-party-styles))
+                ;; standard css includes
+                (if dev-mode?
+                  css-includes
+                  (map make-production-absolute css-includes)))
         head (.-head js/document)]
 
     ;; set the worker path needed by plasio-lib
