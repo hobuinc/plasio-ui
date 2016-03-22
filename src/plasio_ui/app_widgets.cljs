@@ -404,8 +404,8 @@
     (doall
       (map (partial println "-- --") pairs))))
 
-(let [id :innundation-plane]
-  (defcomponentk innundation-plane-pane [state owner]
+(let [id :inundation-plane]
+  (defcomponentk inundation-plane-pane [state owner]
     (render-state [_ {:keys [histogram]}]
       (let [root (om/observe owner plasio-state/root)
             ro (om/observe owner plasio-state/ro)
@@ -415,23 +415,23 @@
             bounds (:bounds @root)
             zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
 
-            innun-override (:innundation-range-override @ui-locals)
-            [start-s start-e] (if innun-override
-                                innun-override
+            inun-override (:inundation-range-override @ui-locals)
+            [start-s start-e] (if inun-override
+                                inun-override
                                 zbounds)
-            innun-height (get @ui-locals :innudation-height start-s)
-            clamped-innun-height (min (max innun-height start-s) start-e)]
+            inun-height (get @ui-locals :innudation-height start-s)
+            clamped-inun-height (min (max inun-height start-s) start-e)]
         (d/div
-          {:class "innundation-plane"}
+          {:class "inundation-plane"}
           (d/form
             (i/input {:type      "checkbox"
                       :label     "Show Inundation Plane?"
-                      :checked   (:innundation? @ui-locals)
+                      :checked   (:inundation? @ui-locals)
                       :on-change (fn [] (om/transact!
                                           plasio-state/ui-local-options
-                                          #(update % :innundation? not)))}))
+                                          #(update % :inundation? not)))}))
           (om/build w/value-present {:key   "Current Height"
-                                     :value (commify clamped-innun-height)})
+                                     :value (commify clamped-inun-height)})
 
           (om/build w/z-histogram-slider {:text      "Z Range Override"
                                           :min       (zbounds 0)
@@ -440,7 +440,7 @@
                                           :histogram @histogram
                                           :f         #(do
                                                        (om/update! plasio-state/ui-local-options
-                                                                   :innundation-range-override
+                                                                   :inundation-range-override
                                                                    %))})
 
           ;; build the slider that will help us change the position
@@ -450,23 +450,23 @@
                                       :max     start-e
                                       :connect false
                                       :step    0.001
-                                      :start   clamped-innun-height
+                                      :start   clamped-inun-height
                                       :f       (fn [val]
                                                  (om/transact! plasio-state/ui-local-options
                                                                #(assoc % :innudation-height val)))})
 
-          ;; the innundation plane opacity slider
+          ;; the inundation plane opacity slider
           (d/div
             (om/build w/labeled-slider {:text  "Inundation plane opacity"
                                         :min   0.1
                                         :step  0.01
                                         :max   1
-                                        :start (or (:innundation-plane-opacity @ui-locals)
+                                        :start (or (:inundation-plane-opacity @ui-locals)
                                                    1.0)
                                         :guides ["Transparent" "Opaque"]
                                         :f (fn [val]
                                              (om/transact! plasio-state/ui-local-options
-                                                           #(assoc % :innundation-plane-opacity
+                                                           #(assoc % :inundation-plane-opacity
                                                                      val)))})))))))
 
 
@@ -703,7 +703,7 @@
         (.setRenderHints r (js-obj
                              "flicker-fix" flicker-fix?)))
 
-      ;; check for innundation plane stuff
+      ;; check for inundation plane stuff
       ;;
       (let [bounds (:bounds n)
             zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
@@ -712,20 +712,20 @@
                        (- (bounds 4) (bounds 1)))
             lo (get-in n [:ui :local-options])
             half (/ range 2.0)
-            [low high] (get lo :innundation-range-override zbounds)
+            [low high] (get lo :inundation-range-override zbounds)
             planey (util/mapr
                      (min high
                           (max low (get lo :innudation-height low)))
                      (zbounds 0) (zbounds 1)
                      (- half) half)]
-        (if (get-in n [:ui :local-options :innundation?])
-          (.updatePlane r "innundation"
+        (if (get-in n [:ui :local-options :inundation?])
+          (.updatePlane r "inundation"
                         (array 0 1 0)
                         planey
                         (array 0 187 215)
-                        (get-in n [:ui :local-options :innundation-plane-opacity] 1.0)
+                        (get-in n [:ui :local-options :inundation-plane-opacity] 1.0)
                         size)
-          (.removePlane r "innundation")))
+          (.removePlane r "inundation")))
 
       ;; if the color channels have changed, update
       ;;

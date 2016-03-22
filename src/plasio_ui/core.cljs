@@ -33,7 +33,7 @@
    [:channels "Color Channels" :picture-o aw/channels-pane]
    [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
-   [:innundation-plane "Innundation Plane" :street-view aw/innundation-plane-pane]
+   [:inundation-plane "Inundation Plane" :street-view aw/inundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
@@ -45,7 +45,7 @@
    :rendering-options
    :channels
    :point-manipulation
-   :innundation-plane
+   :inundation-plane
    :information
    :local-settings])
 

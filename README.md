@@ -29,12 +29,13 @@ Note the `includeExternalDependencies` option (`true` by default, mentioned for 
 
 ## Advanced Mode
 
-In this mode, you include external dependencies yourself.  plasio-ui relies on a few libraries to work right:
+Advanced configuration is enabled when `includeExternalDependencies` is set to `false`.  In this mode, you include external dependencies yourself.  plasio-ui relies on a few libraries to work right:
 
  - [jQuery](https://jquery.com/). The app itself doesn't use jquery, it is needed by the noUiSlider control.
  - [Bootstrap 3](https://getbootstrap.com/)
  - [Font Awesome](https://fortawesome.github.io/Font-Awesome/)
  - [noUiSlider](http://refreshless.com/nouislider/)
+ - [React](https://facebook.github.io/react/)
  - [Google Maps API](http://https://developers.google.com/maps/?hl=en)
  
 You'd have to include the styles and javascript for each of these dependencies for plasio-ui to work right.  Here's how the CSS inclusions would look like
@@ -48,6 +49,8 @@ Scripts would look something like (it is recommended that these are placed at th
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.2.1/nouislider.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.4/react.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.4/react-dom.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key={{YOUR GOOGLE MAPS KEY}}&libraries=places"></script>
     <script src="https://cdn.entwine.io/plasio-ui/latest/plasio-ui.js"></script>
@@ -93,6 +96,7 @@ The following options are accepted:
 |`credits`|No credits|The credits property should be an `object` which could optionally have three fields in it: `poweredBy`, `cachingProvider` and `backendProvider`, these properties appear in the Information pane after all the point cloud information.|
 |`defaultColorChannelIndex`|`0`|When the color channel information is not available (e.g. from the URL), plasio-ui will choose a default color channel so that the point cloud doesn't look all black.  This option controls which color channel is used as default under this scenario.  This value is the index of a pair in the specified `colorSources` property.|
 |`hiddenPanes`|All panes visible|Selectively hide one or more panes you don't want to display.  This field is an array of panes you want to **hide**.  Array elements could have values: `rendering-options`, `channels`, `point-manipulation`, `inundation-plane`, `information`, `local-settings` and `switch-resource`. Note that, hiding a pane doesn't disable the functionality a pane offers, it merely doesn't let the user interact with or change the properties associated with a pane. E.g. hiding the channels pane doesn't disable channel functionality|
+|`includeExternalDependencies`|`true`|When set to `true`, plasio-ui will automatically include all needed 3rd party dependencies.  If this flag is `false`, you would need to specify all the required dependencies.|
 |`rememberUIState`|`false`|When turned on, plasio-ui will employ web-browser local storage to store UI state (opened windows, certain preferences) per point cloud resource.  When the users return to the same pipeline, they see the UI as they left it.|
 |`resource` | **Required** | When `useBrowserHistory` is `false`.  The resource load and show, should be available on the provided `server`.  If `useBrowserHistory` is `true` and this field is not specified, then plasio-ui assumes that this value will be provided from the browser URL.  If plasio-ui fails to get this value from the URL, an error will be thrown.|
 |`resourceName`|resource@server| The resource name to show in the application bar.  Specifying an empty string for this value will result in no resource name showing up.
