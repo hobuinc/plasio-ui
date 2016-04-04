@@ -208,6 +208,30 @@ Plasio-ui will keep doing down the rules list till it finds a match, if it goes 
 
 This is work in progress and will be available soon.
 
+# Listening for and applying UI Changes
+
+The `plasio_ui.core.createUI` function returns an object which has three methods: `addChangeListener`, `removeChangeListener` and `apply`.
+
+To subscribe to any UI changes (including changes to the camera) setup a listener like:
+
+    let ui = plasio_ui.core.createUI(divElement);
+    let listenerId = ui.addChangeListener((v) => console.log('UI state is now:', v));
+
+Your callback function will be called every time a change to the UI is made.  The value passed to your function will carry the current state of the UI.
+
+> Please Note: The structure of the value passed to you can change from one version to another, but mostly when the major version number changes.
+
+You can remove the listener like:
+
+    ui.removeChangeListener(listenerId);
+
+You can apply a UI state object using the apply method:
+
+    let v = ...;
+    ui.apply(v);
+
+This will update the current UI state to match the state specified by `v`. 
+
 
 # Destroying Plasio UI
 
