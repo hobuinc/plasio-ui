@@ -174,16 +174,18 @@
 (defn- params-state [st]
   (select-keys st [:server :resource]))
 
+(defn current-state-snapshot []
+  (if-let [camera (.-activeCamera (:mode-manager @comps))]
+    (merge
+     {:camera (camera-state (:bounds @root) camera)}
+     (ui-state @root)
+     (params-state @root))))
+
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
   []
-
-  (if-let [camera (.-activeCamera (:mode-manager @comps))]
-    (history/push-state
-      (merge
-        {:camera (camera-state (:bounds @root) camera)}
-        (ui-state @root)
-        (params-state @root)))))
+  (when-let [snapshot (current-state-snapshot)]
+    (history/push-state snapshot)))
 
 (defn- wrap-dismiss-context-menu [f]
   (fn [& args]

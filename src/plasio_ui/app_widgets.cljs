@@ -649,6 +649,8 @@
           bounds (:bounds root)
           zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
 
+          _ (println "-- -- channels:" (:channels ro))
+
           adjusted-chans (util/adjust-channels (get-in ro [:channels]))
 
           ;; get channels
@@ -667,7 +669,8 @@
                                                   (let [c (nth chans i)]
                                                     (cond
                                                       (:mute? c) 0
-                                                      :else (/ (:contribution c 50) 100)))
+                                                      :else (/ (or (:contribution c)
+                                                                   50) 100)))
                                                   0)))
 
           ramps (for [i (range 4)]

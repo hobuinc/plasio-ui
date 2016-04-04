@@ -104,6 +104,22 @@
              ["local://origin", "Origin"],
              ["local://point-source-id", "Point Source ID"]
          ]});
+
+     var firstDispatched = null;
+     var id = plasioUI.addChangeListener(function(v) {
+         console.log("-- -- dispatch", v);
+         if (v.camera && firstDispatched === null)
+             firstDispatched = v;
+     });
+
+     setTimeout(function() {
+         console.log("-- -- dispatch", id);
+         plasioUI.removeChangeListener(id);
+     }, 3000);
+
+     setTimeout(function() {
+         plasioUI.apply(firstDispatched);
+     }, 6000);
  };
 
  var destroyUI = function() {

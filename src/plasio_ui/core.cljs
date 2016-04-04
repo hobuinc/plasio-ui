@@ -470,10 +470,94 @@
       (startup divElement opts))
 
     ;; return a JS object which can be used to interact with the UI
-    (js-obj "destroy" (fn []
-                        ;; destroy this player, unmount the component and clearout the app state
-                        (om/detach-root divElement)
-                        (plasio-state/reset-app-state!)))))
+    (let [prop-listeners (atom {})
+          last-dispatch (atom nil)
+          ;; dispatch a value to the given function, make a new copy of the
+          ;; value being dispatched
+          dispatch-val (fn [f]
+                         (let [v (clj->js (or @last-dispatch
+                                              {}))]
+                           (js/requestAnimationFrame #(f v))))
+
+          ;; add a new listener
+          add-listener (fn [f]
+                         (let [id (util/random-id)]
+                           (swap! prop-listeners assoc id f)
+                           ;; always dispatch the current value to the newly added method
+                           (dispatch-val f)
+                           ;; return the ID the caller can use to de-register this
+                           id))
+
+          ;; remove a listener
+          remove-listener (fn [id]
+                            (swap! prop-listeners dissoc id))
+
+          ;; the standard property dispatcher
+          prop-dispatcher (fn []
+                            (let [current (plasio-state/current-state-snapshot)]
+                              (when-not (= @last-dispatch current)
+                                ;; snapshot has changed, save changes and dispatch our handlers
+                                (reset! last-dispatch current)
+                                ;; snapshot has changed, invoke
+                                (doseq [[k f] @prop-listeners]
+                                  (dispatch-val f)))))
+
+          ;; don't queue more than one per frame
+          framed-pd-flag (atom false)
+          framed-pd (fn []
+                     (when-not @framed-pd-flag
+                       (reset! framed-pd-flag true)
+                       (js/requestAnimationFrame (fn []
+                                                   (prop-dispatcher)
+                                                   (reset! framed-pd-flag false)))))]
+
+      ;; we may not have access to renderer components till its initialized, so wait for that to happen
+      ;; before we even start listening for things
+      (add-watch plasio-state/app-state "__wait-for-comps"
+                 (fn [_ _ _ n]
+                   (when (seq (:comps n))
+                     (let [r (:renderer @plasio-state/comps)]
+                       (.addPropertyListener r "__prop-dispatch" framed-pd))
+                     (add-watch plasio-state/app-state "__prop-dispatch" framed-pd)
+
+                     ;; there may be subscribers already waiting for us to update them
+                     (framed-pd)
+
+                     ;; our work is done, we don't need to keep waiting for comps
+                     (remove-watch plasio-state/app-state "__wait-for-comps"))))
+
+      (js-obj
+       "addChangeListener"
+       add-listener
+
+       "removeChangeListener"
+       remove-listener
+
+       "apply"
+       (fn [v] 
+         (let [st (js->clj v :keywordize-keys true)]
+           ;; apply the given value to our internal state
+           (println "-- -- apply:" st)
+           (om/transact! plasio-state/root
+                         #(reduce
+                           (fn [s path]
+                             (assoc-in s path (get-in st path)))
+                           % (history/all-url-keys)))
+
+           ;; there needs to be a better way of restoring camera props
+           (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
+             (let [bbox (:bounds @plasio-state/root)]
+               (.deserialize camera (plasio-state/js-camera-props bbox (:camera st)))))))
+
+       "destroy"
+       (fn []
+         ;; destroy this player, unmount the component and clearout the app state
+         (let [r (:renderer @plasio-state/comps)]
+           (.removePropertyListener r "__prop-dispatch"))
+         (remove-watch plasio-state/app-state "__prop-dispatch")
+
+         (om/detach-root divElement)
+         (plasio-state/reset-app-state!))))))
 
 ;; when this script is being loaded, we need to capture the path and figure out
 ;; the path to other resources

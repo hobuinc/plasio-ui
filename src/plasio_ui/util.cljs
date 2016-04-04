@@ -29,6 +29,9 @@
     s
     (str "http://" s)))
 
+(defn random-id []
+  (let [s (.toFixed (js/Math.random) 16)]
+    (.substring s 2)))
 
 (defn info-url [server resource]
   (str server "resource/" resource "/info"))
