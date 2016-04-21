@@ -52,6 +52,7 @@ PlasioLib.Cameras.Orbital.prototype.transitionTo = function() {};
 PlasioLib.Cameras.Orbital.prototype.setHeading = function() {};
 PlasioLib.Cameras.Orbital.prototype.serialize = function() {};
 PlasioLib.Cameras.Orbital.prototype.deserialize = function() {};
+PlasioLib.Cameras.Orbital.prototype.registerHandler = function() {};
 
 PlasioLib.FrustumLODNodePolicy = {};
 PlasioLib.FrustumLODNodePolicy.prototype.start = function() {};
