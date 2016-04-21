@@ -36,6 +36,7 @@
    [:inundation-plane "Inundation Plane" :street-view aw/inundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
+   [:point-info "Point Information" :eye aw/point-info-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
    [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
 
@@ -47,6 +48,7 @@
    :point-manipulation
    :inundation-plane
    :information
+   :point-info
    :local-settings])
 
 (def ^:private top-bar-panes

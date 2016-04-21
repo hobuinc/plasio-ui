@@ -990,4 +990,14 @@
     background-color: black;
     border: 2px solid #333;
   }
+
+  .point-info-container {
+    position: relative;
+    .fa-spinner {
+      position: absolute;
+      right: 10px;
+      font-size: 16px;
+      top: 2px;
+    }
+  }
 }

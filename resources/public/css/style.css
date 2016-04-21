@@ -654,5 +654,12 @@
     top: 100px;
     background-color: black;
     border: 2px solid #333; }
+  .plasio-ui .point-info-container {
+    position: relative; }
+    .plasio-ui .point-info-container .fa-spinner {
+      position: absolute;
+      right: 10px;
+      font-size: 16px;
+      top: 2px; }
 
 /*# sourceMappingURL=style.css.map */

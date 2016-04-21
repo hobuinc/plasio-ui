@@ -31,7 +31,8 @@
    :current-actions {}
    :histogram {}
    :intensity-histogram {}
-   :comps  {}})
+   :comps  {}
+   :clicked-point-info {}})
 
 (defonce app-state (atom default-init-state))
 
@@ -49,6 +50,7 @@
 (def histogram (om/ref-cursor (:histogram root-state)))
 (def intensity-histogram (om/ref-cursor (:intensity-histogram root-state)))
 (def current-actions (om/ref-cursor (:current-actions root-state)))
+(def clicked-point-info (om/ref-cursor (:clicked-point-info root-state)))
 
 
 (def default-resources
@@ -210,6 +212,8 @@
                :let [c (keyword (str "channel" i))]]
            (get-in channels [c :source]))))
 
+(declare update-current-point-info)
+
 (defn initialize-for-resource [e {:keys [server resource
                                          schema
                                          bounds ro
@@ -230,6 +234,7 @@
         ;; if there are any sources that are specified in the render options, set them up
         sources (sources-array (:channels ro))
 
+        allow-greyhound-creds? (true? (:allowGreyhoundCredentials init-params))
         
         loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
                    server resource
@@ -239,8 +244,7 @@
                     "imagerySources" (sources-array (:channels ro))
 
                     ;; should we send down withCredentials = true for greyhound requests?
-                    "allowGreyhoundCredentials"
-                    (true? (:allowGreyhoundCredentials init-params))))
+                    "allowGreyhoundCredentials" allow-greyhound-creds?))
                  (js/PlasioLib.Loaders.TransformLoader.)]
         policy (js/PlasioLib.FrustumLODNodePolicy.
                  (apply array loaders)
@@ -264,7 +268,17 @@
                          (.setEyeTargetPosition renderer
                                                 eye target))
                        (when (-> init-params :camera seq)
-                         (js-camera-props bounds (:camera init-params))))]
+                         (js-camera-props bounds (:camera init-params))))
+        camera (aget mode-manager "camera")]
+
+    ;; list to any synthetic point clicks, on the camera mode
+    (.registerHandler camera
+                      "synthetic-click-on-point"
+                      (fn [obj]
+                        (update-current-point-info server resource
+                                                   schema
+                                                   allow-greyhound-creds?
+                                                   bounds (js->clj (aget obj "pointPos")))))
 
     ;; mode manager will let us know about any context menu actions we
     ;; need to handle
@@ -437,4 +451,65 @@
 
 (defn set-channel-ramp! [channel ramp]
   (om/transact! ro #(assoc-in % [:channels channel :range-clamps] ramp)))
+
+(defn mkjson [v]
+  (js/JSON.stringify (clj->js v)))
+
+(defn- ru32 [buff offset]
+  (let [b (js/DataView. buff offset)]
+    (aget b 0)))
+
+(defn- point-count [arraybuffer]
+  (let [dv (js/DataView. arraybuffer (- (.-byteLength arraybuffer) 4))]
+    (.getUint32 dv 0 true)))
+
+(let [fn-types {"signed" "Int", "unsigned" "Uint", "floating" "Float"}]
+  (defn- decode-val [type size dv offset]
+    (let [fn-name (str "get"
+                       (fn-types type)
+                       (* size 8))
+          f (aget dv fn-name)]
+      (.call f dv offset true))))
+
+(defn- decode-point [dv schema]
+  (loop [offset 0
+         point []
+         s schema]
+    (if (seq s)
+      (let [{:keys [name size type]} (first s)]
+        (recur
+         (+ offset size)
+         (conj point [name size (decode-val type size dv offset)])
+         (rest s)))
+      point)))
+
+(defn- decode-points [schema arraybuffer]
+  (let [pc (point-count arraybuffer)
+        schema-size (util/schema->point-size schema)
+        points (into []
+                     (for [i (range pc)
+                           :let [offset (* i schema-size)
+                                 dv (js/DataView. arraybuffer offset schema-size)]]
+                       (decode-point dv schema)))]
+    points))
+
+(defn update-current-point-info [server resource schema creds? bounds loc]
+  (let [ploc (util/app->data-units bounds loc)]
+    (om/update! root :clicked-point-load-in-progress? true)
+    (go
+      (let [delta 0.001 ; this probably needs to be something based on the data range
+            bounds [(- (ploc 0) delta) (- (ploc 1) delta) (- (ploc 2) delta)
+                    (+ (ploc 0) delta) (+ (ploc 1) delta) (+ (ploc 2) delta)]
+            url (str server "resource/" resource "/read?"
+                     (str "bounds=" (mkjson bounds)) "&"
+                     (str "schema=" (mkjson schema)) "&"
+                     "depthBegin=0&depthEnd=30" "&"
+                     "compress=false&"
+                     "offset=[0,0,0]")
+            res (<! (util/binary-http-get< url {:with-credentials? creds?}))
+            points (when res (decode-points schema res))]
+
+        (om/update! root :clicked-point-load-in-progress? false)
+        (when (seq points)
+          (om/update! clicked-point-info points))))))
 

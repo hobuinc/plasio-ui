@@ -1112,3 +1112,24 @@
                                         :intensity-histogram @intensity-histogram
 
                                         :all-sources color-sources}))))))))
+
+(let [id :point-info]
+  (defcomponentk point-info-pane [owner]
+    (render [_]
+      (let [root (om/observe owner plasio-state/root)
+            schema (:schema @root)
+            points (om/observe owner plasio-state/clicked-point-info)
+            init-params (:init-params @root)]
+        (d/div
+         {:class "point-info-container"}
+         (d/h4 "Point Information")
+         (when (:clicked-point-load-in-progress? @root)
+           (d/i {:class "fa fa-spinner fa-pulse"}))
+         (if-not (seq @points)
+           (d/div {:class "no-items"} "Click on a point to see its information here.")
+           (om/build w/key-val-table
+                     {:data (->> @points
+                                 first
+                                 (map (fn [[name size val]]
+                                         [name val]))
+                                 (filterv some?))})))))))

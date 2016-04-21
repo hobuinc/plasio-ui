@@ -144,3 +144,19 @@
                     (assoc v :mute? true)
                     v)]))
     channels))
+
+
+(defn binary-http-get< [url options]
+  (let [c (async/chan)
+        req (doto (js/XMLHttpRequest.)
+              (.open "GET" url)
+              (aset "withCredentials" (:with-credentials? options))
+              (aset "responseType" "arraybuffer")
+              (aset "onreadystatechange" (fn []
+                                           (this-as this
+                                             (when (= 4 (aget this "readyState"))
+                                               (if (= 200 (aget this "status"))
+                                                 (async/onto-chan c [(aget this "response")])
+                                                 (async/close! c)))))))]
+    (.send req)
+    c))
