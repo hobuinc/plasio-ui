@@ -54,15 +54,16 @@
 
 
 (def default-resources
-  [["Autzen" "autzen" "http://devdata.greyhound.io/"]
-   ["Delaware" "sandy" "http://devdata.greyhound.io/"]
-   ["Half Dome" "half-dome" "http://devdata.greyhound.io/"]
-   ["Iowa" "iowa" "http://devdata.greyhound.io/"]
-   ["Lake Isabella" "isa" "http://devdata.greyhound.io/"]
-   ["Minnesota" "min" "http://devdata.greyhound.io/"]
-   ["Nepal" "nepal" "http://devdata.greyhound.io/"]
-   ["New York City" "nyc" "http://devdata.greyhound.io/"]
-   ["St. Paul, MN" "st-paul" "http://devdata.greyhound.io/"]])
+  [["Autzen", "autzen-h", "http://cache.greyhound.io/"]
+   ["Half Dome", "half-dome-h", "http://cache.greyhound.io/"]
+   ["Iowa Bridge", "iowa-bridge-h", "http://cache.greyhound.io/"]
+   ["Lake Isabella", "isa-h", "http://cache.greyhound.io/"]
+   ["Lone Star Geyser", "lone-star-h", "http://cache.greyhound.io/"]
+   ["Minnesota", "mn-h", "http://cache.greyhound.io/"]
+   ["Nepal", "nepal-h", "http://cache.greyhound.io/"]
+   ["New York City", "nyc-h", "http://cache.greyhound.io/"]
+   ["Red Rock Amphitheatre", "redrock-h", "http://cache.greyhound.io/"]
+   ["Space Shuttle", "shuttle-h", "http://cache.greyhound.io/"]])
 
 
 (defn reset-app-state! []

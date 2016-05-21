@@ -80,13 +80,11 @@
          useBrowserHistory: true,
          allowGreyhoundCredentials: false,
          // in case the browser is empty, use the following resource
-         server: "http://data.greyhound.io/",
+         server: "http://cache.greyhound.io/",
          resource: "nyc-h",
 
          colorChannelRules: [
-             ["Red", 5],
-             ["Classification", 6],
-             ["Intensity", 7]
+             ["Red", 5]
          ],
 
          defaultColorChannelIndex: 2,
@@ -111,6 +109,7 @@
          if (v.camera && firstDispatched === null)
              firstDispatched = v;
      });
+     /*
 
      setTimeout(function() {
          console.log("-- -- dispatch", id);
@@ -120,6 +119,7 @@
      setTimeout(function() {
          plasioUI.apply(firstDispatched);
      }, 6000);
+     */
  };
 
  var destroyUI = function() {
