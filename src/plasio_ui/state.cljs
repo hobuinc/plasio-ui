@@ -56,6 +56,7 @@
 (def default-resources
   [["Autzen", "autzen-h", "http://cache.greyhound.io/"]
    ["Half Dome", "half-dome-h", "http://cache.greyhound.io/"]
+   ["Iowa", "iowa-h", "http://cache.greyhound.io/"]
    ["Iowa Bridge", "iowa-bridge-h", "http://cache.greyhound.io/"]
    ["Lake Isabella", "isa-h", "http://cache.greyhound.io/"]
    ["Lone Star Geyser", "lone-star-h", "http://cache.greyhound.io/"]
