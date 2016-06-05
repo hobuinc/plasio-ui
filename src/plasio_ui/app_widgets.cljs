@@ -697,7 +697,7 @@
                              "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
      
       ;; apply any screen rejection values
-      (let [density (get ro :point-density 2)
+      (let [density (get ro :point-density 3)
             factor (+ 100 (- 500 (* density 100)))]
         (set! (.-REJECT_ON_SCREEN_SIZE_RADIUS js/PlasioLib.FrustumLODNodePolicy) factor))
 
