@@ -1286,10 +1286,14 @@
   "A helper function to get at React DOM refs. Given a owning pure node
   extract the DOM ref specified by name."
   ([owner]
-   (.getDOMNode owner))
+   (if (aget owner "getDOMNode")
+     (.getDOMNode owner)
+     (js/ReactDOM.findDOMNode owner)))
   ([owner name]
    {:pre [(string? name)]}
-   (some-> (.-refs owner) (aget name) (.getDOMNode))))
+   (if (aget owner "getDOMNode")
+     (some-> (.-refs owner) (aget name) (.getDOMNode))
+     (some-> (.-refs owner) (aget name) (js/ReactDOM.findDOMNode)))))
 
 (defn get-ref
   "A helper function to get at React refs. Given an owning pure node extract

@@ -47,7 +47,11 @@
 (defn render
   "Equivalent to React.render"
   [component el]
-  (js/React.render component el))
+  (let [render-fn (or (aget js/window "React" "render")
+                      (aget js/window "ReactDOM" "render"))]
+    (when-not render-fn
+      (throw (ex-info "Failed to render" {:cause "Render function could not be located"})))
+    (render-fn component el)))
 
 (defn render-to-str
   "Equivalent to React.renderToString"
