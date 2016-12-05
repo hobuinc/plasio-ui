@@ -65,6 +65,8 @@
         </div>
     </div>
 </div>
+
+<!--<script src="https://cdn.entwine.io/plasio-ui/0.2.14/plasio-ui.js" type="text/javascript"></script>-->
 <script>
     var DEV_MODE = true;
     var DECOMPRESS_WORKER_PATH="workers/decompress.js";
@@ -76,19 +78,38 @@
      plasioUI = plasio_ui.core.createUI(document.getElementById("app"), {
          includeExternalDependencies: true,
          ignoreDependencies: ["bootstrap"],
-         googleMapsAPIKey: "AIzaSyAUWT5-vsCeQb1vYYamCw-RFvKTzLlY9iU",
+         googleMapsAPIKey: "AIzaSyCdLqz1ZxiO2woQ4B4wbYtcR2EtYEYnHxg",
          useBrowserHistory: true,
          allowGreyhoundCredentials: false,
          // in case the browser is empty, use the following resource
-         server: "http://cache.greyhound.io/",
+         server: "http://dev.greyhound.io/",
          resource: "nyc-h",
+         availableResources: [
+             ["Autzen", "autzen-h", "http://data.greyhound.io/"],
+             ["Half Dome", "half-dome-h", "http://dev.greyhound.io/"],
+             ["Iowa", "iowa-s", "http://dev.greyhound.io/"],
+             ["Iowa Bridge", "iowa-bridge-h&c0s=local://intensity&ps=2&pa=0.07", "http://dev.greyhound.io/"],
+             ["Lake Isabella", "isa-h", "http://dev.greyhound.io/"],
+             ["Lone Star Geyser", "lone-star-h", "http://dev.greyhound.io/"],
+             ["Minnesota", "mn-f&c0s=http://api.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw", "http://dev.greyhound.io/"],
+             ["Nepal", "nepal-h", "http://dev.greyhound.io/"],
+             ["Netherlands", "ahn&c0s=http://server.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg", "http://dev.greyhound.io/"],
+             ["New York City", "nyc-h", "http://dev.greyhound.io/"],
+             ["New Zealand", "nz-n&c0s=http://server.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg", "http://dev.greyhound.io/"],
+             ["Red Rocks Amphitheatre", "redrock-h", "http://dev.greyhound.io/"],
+             ["Space Shuttle", "shuttle-h&c0s=local://intensity&ps=2&pa=0", "http://dev.greyhound.io/"],
+             ["St. Paul, MN", "stpaul-h", "http://dev.greyhound.io/"]
+         ],
+         additionalInformation:
+         'Powered by: <a href="https://github.com/connormanning/entwine" target="_blank">entwine</a>' +
+         ', 3D Point Cloud viewer: <a href="https://github.com/verma/plasio-ui" target="_blank">plasio</a>' +
+         ', Caching provider: Amazon CloudFront, Backend Provider: Amazon EC2.',
 
          colorChannelRules: [
              ["Red", 5]
          ],
 
-         defaultColorChannelIndex: 2,
-         additionalInformation: "<p>What <a href='http://google.com'>Google</a></p>",
+         defaultColorChannelIndex: 0,
 
          colorSources: [
              ["http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw", "Mapbox Satellite Imagery"],
@@ -97,37 +118,13 @@
              ["local://elevation?start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
              ["local://elevation?start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
              ["local://color", "Color"],
-             ["local://classification", "Classification"],
              ["local://intensity", "Intensity"],
+             ["local://classification", "Classification"],
              ["local://origin", "Origin"],
              ["local://point-source-id", "Point Source ID"]
          ]});
-
-     var firstDispatched = null;
-     var id = plasioUI.addChangeListener(function(v) {
-         console.log("-- -- dispatch", v);
-         if (v.camera && firstDispatched === null)
-             firstDispatched = v;
-     });
-     /*
-
-     setTimeout(function() {
-         console.log("-- -- dispatch", id);
-         plasioUI.removeChangeListener(id);
-     }, 3000);
-
-     setTimeout(function() {
-         plasioUI.apply(firstDispatched);
-     }, 6000);
-     */
- };
-
- var destroyUI = function() {
-     if (plasioUI) {
-         plasioUI.destroy();
-         plasioUI = null;
-     }
  };
 
  createUI();
 </script>
+

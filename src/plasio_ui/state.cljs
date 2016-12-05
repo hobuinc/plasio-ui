@@ -229,7 +229,7 @@
         renderer (create-renderer e)
 
         color-info (util/schema->color-info schema)
-        
+
         bbox [(nth bounds 0) (nth bounds 2) (nth bounds 1)
               (nth bounds 3) (nth bounds 5) (nth bounds 4)]
 
@@ -237,18 +237,21 @@
         sources (sources-array (:channels ro))
 
         allow-greyhound-creds? (true? (:allowGreyhoundCredentials init-params))
-        
+
         loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
                    server resource
                    (clj->js schema)
                    (js-obj
                      ;; load whichever sources were were asked to
                     "imagerySources" (sources-array (:channels ro))
+                    "preScale" (clj->js (:pre-scale init-params))
+                    "preOffset" (clj->js (:pre-offset init-params))
 
                     ;; should we send down withCredentials = true for greyhound requests?
                     "allowGreyhoundCredentials" allow-greyhound-creds?))
                  (js/PlasioLib.Loaders.TransformLoader.)]
         policy (js/PlasioLib.FrustumLODNodePolicy.
+                 "plasio-ui"
                  (apply array loaders)
                  renderer
                  (clj->js {:pointCloudBBox bbox

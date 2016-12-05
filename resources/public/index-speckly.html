@@ -74,20 +74,23 @@
          useBrowserHistory: true,
          allowGreyhoundCredentials: false,
          // in case the browser is empty, use the following resource
-         server: "http://cache.greyhound.io/",
+         server: "http://dev.greyhound.io/",
          resource: "nyc-h",
          availableResources: [
-             ["Autzen", "autzen-h", "http://cache.greyhound.io/"],
-             ["Half Dome", "half-dome-h", "http://cache.greyhound.io/"],
-             ["Iowa", "iowa-h", "http://cache.greyhound.io/"],
-             ["Iowa Bridge", "iowa-bridge-h", "http://cache.greyhound.io/"],
-             ["Lake Isabella", "isa-h", "http://cache.greyhound.io/"],
-             ["Lone Star Geyser", "lone-star-h", "http://cache.greyhound.io/"],
-             ["Minnesota", "mn-h", "http://cache.greyhound.io/"],
-             ["Nepal", "nepal-h", "http://cache.greyhound.io/"],
-             ["New York City", "nyc-h", "http://cache.greyhound.io/"],
-             ["Red Rock Amphitheatre", "redrock-h", "http://cache.greyhound.io/"],
-             ["Space Shuttle", "shuttle-h", "http://cache.greyhound.io/"]
+             ["Autzen", "autzen-h", "http://dev.greyhound.io/"],
+             ["Half Dome", "half-dome-h", "http://dev.greyhound.io/"],
+             ["Iowa", "iowa-s", "http://dev.greyhound.io/"],
+             ["Iowa Bridge", "iowa-bridge-h&c0s=local://intensity&ps=2&pa=0.07", "http://dev.greyhound.io/"],
+             ["Lake Isabella", "isa-h", "http://dev.greyhound.io/"],
+             ["Lone Star Geyser", "lone-star-h", "http://dev.greyhound.io/"],
+             ["Minnesota", "mn-f&c0s=http://api.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw", "http://dev.greyhound.io/"],
+             ["Nepal", "nepal-h", "http://dev.greyhound.io/"],
+             ["Netherlands", "ahn&c0s=http://server.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg", "http://dev.greyhound.io/"],
+             ["New York City", "nyc-h", "http://dev.greyhound.io/"],
+             ["New Zealand", "nz-n&c0s=http://server.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg", "http://dev.greyhound.io/"],
+             ["Red Rocks Amphitheatre", "redrock-h", "http://dev.greyhound.io/"],
+             ["Space Shuttle", "shuttle-h&c0s=local://intensity&ps=2&pa=0", "http://dev.greyhound.io/"],
+             ["St. Paul, MN", "stpaul-h", "http://dev.greyhound.io/"]
          ],
          additionalInformation:
          'Powered by: <a href="https://github.com/connormanning/entwine" target="_blank">entwine</a>' +
@@ -116,3 +119,4 @@
 
  createUI();
 </script>
+

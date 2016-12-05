@@ -158,17 +158,37 @@
           num-points (:numPoints info)
           schema (:schema info)
 
+          schema (assoc-in schema [0 :type] "floating")
+          schema (assoc-in schema [1 :type] "floating")
+          schema (assoc-in schema [2 :type] "floating")
+
           ;; if bounds are 4 in count, that means that we don't have z stuff
           ;; in which case we just give it a range
           bounds (if (= 4 (count bounds))
                    (apply conj (subvec bounds 0 2)
                           0
                           (conj (subvec bounds 2 4) 520))
-                   bounds)]
+                   bounds)
+
+          pre-scale (:scale info)
+          pre-offset (:offset info)
+
+          bounds (if pre-scale
+                   [(+ (* (get bounds 0) (get pre-scale 0)) (get pre-offset 0))
+                    (+ (* (get bounds 1) (get pre-scale 1)) (get pre-offset 1))
+                    (+ (* (get bounds 2) (get pre-scale 2)) (get pre-offset 2))
+                    (+ (* (get bounds 3) (get pre-scale 0)) (get pre-offset 0))
+                    (+ (* (get bounds 4) (get pre-scale 1)) (get pre-offset 1))
+                    (+ (* (get bounds 5) (get pre-scale 2)) (get pre-offset 2))
+                    ]
+                   bounds)
+          ]
 
       {:server server
        :resource resource
        :bounds bounds
+       :pre-scale pre-scale
+       :pre-offset pre-offset
        :schema schema
        :num-points num-points})))
 
@@ -536,7 +556,7 @@
        remove-listener
 
        "apply"
-       (fn [v] 
+       (fn [v]
          (let [st (js->clj v :keywordize-keys true)]
            ;; apply the given value to our internal state
            (println "-- -- apply:" st)

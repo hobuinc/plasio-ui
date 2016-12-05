@@ -55,7 +55,7 @@
                     {:text "Point Density"
                      :min 1
                      :max 5
-                     :start (get @ro :point-density 3)
+                     :start (get @ro :point-density 4)
                      :step 1
                      :guides ["Low" "High"]
                      :f (fn [val]
@@ -695,9 +695,9 @@
                              "pointSize" (:point-size ro)
                              "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
                              "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
-     
+
       ;; apply any screen rejection values
-      (let [density (get ro :point-density 3)
+      (let [density (get ro :point-density 4)
             factor (+ 100 (- 500 (* density 100)))]
         (set! (.-REJECT_ON_SCREEN_SIZE_RADIUS js/PlasioLib.FrustumLODNodePolicy) factor))
 
