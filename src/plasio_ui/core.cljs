@@ -162,16 +162,12 @@
           schema (assoc-in schema [1 :type] "floating")
           schema (assoc-in schema [2 :type] "floating")
 
-          ;; if bounds are 4 in count, that means that we don't have z stuff
-          ;; in which case we just give it a range
-          bounds (if (= 4 (count bounds))
-                   (apply conj (subvec bounds 0 2)
-                          0
-                          (conj (subvec bounds 2 4) 520))
-                   bounds)
-
           pre-scale (:scale info)
           pre-offset (:offset info)
+
+          pre-scale (if (vector? pre-scale)
+                      pre-scale
+                      [pre-scale pre-scale pre-scale])
 
           bounds (if pre-scale
                    [(+ (* (get bounds 0) (get pre-scale 0)) (get pre-offset 0))
@@ -225,6 +221,7 @@
                                url-state-settings)
           settings (merge local-options
                           (<! (resource-params local-options)))]
+
       ;; merge-with will fail if some of the non-vec settings are available in both
       ;; app-state and settings, we do a simple check to make sure that app-state doesn't
       ;; have what we'd like it to have
