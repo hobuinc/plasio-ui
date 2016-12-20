@@ -165,7 +165,7 @@
           pre-scale (:scale info)
           pre-offset (:offset info)
 
-          pre-scale (if (vector? pre-scale)
+          pre-scale (if (or (not pre-scale) (vector? pre-scale))
                       pre-scale
                       [pre-scale pre-scale pre-scale])
 
