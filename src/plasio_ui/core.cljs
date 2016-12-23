@@ -160,31 +160,10 @@
 
           schema (assoc-in schema [0 :type] "floating")
           schema (assoc-in schema [1 :type] "floating")
-          schema (assoc-in schema [2 :type] "floating")
-
-          pre-scale (:scale info)
-          pre-offset (:offset info)
-
-          pre-scale (if (or (not pre-scale) (vector? pre-scale))
-                      pre-scale
-                      [pre-scale pre-scale pre-scale])
-
-          bounds (if pre-scale
-                   [(+ (* (get bounds 0) (get pre-scale 0)) (get pre-offset 0))
-                    (+ (* (get bounds 1) (get pre-scale 1)) (get pre-offset 1))
-                    (+ (* (get bounds 2) (get pre-scale 2)) (get pre-offset 2))
-                    (+ (* (get bounds 3) (get pre-scale 0)) (get pre-offset 0))
-                    (+ (* (get bounds 4) (get pre-scale 1)) (get pre-offset 1))
-                    (+ (* (get bounds 5) (get pre-scale 2)) (get pre-offset 2))
-                    ]
-                   bounds)
-          ]
-
+          schema (assoc-in schema [2 :type] "floating")]
       {:server server
        :resource resource
        :bounds bounds
-       :pre-scale pre-scale
-       :pre-offset pre-offset
        :schema schema
        :num-points num-points})))
 

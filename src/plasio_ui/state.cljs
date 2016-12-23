@@ -244,8 +244,6 @@
                    (js-obj
                      ;; load whichever sources were were asked to
                     "imagerySources" (sources-array (:channels ro))
-                    "preScale" (clj->js (:pre-scale init-params))
-                    "preOffset" (clj->js (:pre-offset init-params))
 
                     ;; should we send down withCredentials = true for greyhound requests?
                     "allowGreyhoundCredentials" allow-greyhound-creds?))
