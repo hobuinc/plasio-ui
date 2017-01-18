@@ -16,6 +16,7 @@
             :docked-panes []
             :locations {}
             :local-options {:flicker-fix false}}
+   :resource-info {}
    :window {:width  0
             :height 0}
    :ro     {:circular?              false
@@ -42,6 +43,7 @@
 
 (def root (om/ref-cursor root-state))
 (def window (om/ref-cursor (:window root-state)))
+(def resource-info (om/ref-cursor (:resource-info root-state)))
 (def ui (om/ref-cursor (:ui root-state)))
 (def ui-locations (om/ref-cursor (:locations ui)))
 (def ui-local-options (om/ref-cursor (:local-options ui)))
@@ -218,7 +220,7 @@
                :let [c (keyword (str "channel" i))]]
            (get-in channels [c :source]))))
 
-(declare update-current-point-info)
+(declare update-current-point-info!)
 
 (defn initialize-for-resource<! [e {:keys [server resource ro render-hints init-params]}]
   (go
@@ -244,22 +246,24 @@
                                        "initialCameraParams" (when (-> init-params :camera seq)
                                                                #_(js-camera-props bounds (:camera init-params)))))
           ;; wait for the renderer to initialize and start
-          start-status (<! (util/wait-promise< (.start point-cloud-viewer)))
+          info (<! (util/wait-promise< (.start point-cloud-viewer)))
 
           ;; Pull out some props we need
           mode-manager (.getModeManager point-cloud-viewer)
           camera (aget mode-manager "activeCamera")]
 
       ;; Only when the point cloud viewer started correctly
-      (when start-status
+      (when info
+        ;; store resource info for use later.
+        (om/update! resource-info (js->clj info :keywordize-keys true))
+
         ;; list to any synthetic point clicks, on the camera mode
         (.registerHandler camera
                           "synthetic-click-on-point"
-                          (fn [obj]
-                            #_(update-current-point-info server resource
-                                                         schema
-                                                         allow-greyhound-creds?
-                                                         bounds (js->clj (aget obj "pointPos")))))
+                          (util/throttle
+                            200
+                            (fn [obj]
+                              (update-current-point-info! (js->clj (aget obj "pointPos"))))))
 
         ;; mode manager will let us know about any context menu actions we
         ;; need to handle
@@ -437,20 +441,26 @@
                        (decode-point dv schema)))]
     points))
 
-(defn update-current-point-info [server resource schema creds? bounds loc]
-  (let [ploc (util/app->data-units bounds loc)]
+(defn update-current-point-info! [loc]
+  (when-let [point-cloud-viewer (:point-cloud-viewer @comps)]
     (om/update! root :clicked-point-load-in-progress? true)
     (go
-      (let [delta 0.001 ; this probably needs to be something based on the data range
-            bounds [(- (ploc 0) delta) (- (ploc 1) delta) (- (ploc 2) delta)
-                    (+ (ploc 0) delta) (+ (ploc 1) delta) (+ (ploc 2) delta)]
-            url (str server "resource/" resource "/read?"
-                     (str "bounds=" (mkjson bounds)) "&"
-                     (str "schema=" (mkjson schema)) "&"
+      (let [{:keys [:server :resource :allowGreyhoundCredentials]} (:init-params @root)
+
+            geotransform (.getGeoTransform point-cloud-viewer)
+            geo-space-loc (.transform geotransform (apply array loc) "render" "geo")
+
+            schema (:schema @resource-info)
+            delta 0.1                                     ; this probably needs to be something based on the data range
+            bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
+                    (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
+
+            url (str (js/Plasio.Util.pickOne server) "resource/" resource "/read?"
+                     (str "bounds=" (js/encodeURIComponent (mkjson bounds))) "&"
+                     (str "schema=" (js/encodeURIComponent (mkjson schema))) "&"
                      "depthBegin=0&depthEnd=30" "&"
-                     "compress=false&"
-                     "offset=[0,0,0]")
-            res (<! (util/binary-http-get< url {:with-credentials? creds?}))
+                     "compress=false")
+            res (<! (util/binary-http-get< url {:with-credentials? allowGreyhoundCredentials}))
             points (when res (decode-points schema res))]
 
         (om/update! root :clicked-point-load-in-progress? false)

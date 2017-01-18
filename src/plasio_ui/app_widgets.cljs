@@ -323,7 +323,7 @@
                     (.replace (.toFixed n 0) regex ",")))
 
 (defn- index-size [info]
-  (let [num-points (:num-points info)
+  (let [num-points (:numPoints info)
         schema (:schema info)
         size-bytes (* (util/schema->point-size schema) num-points)
         pow js/Math.pow
@@ -347,12 +347,11 @@
   (defcomponentk information-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
-            schema (:schema @root)
+            resource-info (:resource-info @root)
+            schema (:schema resource-info)
             init-params (:init-params @root)
-            [points size] (index-size @root)
-            col-info (util/schema->color-info schema)
-
-            credits (:credits init-params)]
+            [points size] (index-size resource-info)
+            col-info (util/schema->color-info schema)]
         (d/div
          (om/build w/key-val-table
                    {:data (->> [["Server" (:server @root)]
@@ -1097,9 +1096,7 @@
   (defcomponentk point-info-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
-            schema (:schema @root)
-            points (om/observe owner plasio-state/clicked-point-info)
-            init-params (:init-params @root)]
+            points (om/observe owner plasio-state/clicked-point-info)]
         (d/div
          {:class "point-info-container"}
          (d/h4 "Point Information")
