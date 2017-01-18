@@ -17,46 +17,51 @@ Renderer.prototype.setEyeTargetPosition = function() {};
 Renderer.prototype.addHighlightSegment = function() {};
 Renderer.prototype.removeHighlightSegment = function() {};
 
-PlasioLib = {};
-PlasioLib.Loaders = {};
-PlasioLib.Loaders.GreyhoundPipelineLoader = {};
-PlasioLib.Loaders.GreyhoundPipelineLoader.prototype.setColorChannel = function() {};
+Plasio = {};
 
-PlasioLib.Loaders.MapboxLoader = {};
-PlasioLib.Loaders.MapboxLoader.IMAGE_QUALITY = {};
+Plasio.PointCloudViewer = {};
+Plasio.PointCloudViewer.prototype.start = function() {};
+Plasio.PointCloudViewer.prototype.getRenderer = function() {};
+Plasio.PointCloudViewer.prototype.getModeManager = function() {};
+Plasio.PointCloudViewer.prototype.getGeoTransform = function() {};
+Plasio.PointCloudViewer.prototype.setFilter = function(filter) {};
+Plasio.PointCloudViewer.prototype.setColorChannelBrushes = function(brushes) {};
 
-PlasioLib.Loaders.TransformLoader = {};
+Plasio.Loaders = {};
+Plasio.Loaders.GreyhoundPipelineLoader = {};
+Plasio.Loaders.GreyhoundPipelineLoader.prototype.setColorChannel = function() {};
 
-PlasioLib.ModeManager = {};
-PlasioLib.ModeManager.activeCamera = {};
-PlasioLib.ModeManager.activeMode = {};
-PlasioLib.ModeManager.prototype.isSameEntity = function() {};
-PlasioLib.ModeManager.prototype.addActionListener = function() {};
-PlasioLib.ModeManager.prototype.propagateDataRangeHint = function() {};
+Plasio.Loaders.TransformLoader = {};
 
-PlasioLib.Features = {};
-PlasioLib.Features.Profiler = {};
-PlasioLib.Features.Profiler.prototype.extractProfile = function() {};
+Plasio.ModeManager = {};
+Plasio.ModeManager.activeCamera = {};
+Plasio.ModeManager.activeMode = {};
+Plasio.ModeManager.prototype.isSameEntity = function() {};
+Plasio.ModeManager.prototype.addActionListener = function() {};
+Plasio.ModeManager.prototype.propagateDataRangeHint = function() {};
 
+Plasio.Features = {};
+Plasio.Features.Profiler = {};
+Plasio.Features.Profiler.prototype.extractProfile = function() {};
 
-PlasioLib.Cameras = {};
-PlasioLib.Cameras.Orbital = {};
-PlasioLib.Cameras.Orbital.azimuth = {};
-PlasioLib.Cameras.Orbital.distance = {};
-PlasioLib.Cameras.Orbital.maxDistance = {};
-PlasioLib.Cameras.Orbital.target = {};
-PlasioLib.Cameras.Orbital.elevation = {};
+Plasio.Cameras = {};
+Plasio.Cameras.Orbital = {};
+Plasio.Cameras.Orbital.azimuth = {};
+Plasio.Cameras.Orbital.distance = {};
+Plasio.Cameras.Orbital.maxDistance = {};
+Plasio.Cameras.Orbital.target = {};
+Plasio.Cameras.Orbital.elevation = {};
 
-PlasioLib.Cameras.Orbital.prototype.setHint = function() {};
-PlasioLib.Cameras.Orbital.prototype.transitionTo = function() {};
-PlasioLib.Cameras.Orbital.prototype.setHeading = function() {};
-PlasioLib.Cameras.Orbital.prototype.serialize = function() {};
-PlasioLib.Cameras.Orbital.prototype.deserialize = function() {};
-PlasioLib.Cameras.Orbital.prototype.registerHandler = function() {};
+Plasio.Cameras.Orbital.prototype.setHint = function() {};
+Plasio.Cameras.Orbital.prototype.transitionTo = function() {};
+Plasio.Cameras.Orbital.prototype.setHeading = function() {};
+Plasio.Cameras.Orbital.prototype.serialize = function() {};
+Plasio.Cameras.Orbital.prototype.deserialize = function() {};
+Plasio.Cameras.Orbital.prototype.registerHandler = function() {};
 
-PlasioLib.FrustumLODNodePolicy = {};
-PlasioLib.FrustumLODNodePolicy.prototype.start = function() {};
-PlasioLib.FrustumLODNodePolicy.prototype.hookedReload = function() {};
-PlasioLib.FrustumLODNodePolicy.STOP_SPLIT_DEPTH = {};
-PlasioLib.FrustumLODNodePolicy.HARD_STOP_DEPTH = {};
-PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = {};
+Plasio.FrustumLODNodePolicy = {};
+Plasio.FrustumLODNodePolicy.prototype.start = function() {};
+Plasio.FrustumLODNodePolicy.prototype.hookedReload = function() {};
+Plasio.FrustumLODNodePolicy.STOP_SPLIT_DEPTH = {};
+Plasio.FrustumLODNodePolicy.HARD_STOP_DEPTH = {};
+Plasio.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = {};

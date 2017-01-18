@@ -6,7 +6,8 @@
             [plasio-ui.components :as components]
             [cljs.core.async :as async]
             [cljs-http.client :as http]
-            [cljs.core.async :refer [<!]])
+            [cljs.core.async :refer [<!]]
+            [cljs.pprint :as pp])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 
@@ -31,6 +32,7 @@
    :current-actions {}
    :histogram {}
    :intensity-histogram {}
+   :target-location {}
    :comps  {}
    :clicked-point-info {}})
 
@@ -51,7 +53,7 @@
 (def intensity-histogram (om/ref-cursor (:intensity-histogram root-state)))
 (def current-actions (om/ref-cursor (:current-actions root-state)))
 (def clicked-point-info (om/ref-cursor (:clicked-point-info root-state)))
-
+(def target-location (om/ref-cursor (:target-location root-state)))
 
 (def default-resources
   [["Autzen", "autzen-h", "http://cache.greyhound.io/"]
@@ -165,11 +167,11 @@
     "elevation" elevation))
 
 
-(defn- camera-state [bbox cam]
+(defn- camera-state [geotransform cam]
   {:azimuth      (aget cam "azimuth")
    :distance     (aget cam "distance")
    :max-distance (aget cam "maxDistance")
-   :target       (into [] (util/app->data-units bbox (aget cam "target")))
+   :target       (into [] (.transform geotransform (aget cam "target") "geo" "render"))
    :elevation    (aget cam "elevation")})
 
 (defn- ui-state [st]
@@ -179,11 +181,13 @@
   (select-keys st [:server :resource]))
 
 (defn current-state-snapshot []
-  (if-let [camera (.-activeCamera (:mode-manager @comps))]
-    (merge
-     {:camera (camera-state (:bounds @root) camera)}
-     (ui-state @root)
-     (params-state @root))))
+  (let [camera (.-activeCamera (:mode-manager @comps))
+        geo-transform (.getGeoTransform (:point-cloud-viewer @comps))]
+    (when (and camera geo-transform)
+      (merge
+        {:camera (camera-state geo-transform camera)}
+        (ui-state @root)
+        (params-state @root)))))
 
 (defn- save-current-snapshot!
   "Take a snapshot from the camera and save it"
@@ -216,159 +220,97 @@
 
 (declare update-current-point-info)
 
-(defn initialize-for-resource [e {:keys [server resource
-                                         schema
-                                         bounds ro
-                                         render-hints
-                                         init-params]}]
-  (println "render-hints:" render-hints)
-  (println "render-options:" ro)
-  (println "init-params:" init-params)
-  (println "bbox:" bounds)
-  (let [create-renderer (aget js/window "renderer" "core" "createRenderer")
-        renderer (create-renderer e)
+(defn initialize-for-resource<! [e {:keys [server resource ro render-hints init-params]}]
+  (go
+    (let [allow-greyhound-creds? (true? (:allowGreyhoundCredentials init-params))
+          point-cloud-viewer (js/Plasio.PointCloudViewer.
+                               e
+                               (js-obj "server" server "resource" resource
+                                       "brushes" (sources-array (:channels ro))
+                                       "allowGreyhoundCredentials" allow-greyhound-creds?
+                                       "cameraChangeCallbackFn" (fn [eye target final? applying-state?]
+                                                                  ;; when the state is final and we're not applying a state, make a history
+                                                                  ;; record of this
+                                                                  ;;
+                                                                  (when (and final?
+                                                                             (not applying-state?)
+                                                                             (:useBrowserHistory init-params))
+                                                                    (do-save-current-snapshot)))
+                                       "rendererOptions" (js-obj "clearColor" (array 0 (/ 29 256) (/ 33 256))
+                                                                 "circularPoints" 0
+                                                                 "pointSize" (:point-size ro)
+                                                                 "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
+                                                                 "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration])))
+                                       "initialCameraParams" (when (-> init-params :camera seq)
+                                                               #_(js-camera-props bounds (:camera init-params)))))
+          ;; wait for the renderer to initialize and start
+          start-status (<! (util/wait-promise< (.start point-cloud-viewer)))
 
-        color-info (util/schema->color-info schema)
-        
-        bbox [(nth bounds 0) (nth bounds 2) (nth bounds 1)
-              (nth bounds 3) (nth bounds 5) (nth bounds 4)]
+          ;; Pull out some props we need
+          mode-manager (.getModeManager point-cloud-viewer)
+          camera (aget mode-manager "activeCamera")]
 
-        ;; if there are any sources that are specified in the render options, set them up
-        sources (sources-array (:channels ro))
+      ;; Only when the point cloud viewer started correctly
+      (when start-status
+        ;; list to any synthetic point clicks, on the camera mode
+        (.registerHandler camera
+                          "synthetic-click-on-point"
+                          (fn [obj]
+                            #_(update-current-point-info server resource
+                                                         schema
+                                                         allow-greyhound-creds?
+                                                         bounds (js->clj (aget obj "pointPos")))))
 
-        allow-greyhound-creds? (true? (:allowGreyhoundCredentials init-params))
-        
-        loaders [(js/PlasioLib.Loaders.GreyhoundPipelineLoader.
-                   server resource
-                   (clj->js schema)
-                   (js-obj
-                     ;; load whichever sources were were asked to
-                    "imagerySources" (sources-array (:channels ro))
+        ;; mode manager will let us know about any context menu actions we
+        ;; need to handle
+        (.addActionListener mode-manager
+                            (fn [actions info]
+                              ;; if we were provided with actions then show them
+                              ;; otherwise we show our own list
+                              (let [acts (js->clj actions :keywordize-keys true)
+                                    info (js->clj info :keywordize-keys true)
+                                    actions-to-use (if (empty? acts)
+                                                     ;; no actions from any of the modes, provide our
+                                                     ;; own actions
+                                                     {:camera ["Camera" #(set! (.-activeMode mode-manager) "camera")]
+                                                      :lines  ["Pick Line Segments" #(set! (.-activeMode mode-manager) "line")]
+                                                      :point  ["Pick Points" #(set! (.-activeMode mode-manager) "point")]}
+                                                     acts)]
 
-                    ;; should we send down withCredentials = true for greyhound requests?
-                    "allowGreyhoundCredentials" allow-greyhound-creds?))
-                 (js/PlasioLib.Loaders.TransformLoader.)]
-        policy (js/PlasioLib.FrustumLODNodePolicy.
-                 (apply array loaders)
-                 renderer
-                 (clj->js {:pointCloudBBox bbox
-                           :normalize true}))
-        mode-manager (js/PlasioLib.ModeManager.
-                       e renderer
-                       (clj->js
-                         {:pointCloudBounds bounds})
-                       (fn [eye target final? applying-state?]
-                         ;; when the state is final and we're not applying a state, make a history
-                         ;; record of this
-                         ;;
-                         (when (and final?
-                                    (not applying-state?)
-                                    (:useBrowserHistory init-params))
-                           (do-save-current-snapshot))
+                                ;; make sure all actions can dismiss the popup
+                                (om/update! current-actions
+                                            {:actions   (into {}
+                                                              (for [[k [title f]] actions-to-use]
+                                                                [k [title (wrap-dismiss-context-menu f)]]))
+                                             :pos       (:pos info)
+                                             :screenPos (:screenPos info)}))))
 
-                         ;; make renderer show our new view
-                         (.setEyeTargetPosition renderer
-                                                eye target))
-                       (when (-> init-params :camera seq)
-                         (js-camera-props bounds (:camera init-params))))
-        camera (aget mode-manager "camera")]
+        ;; Continously monitor our target location
+        (let [geotransform (.getGeoTransform point-cloud-viewer)
+              renderer (.getRenderer point-cloud-viewer)]
+          (.addPropertyListener renderer (array "view")
+                                (fn [view]
+                                  (when-let [target (aget view "target")]
+                                    (let [transformed (.transform geotransform target "render" "geo")]
+                                      (om/update! target-location [(aget transformed 0)
+                                                                   (aget transformed 1)
+                                                                   (aget transformed 2)]))))))
 
-    ;; list to any synthetic point clicks, on the camera mode
-    (.registerHandler camera
-                      "synthetic-click-on-point"
-                      (fn [obj]
-                        (update-current-point-info server resource
-                                                   schema
-                                                   allow-greyhound-creds?
-                                                   bounds (js->clj (aget obj "pointPos")))))
+        ;; TODO: This is TEMPORARY
+        #_(components/set-active-autotool! :profile renderer {})
 
-    ;; mode manager will let us know about any context menu actions we
-    ;; need to handle
-    (.addActionListener mode-manager
-                        (fn [actions info]
-                          ;; if we were provided with actions then show them
-                          ;; otherwise we show our own list
-                          (let [acts (js->clj actions :keywordize-keys true)
-                                info (js->clj info :keywordize-keys true)
-                                actions-to-use (if (empty? acts)
-                                                 ;; no actions from any of the modes, provide our
-                                                 ;; own actions
-                                                 {:camera ["Camera" #(set! (.-activeMode mode-manager) "camera")]
-                                                  :lines  ["Pick Line Segments" #(set! (.-activeMode mode-manager) "line")]
-                                                  :point  ["Pick Points" #(set! (.-activeMode mode-manager) "point")]}
-                                                 acts)]
+        ;; establish a listener for lines, just blindly accept lines and mutate our internal
+        ;; state with list of lines
+        #_(.addPropertyListener
+            renderer (array "line-segments")
+            (fn [segments]
+              (reset! app-state-lines segments)))
 
-                            ;; make sure all actions can dismiss the popup
-                            (om/update! current-actions
-                                        {:actions (into {}
-                                                        (for [[k [title f]] actions-to-use]
-                                                          [k [title (wrap-dismiss-context-menu f)]]))
-                                         :pos (:pos info)
-                                         :screenPos (:screenPos info)}))))
-
-    ;; add loaders to our renderer, the loader wants the actual classes and not the instances, so we use
-    ;; Class.constructor here to add loaders, more like static functions in C++ classes, we want these functions
-    ;; to depend on absolutely no instance state
-    ;;
-    (doseq [loader loaders]
-      (js/console.log loader)
-      (.addLoader renderer (.-constructor loader)))
-
-    ;; attach a resize handler
-    (let [handle-resize (fn []
-                          (let [r (.getBoundingClientRect e)
-                                w (.. r -width)
-                                h (.. r -height)]
-                            (println "-- -- renderer size is:" w h)
-                            (.setRenderViewSize renderer w h)))]
-      (set! (. js/window -onresize) handle-resize)
-      (handle-resize))
-
-    ;; listen to some properties
-    (doto policy
-      (.on "bbox"
-           (fn [bb]
-             (let [bn (aget bb "mins")
-                   bx (aget bb "maxs")
-                   x  (- (aget bx 0) (aget bn 0))
-                   y  (- (aget bx 1) (aget bn 1))
-                   z  (- (aget bx 2) (aget bn 2))
-                   far-dist (* 2 (js/Math.sqrt (* x x) (* y y)))]
-
-               ;; only set hints for distance etc. when no camera init parameters were specified
-               (when-not (:camera init-params)
-                 (.propagateDataRangeHint mode-manager x y z))
-
-               (.updateCamera renderer 0 (js-obj "far" far-dist))))))
-
-    ;; set some default render state
-    ;;
-    (.setRenderOptions renderer
-                       (js-obj "circularPoints" 0
-                               "pointSize" (:point-size ro)
-                               "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
-                               "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration]))))
-    (.setClearColor renderer 0 (/ 29 256) (/ 33 256))
-    (.start policy)
-
-
-    ;; TODO: This is TEMPORARY
-    #_(components/set-active-autotool! :profile renderer {})
-
-    ;; establish a listener for lines, just blindly accept lines and mutate our internal
-    ;; state with list of lines
-    #_(.addPropertyListener
-     renderer (array "line-segments")
-     (fn [segments]
-       (reset! app-state-lines segments)))
-
-    ;; return components we have here
-    {:renderer renderer
-     :target-element e
-     :mode-manager mode-manager
-     :point-loader (first loaders)
-     :loaders loaders
-     :policy policy}))
+        ;; return components we have here
+        {:target-element     e
+         :renderer           (.getRenderer point-cloud-viewer)
+         :point-cloud-viewer point-cloud-viewer
+         :mode-manager       mode-manager}))))
 
 
 (defn show-search-box! []

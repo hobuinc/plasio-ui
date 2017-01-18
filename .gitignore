@@ -22,4 +22,5 @@ pom.xml
 Thumbs.db
 .sass-cache
 .cljs_rhino_repl/
+node_modules/
 #*#

@@ -160,3 +160,10 @@
                                                  (async/close! c)))))))]
     (.send req)
     c))
+
+(defn wait-promise< [p]
+  (let [c (async/chan)]
+    (doto p
+      (.then #(async/onto-chan c [%]))
+      (.catch #(async/close! c)))
+    c))

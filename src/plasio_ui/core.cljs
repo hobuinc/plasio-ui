@@ -142,37 +142,6 @@
         #_(when-not (empty? @actions)
             (om/build aw/context-menu @actions {:react-key @actions}))))))
 
-(defn resource-params [{:keys [server resource] :as init-state}]
-  (when (or (s/blank? server)
-            (s/blank? resource))
-    (throw (js/Error. "Trying to fetch remote resource properties but no server or resource option is specified")))
-
-  (go
-    (let [info (-> (util/info-url server resource)
-                   (http/get {:with-credentials? (true? (:allowGreyhoundCredentials init-state))})
-                   <!
-                   :body)
-
-          ;; figure out remote properties
-          bounds (:bounds info)
-          num-points (:numPoints info)
-          schema (:schema info)
-
-          ;; if bounds are 4 in count, that means that we don't have z stuff
-          ;; in which case we just give it a range
-          bounds (if (= 4 (count bounds))
-                   (apply conj (subvec bounds 0 2)
-                          0
-                          (conj (subvec bounds 2 4) 520))
-                   bounds)]
-
-      {:server server
-       :resource resource
-       :bounds bounds
-       :schema schema
-       :num-points num-points})))
-
-
 (defn bind-system-key-handlers! []
   (.addEventListener js/document
                      "keydown"
@@ -203,8 +172,7 @@
                                (or (history/current-state-from-query-string) {}))
           local-options (merge options
                                url-state-settings)
-          settings (merge local-options
-                          (<! (resource-params local-options)))]
+          settings local-options]
       ;; merge-with will fail if some of the non-vec settings are available in both
       ;; app-state and settings, we do a simple check to make sure that app-state doesn't
       ;; have what we'd like it to have
@@ -215,7 +183,7 @@
       (swap! plasio-state/app-state assoc :init-params settings)
 
       ;; make sure the Z bounds are initialized correctly
-      (let [bounds (:bounds settings)
+      #_(let [bounds (:bounds settings)
             zrange [(bounds 2) (bounds 5)]]
         (swap! plasio-state/app-state assoc-in [:ro :zrange] zrange))
 
@@ -229,14 +197,6 @@
                               (determine-default-color-channel (:schema settings) rules))
                             ;; do we have any default color channels specified
                             (:defaultColorChannelIndex options 0))))))
-
-      ;; The frustom LOD stuff needs to be configured here
-      ;;
-      (let [point-count (:num-points settings)
-            stop-split-depth (+ 1 (js/Math.ceil (util/log4 point-count)))]
-        (println "-- -- stop-split-depth:" stop-split-depth)
-        (set! (.-STOP_SPLIT_DEPTH js/PlasioLib.FrustumLODNodePolicy) stop-split-depth)
-        (set! (.-HARD_STOP_DEPTH js/PlasioLib.FrustumLODNodePolicy) (* 2 stop-split-depth)))
 
       (println "Startup state: " @plasio-state/app-state)
 
@@ -337,15 +297,13 @@
                             validators)]
     new-options))
 
-(def ^:private dev-mode-worker-location "workers/decompress.js")
 (def ^:private dev-mode-standard-includes
-  ["js/plasio-renderer.js"
-   "lib/dist/plasio-lib.js"])
+  ["js/plasio-renderer.cljs.js"
+   "lib/dist/plasio.js"])
 
-(def ^:private prod-mode-worker-location "workers/decompress.js")
 (def ^:private prod-mode-standard-includes
-  ["js/plasio-renderer.js"
-   "js/plasio-lib.js"])
+  ["js/plasio-renderer.cljs.js"
+   "js/plasio.js"])
 
 (def ^:private css-includes
   ["css/style.css"])
@@ -421,18 +379,6 @@
                   css-includes
                   (map make-production-absolute css-includes)))
         head (.-head js/document)]
-
-    ;; set the worker path needed by plasio-lib
-    (aset js/window "DECOMPRESS_WORKER_PATH"
-          (if dev-mode?
-            dev-mode-worker-location
-            (make-production-absolute prod-mode-worker-location)))
-
-    ;; set the lazperf path for production builds
-    (aset js/window "LAZPERF_LOCATION"
-          (if dev-mode?
-            "lib/dist/laz-perf.js"
-            (make-production-absolute "js/laz-perf.js")))
 
     ;; add all styles
     (go

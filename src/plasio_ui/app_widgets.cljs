@@ -588,47 +588,46 @@
 (defcomponentk render-target [[:data renderer-state] state owner]
   (did-mount [_]
     ;; time to intialize the renderer and set it up
-    (let [rs renderer-state
-          comps (plasio-state/initialize-for-resource
-                  (om/get-node owner) rs)]
+    (go
+      (let [rs renderer-state
+            comps (<! (plasio-state/initialize-for-resource<! (om/get-node owner) rs))]
+        ;; add stats listener for Z, update the histogram and z-range for the renderer
+        ;;
+        (when-let [r (:renderer comps)]
+          (.addStatsListener r "z" "z-collector"
+                             (fn [_ n]
+                               (let [hist (js->clj n)]
+                                 (when-not (empty? hist)
+                                   (let [hist (into {} (for [[k v] hist]
+                                                         [(js/parseInt k) v]))
+                                         nn (apply min (keys hist))
+                                         xx (apply max (keys hist))
+                                         hist (merge (util/zero-histogram nn xx 10)
+                                                     hist)]
+                                     ;; update the state of our renderer based on what we get from the histogram
+                                     (om/update! plasio-state/ro :zrange [nn xx])
+                                     (om/update! plasio-state/histogram hist))))))
+          (.addStatsListener r "intensity" "intensity-collector"
+                             (fn [_ n]
+                               (println "------- INTENSITY!")
+                               (let [hist (js->clj n)]
+                                 (when-not (empty? hist)
+                                   (let [hist (into {} (for [[k v] hist]
+                                                         [(js/parseInt k) v]))
+                                         nn (apply min (keys hist))
+                                         xx (apply max (keys hist))
+                                         hist (merge (util/zero-histogram nn xx 10)
+                                                     hist)]
+                                     ;; update the state of our renderer based on what we get from the histogram
+                                     (om/update! plasio-state/ro :irange [nn xx])
+                                     (om/update! plasio-state/intensity-histogram hist))))))
+          (swap! state assoc :cleanup-fn
+                 (fn []
+                   (.removeStatsListener r "z" "z-collector")
+                   (.removeStatsListener r "intensity" "intensity-collector"))))
 
-      ;; add stats listener for Z, update the histogram and z-range for the renderer
-      ;;
-      (let [r (:renderer comps)]
-        (.addStatsListener r "z" "z-collector"
-                           (fn [_ n]
-                             (let [hist (js->clj n)]
-                               (when-not (empty? hist)
-                                 (let [hist (into {} (for [[k v] hist]
-                                                       [(js/parseInt k) v]))
-                                       nn (apply min (keys hist))
-                                       xx (apply max (keys hist))
-                                       hist (merge (util/zero-histogram nn xx 10)
-                                                   hist)]
-                                   ;; update the state of our renderer based on what we get from the histogram
-                                   (om/update! plasio-state/ro :zrange [nn xx])
-                                   (om/update! plasio-state/histogram hist))))))
-        (.addStatsListener r "intensity" "intensity-collector"
-                           (fn [_ n]
-                             (println "------- INTENSITY!")
-                             (let [hist (js->clj n)]
-                               (when-not (empty? hist)
-                                 (let [hist (into {} (for [[k v] hist]
-                                                       [(js/parseInt k) v]))
-                                       nn (apply min (keys hist))
-                                       xx (apply max (keys hist))
-                                       hist (merge (util/zero-histogram nn xx 10)
-                                                   hist)]
-                                   ;; update the state of our renderer based on what we get from the histogram
-                                   (om/update! plasio-state/ro :irange [nn xx])
-                                   (om/update! plasio-state/intensity-histogram hist))))))
-        (swap! state assoc :cleanup-fn
-               (fn []
-                 (.removeStatsListener r "z" "z-collector")
-                 (.removeStatsListener r "intensity" "intensity-collector"))))
-
-      ;; save intialized state
-      (om/update! plasio-state/comps comps)))
+        ;; save intialized state
+        (om/update! plasio-state/comps comps))))
 
   (will-unmount [_]
     (when-let [cfn (:cleanup-fn @state)]
@@ -638,7 +637,6 @@
   (did-update [_ prev-props prev-state]
     ;; apply any state that needs to be applied here
     (let [root @plasio-state/root
-
           r (get-in root [:comps :renderer])
           pn (:renderer-state prev-props)
           n (:renderer-state (om/get-props owner))
@@ -697,7 +695,7 @@
                              "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
      
       ;; apply any screen rejection values
-      (let [density (get ro :point-density 3)
+      #_(let [density (get ro :point-density 3)
             factor (+ 100 (- 500 (* density 100)))]
         (set! (.-REJECT_ON_SCREEN_SIZE_RADIUS js/PlasioLib.FrustumLODNodePolicy) factor))
 
@@ -708,7 +706,7 @@
 
       ;; check for inundation plane stuff
       ;;
-      (let [bounds (:bounds n)
+      #_(let [bounds (:bounds n)
             zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
             range (- (zbounds 1) (zbounds 0))
             size  (max (- (bounds 3) (bounds 0))
@@ -735,20 +733,14 @@
       (let [current-chans (:channels ro)
             old-chans (get-in pn [:ro :channels])]
         (when (sources-changed? current-chans old-chans)
-          (let [policy (:policy @plasio-state/comps)
-                loader (get @plasio-state/comps :point-loader)
-
+          (let [point-cloud-viewer (:point-cloud-viewer @plasio-state/comps)
                 ;; all this hackery because the channels cannot be out of order
                 all-chans (->> current-chans
                                seq
                                (sort-by first)
-                               (map second))]
-            (.hookedReload policy
-                           (fn []
-                             (doall
-                              (map-indexed (fn [idx {s :source}]
-                                             (.setColorChannel loader idx s))
-                                           all-chans)))))))))
+                               (map (comp :source second)))]
+            (println "xx" all-chans)
+            (.setColorChannelBrushes point-cloud-viewer (apply array all-chans)))))))
 
   (render [_]
     (d/div {:class "render-target"})))
@@ -756,26 +748,14 @@
 (def ^:private z-vec (array 0 0 -1))
 
 (defcomponentk target-location [owner state]
-  (did-mount [_]
-    (when-let [renderer (:renderer @plasio-state/comps)]
-      (.addPropertyListener
-        renderer (array "view")
-        (fn [view]
-             (when view
-               (when-let [target (aget view "target")]
-                 (swap! state assoc :target [(aget target 0)
-                                             (aget target 1)
-                                             (aget target 2)])))))))
   (render-state [_ {:keys [target]}]
-    (let [rs (om/observe owner plasio-state/root)
-          bbox (:bounds @rs)]
-      (when target
-        (let [loc (util/app->data-units bbox target)]
-          (d/p {:class "target-location"}
-               (w/fa-icon :map-marker)
-               (.toFixed (loc 0) 2) ", "
-               (.toFixed (loc 1) 2) ", "
-               (.toFixed (loc 2) 2)))))))
+    (let [location @(om/observe owner plasio-state/target-location)]
+      (when (seq location)
+        (d/p {:class "target-location"}
+             (w/fa-icon :map-marker)
+             (.toFixed (location 0) 2) ", "
+             (.toFixed (location 1) 2) ", "
+             (.toFixed (location 2) 2))))))
 
 (defcomponentk compass [owner state]
   (did-mount [_]
@@ -959,17 +939,17 @@
 
 
 (defn- source->needed-tools [source]
-  (cond
-    (zero? (.indexOf source "local://elevation"))
-    #{:zrange}
+  (if (zero? (.indexOf source "local://ramp"))
+    (let [lcase (str/lower-case source)]
+      (cond
+        (pos? (.indexOf lcase "field=z"))
+        #{:zrange}
 
-    (zero? (.indexOf source "local://intensity"))
-    #{:irange}
+        (pos? (.indexOf lcase "field=intensity"))
+        #{:irange}
 
-    (zero? (.indexOf source "local://color-ramp"))
-    #{:zrange}
-
-    :else
+        :else
+        #{}))
     #{}))
 
 (defn parse-query-string-params [source]
