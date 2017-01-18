@@ -608,7 +608,6 @@
                                      (om/update! plasio-state/histogram hist))))))
           (.addStatsListener r "intensity" "intensity-collector"
                              (fn [_ n]
-                               (println "------- INTENSITY!")
                                (let [hist (js->clj n)]
                                  (when-not (empty? hist)
                                    (let [hist (into {} (for [[k v] hist]
@@ -636,6 +635,7 @@
   (did-update [_ prev-props prev-state]
     ;; apply any state that needs to be applied here
     (let [root @plasio-state/root
+          resource-info (:resource-info root)
           r (get-in root [:comps :renderer])
           pn (:renderer-state prev-props)
           n (:renderer-state (om/get-props owner))
@@ -705,7 +705,7 @@
 
       ;; check for inundation plane stuff
       ;;
-      #_(let [bounds (:bounds n)
+      (let [bounds (:bounds resource-info)
             zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
             range (- (zbounds 1) (zbounds 0))
             size  (max (- (bounds 3) (bounds 0))
