@@ -299,23 +299,16 @@
 
 
 (let [id :switch-resource]
-  (defcomponentk resource-item [[:data title resource server]]
+  (defcomponentk resource-item [[:data displayName url]]
     (render [_]
-      (d/a {:href (history/resource-url server resource)} title)))
+      (d/a {:href url} displayName)))
 
   (defcomponentk switch-resource-pane [owner]
     (render [_]
-      (let [root (om/observe owner plasio-state/root)
-            all-resources (get-in @root [:init-params :availableResources] plasio-state/default-resources)
-            resources (map (fn [[title resource server]]
-                             {:title title
-                              :resource resource
-                              :server server
-                              :id (str resource "@" server)})
-                           all-resources)]
+      (let [all-resources (om/observe owner plasio-state/available-resources)]
         (d/div
           {:class "switch-resource"}
-          (om/build-all resource-item resources {:key :id}))))))
+          (om/build-all resource-item @all-resources {:key :id}))))))
 
 
 (defn commify [n]
@@ -952,15 +945,9 @@
     #{}))
 
 (defn parse-query-string-params [source]
-  (let [qindex (.indexOf source "?")
-        qs->params (fn [p]
-                     (let [parts (str/split p #"&")]
-                       (into {}
-                             (for [p parts
-                                   :let [[k v] (str/split p #"=")]]
-                               [(keyword k) (js/decodeURIComponent v)]))))]
+  (let [qindex (.indexOf source "?")]
     (when-not (neg? qindex)
-      (qs->params (subs source (inc qindex))))))
+      (util/qs->params (subs source (inc qindex))))))
 
 (defn parse-color [c]
   (when (and (not (str/blank? c))

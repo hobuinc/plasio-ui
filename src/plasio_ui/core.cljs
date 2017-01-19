@@ -130,8 +130,9 @@
 
         ;; build the app bar
         (when (:showApplicationBar settings)
-          (let [res-name (or (:resourceName settings)
-                             (str (:resource @root) "@" (:server @root)))]
+          (let [resource-info (:resource-info settings)
+                res-name (or (:resourceName settings)
+                             (:id resource-info))]
             (om/build app-bar {:brand (:brand settings "speck.ly")
                                :resource-name res-name
                                :show-search? (:showSearch settings)})))
@@ -170,9 +171,29 @@
   (go
     (let [url-state-settings (when (:useBrowserHistory options)
                                (or (history/current-state-from-query-string) {}))
-          local-options (merge options
-                               url-state-settings)
-          settings local-options]
+          local-options (merge options url-state-settings)
+
+          ;; figure out what all resources we know of
+          all-resources (<! (plasio-state/load-available-resources<!))
+          default-resource (first (filter :default all-resources))
+
+          ;; start building our settings map
+          ;; if no server or resource parameters were supplied we need to fallback onto a default resource
+          settings (if (or (str/blank? (:server local-options))
+                           (str/blank? (:resource local-options)))
+                     (if default-resource
+                       (assoc local-options :server (:server-url default-resource)
+                                            :resource (:name default-resource))
+                       (throw (js/Error. "No server or resource configuration available and no default resource was found.")))
+                     local-options)
+
+          ;; we may need more information about the resource we've loaded (e.g. credits etc.) get that info
+          ;; now
+          settings (assoc settings :resource-info (some->> all-resources
+                                                           (filter #(and (= (:server settings) (:server-url %))
+                                                                         (= (:resource settings) (:name %))))
+                                                           first))]
+
       ;; merge-with will fail if some of the non-vec settings are available in both
       ;; app-state and settings, we do a simple check to make sure that app-state doesn't
       ;; have what we'd like it to have
@@ -268,15 +289,6 @@
    :showSearch true
    :brand "speck.ly"})
 
-(defn- assert-pipeline [{:keys [useBrowserHistory server resource]}]
-  ;; when the browser takeover is turned off, we need to make sure
-  ;; the user provided us with the pipeline and resource
-  ;;
-  (when (and (not useBrowserHistory)
-             (or (s/blank? server)
-                 (s/blank? resource)))
-    (throw (js/Error. "When useBrowserHistory is turned off, properties server and resource need to be specified."))))
-
 (defn- assert-google-maps-key [{:keys [showSearch googleMapsAPIKey]}]
   (when (and showSearch
              (s/blank? googleMapsAPIKey))
@@ -288,7 +300,7 @@
 
 
 (defn validate-options [options]
-  (let [validators [assert-pipeline assert-google-maps-key assert-color-sources]
+  (let [validators [assert-google-maps-key assert-color-sources]
         new-options (reduce (fn [opts v]
                               ;; each validator can pass mutate the options object
                               ;; but if it returns nil, we ignore it
@@ -408,7 +420,7 @@
 
     (println "-- input options:" opts)
     (go
-      ;; include any resources we may need
+      ;; include any page resources we may need
       (<! (include-resources opts))
 
       ;; as a side effect of loading react lazily, we need to explicitly tell react dom to initialize

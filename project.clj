@@ -18,7 +18,7 @@
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}}
 
-  :source-paths ["src"]
+  :source-paths ["src" "vendor/src"]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 

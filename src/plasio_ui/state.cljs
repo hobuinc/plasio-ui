@@ -7,7 +7,8 @@
             [cljs.core.async :as async]
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]
-            [cljs.pprint :as pp])
+            [cljs.pprint :as pp]
+            [clojure.string :as str])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 
@@ -35,7 +36,8 @@
    :intensity-histogram {}
    :target-location {}
    :comps  {}
-   :clicked-point-info {}})
+   :clicked-point-info {}
+   :available-resources {}})
 
 (defonce app-state (atom default-init-state))
 
@@ -56,20 +58,7 @@
 (def current-actions (om/ref-cursor (:current-actions root-state)))
 (def clicked-point-info (om/ref-cursor (:clicked-point-info root-state)))
 (def target-location (om/ref-cursor (:target-location root-state)))
-
-(def default-resources
-  [["Autzen", "autzen-h", "http://cache.greyhound.io/"]
-   ["Half Dome", "half-dome-h", "http://cache.greyhound.io/"]
-   ["Iowa", "iowa-h", "http://cache.greyhound.io/"]
-   ["Iowa Bridge", "iowa-bridge-h", "http://cache.greyhound.io/"]
-   ["Lake Isabella", "isa-h", "http://cache.greyhound.io/"]
-   ["Lone Star Geyser", "lone-star-h", "http://cache.greyhound.io/"]
-   ["Minnesota", "mn-h", "http://cache.greyhound.io/"]
-   ["Nepal", "nepal-h", "http://cache.greyhound.io/"]
-   ["New York City", "nyc-h", "http://cache.greyhound.io/"]
-   ["Red Rock Amphitheatre", "redrock-h", "http://cache.greyhound.io/"]
-   ["Space Shuttle", "shuttle-h", "http://cache.greyhound.io/"]])
-
+(def available-resources (om/ref-cursor (:available-resources root-state)))
 
 (defn reset-app-state! []
   (om/update! root default-init-state))
@@ -455,7 +444,7 @@
             bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
                     (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
 
-            url (str (js/Plasio.Util.pickOne server) "resource/" resource "/read?"
+            url (str (js/Plasio.Util.pickOne server) "/resource/" resource "/read?"
                      (str "bounds=" (js/encodeURIComponent (mkjson bounds))) "&"
                      (str "schema=" (js/encodeURIComponent (mkjson schema))) "&"
                      "depthBegin=0&depthEnd=30" "&"
@@ -467,3 +456,37 @@
         (when (seq points)
           (om/update! clicked-point-info points))))))
 
+(defn- encode-params [{:keys [:s :r] :as params}]
+  ;; encode server and resource params first for usability purposes
+  (let [ef #(str %1 "=" (js/encodeURIComponent %2))]
+    (println "xx" params)
+    (str/join "&" (concat [(ef "s" s) (ef "r" r)]
+                          (for [[k v] (dissoc params :s :r)]
+                            (ef k v))))))
+
+(defn- make-resource-url [{:keys [:server-url :name :params :queryString]}]
+  (let [current-origin (.. js/window -location -origin)
+        params-from-qs (if-not (str/blank? queryString) (util/qs->params queryString) {})
+        _ (println "xx" params params-from-qs)
+        final-params (merge params params-from-qs)]
+    ;; always override server and resource (qs may have them but we don't care about those).
+    (str current-origin "?" (encode-params (assoc final-params :s server-url :r name)))))
+
+(defn load-available-resources<! []
+  (go
+    (let [data (-> "resources.json" http/get <! :body)
+          {:keys [:servers :resources]} data
+          server-map (into {} (for [{:keys [:name :url]} (:items servers)
+                                    :when (not (str/blank? name))]
+                                [name (util/urlify url)]))
+          resource-defaults (:defaults resources {})
+          resources (->> (:items resources)
+                         (mapv (fn [{:keys [:name] :as r}]
+                                 (let [rr (merge resource-defaults r)
+                                       server-url (get server-map (:server rr))
+                                       rr (assoc rr :server-url server-url)]
+                                   (assoc rr
+                                     :id (str name "@" (:server rr))
+                                     :url (make-resource-url rr))))))]
+      (om/update! available-resources resources)
+      resources)))

@@ -1,0 +1,89 @@
+{
+  "servers": {
+    "items": [
+      {
+        "url": "c[0-7].greyhound.io",
+        "name": "cache.greyhound.io"
+      }
+    ]
+  },
+  "resources": {
+    "defaults": {
+      "server": "cache.greyhound.io"
+    },
+    "items": [
+      {
+        "name": "autzen",
+        "displayName": "Autzen"
+      },
+      {
+        "name": "half-dome",
+        "displayName": "Half Dome"
+      },
+      {
+        "name": "iowa",
+        "displayName": "State of Iowa"
+      },
+      {
+        "name": "iowa-bridge",
+        "displayName": "University Avenue in Cedar Falls"
+      },
+      {
+        "name": "iowa-city",
+        "displayName": "City of Iowa City"
+      },
+      {
+        "name": "lake-isabella",
+        "displayName": "Lake Isabella"
+      },
+      {
+        "name": "lone-star",
+        "displayName": "Lone Star Geyser"
+      },
+      {
+        "name": "vanuatu-village",
+        "displayName": "Vanuatu Village, Nepal"
+      },
+      {
+        "name": "nyc",
+        "displayName": "New York City",
+        "default": true
+      },
+      {
+        "name": "nz",
+        "displayName": "New Zealand"
+      },
+      {
+        "name": "red-rocks",
+        "displayName": "Red Rocks Amphitheatre"
+      },
+      {
+        "name": "sncf",
+        "displayName": "SNCF Railway",
+        "credits": "https://ressources.data.sncf.com/explore/dataset/nuage-points-3d/"
+      },
+      {
+        "name": "space-shuttle",
+        "displayName": "Space Shuttle Discovery"
+      },
+      {
+        "name": "st-helens",
+        "displayName": "St. Helens"
+      },
+      {
+        "name": "ahn",
+        "displayName": "Netherlands"
+      },
+      {
+        "name": "mn-f",
+        "displayName": "State of Minnesota"
+      },
+      {
+        "name": "stpaul-h",
+        "displayName": "City of St. Paul"
+      }
+    ]
+  }
+}
+    
+            

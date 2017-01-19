@@ -1,5 +1,6 @@
 (ns plasio-ui.util
-  (:require [cljs.core.async :as async :refer [<!]])
+  (:require [cljs.core.async :as async :refer [<!]]
+            [clojure.string :as str])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (defn mapr
@@ -167,3 +168,11 @@
       (.then #(async/onto-chan c [%]))
       (.catch #(async/close! c)))
     c))
+
+
+(defn qs->params [p]
+  (let [parts (str/split p #"&")]
+    (into {}
+          (for [p parts
+                :let [[k v] (str/split p #"=")]]
+            [(keyword (str/lower-case k)) (js/decodeURIComponent v)]))))
