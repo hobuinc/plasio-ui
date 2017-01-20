@@ -8,7 +8,8 @@
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]
             [cljs.pprint :as pp]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [plasio-ui.math :as math])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 
@@ -35,6 +36,7 @@
    :histogram {}
    :intensity-histogram {}
    :target-location {}
+   :compass {}
    :comps  {}
    :clicked-point-info {}
    :available-resources {}})
@@ -58,6 +60,7 @@
 (def current-actions (om/ref-cursor (:current-actions root-state)))
 (def clicked-point-info (om/ref-cursor (:clicked-point-info root-state)))
 (def target-location (om/ref-cursor (:target-location root-state)))
+(def compass (om/ref-cursor (:compass root-state)))
 (def available-resources (om/ref-cursor (:available-resources root-state)))
 
 (defn reset-app-state! []
@@ -149,21 +152,22 @@
   (om/transact! ui-local-options #(assoc % :active-panel panel)))
 
 
-(defn- js-camera-props [bbox {:keys [azimuth distance max-distance target elevation]}]
+(defn- js-camera-props [{:keys [azimuth distance max-distance target elevation]}]
   (js-obj
     "azimuth" azimuth
     "distance" distance
     "maxDistance" max-distance
-    "target" (apply array (util/data-units->app bbox target))
+    "targetInGeo" (apply array target)
     "elevation" elevation))
 
 
-(defn- camera-state [geotransform cam]
-  {:azimuth      (aget cam "azimuth")
-   :distance     (aget cam "distance")
-   :max-distance (aget cam "maxDistance")
-   :target       (into [] (.transform geotransform (aget cam "target") "geo" "render"))
-   :elevation    (aget cam "elevation")})
+(defn- camera-state [camera]
+  (let [cam (.serialize camera)]
+    {:azimuth      (aget cam "azimuth")
+     :distance     (aget cam "distance")
+     :max-distance (aget cam "maxDistance")
+     :target       (aget cam "target")
+     :elevation    (aget cam "elevation")}))
 
 (defn- ui-state [st]
   (select-keys st [:ro :po :pm :ui]))
@@ -172,11 +176,10 @@
   (select-keys st [:server :resource]))
 
 (defn current-state-snapshot []
-  (let [camera (.-activeCamera (:mode-manager @comps))
-        geo-transform (.getGeoTransform (:point-cloud-viewer @comps))]
-    (when (and camera geo-transform)
+  (let [camera (.-activeCamera (:mode-manager @comps))]
+    (when camera
       (merge
-        {:camera (camera-state geo-transform camera)}
+        {:camera (camera-state camera)}
         (ui-state @root)
         (params-state @root)))))
 
@@ -211,6 +214,8 @@
 
 (declare update-current-point-info!)
 
+(def ^:private z-vec (array 0 0 -1))
+
 (defn initialize-for-resource<! [e {:keys [server resource ro render-hints init-params]}]
   (go
     (let [allow-greyhound-creds? (true? (:allowGreyhoundCredentials init-params))
@@ -233,7 +238,7 @@
                                                                  "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
                                                                  "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration])))
                                        "initialCameraParams" (when (-> init-params :camera seq)
-                                                               #_(js-camera-props bounds (:camera init-params)))))
+                                                               (js-camera-props (:camera init-params)))))
           ;; wait for the renderer to initialize and start
           info (<! (util/wait-promise< (.start point-cloud-viewer)))
 
@@ -278,16 +283,38 @@
                                              :pos       (:pos info)
                                              :screenPos (:screenPos info)}))))
 
-        ;; Continously monitor our target location
-        (let [geotransform (.getGeoTransform point-cloud-viewer)
-              renderer (.getRenderer point-cloud-viewer)]
+        ;; Continously monitor our target location and compute our compass stats
+        (let [renderer (.getRenderer point-cloud-viewer)]
           (.addPropertyListener renderer (array "view")
                                 (fn [view]
-                                  (when-let [target (aget view "target")]
-                                    (let [transformed (.transform geotransform target "render" "geo")]
-                                      (om/update! target-location [(aget transformed 0)
-                                                                   (aget transformed 1)
-                                                                   (aget transformed 2)]))))))
+                                  (when view
+                                    (let [eye (aget view "eye")
+                                          target (aget view "target")]
+                                      ;; such calculations, mostly project vectors to xz plane and
+                                      ;; compute the angle between the two vectors
+                                      (when (and eye target)
+                                        (let [plane (math/target-plane target)       ;; plane at target
+                                              peye (math/project-point plane eye)    ;; project eye
+                                              v (math/make-vec target peye)          ;; vector from target to eye
+                                              theta (math/angle-between z-vec v)     ;; angle between target->eye and z
+                                              theta (math/->deg theta)               ;; in degrees
+
+                                              t->e (math/make-vec target eye)        ;; target->eye vector
+                                              t->pe (math/make-vec target peye)      ;; target->projected eye vector
+                                              incline (math/angle-between t->e t->pe)  ;; angle between t->e and t->pe
+                                              incline (math/->deg incline)]            ;; in degrees
+
+                                          ;; make sure the values are appropriately adjusted for them to make sense as
+                                          ;; css transforms
+                                          (om/update! target-location [(aget target 0)
+                                                                       (aget target 1)
+                                                                       (aget target 2)])
+                                          (om/transact! compass #(assoc % :heading
+                                                                          (if (< (aget v 0) 0)
+                                                                            theta
+                                                                            (- 360 theta))
+                                                                          :incline
+                                                                          (- 90 (max 20 incline)))))))))))
 
         ;; TODO: This is TEMPORARY
         #_(components/set-active-autotool! :profile renderer {})
@@ -459,7 +486,6 @@
 (defn- encode-params [{:keys [:s :r] :as params}]
   ;; encode server and resource params first for usability purposes
   (let [ef #(str %1 "=" (js/encodeURIComponent %2))]
-    (println "xx" params)
     (str/join "&" (concat [(ef "s" s) (ef "r" r)]
                           (for [[k v] (dissoc params :s :r)]
                             (ef k v))))))
@@ -467,7 +493,6 @@
 (defn- make-resource-url [{:keys [:server-url :name :params :queryString]}]
   (let [current-origin (.. js/window -location -origin)
         params-from-qs (if-not (str/blank? queryString) (util/qs->params queryString) {})
-        _ (println "xx" params params-from-qs)
         final-params (merge params params-from-qs)]
     ;; always override server and resource (qs may have them but we don't care about those).
     (str current-origin "?" (encode-params (assoc final-params :s server-url :r name)))))

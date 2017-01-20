@@ -62,9 +62,8 @@ Plasio.Cameras.Orbital.prototype.registerHandler = function() {};
 Plasio.FrustumLODNodePolicy = {};
 Plasio.FrustumLODNodePolicy.prototype.start = function() {};
 Plasio.FrustumLODNodePolicy.prototype.hookedReload = function() {};
-Plasio.FrustumLODNodePolicy.STOP_SPLIT_DEPTH = {};
-Plasio.FrustumLODNodePolicy.HARD_STOP_DEPTH = {};
-Plasio.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = {};
+
+Plasio.Device.overrideProperty = function() {};
 
 Plasio.Util = {};
 Plasio.Util.pickOne = function(s) {};

@@ -270,8 +270,7 @@
 
               ;; there needs to be a better way of restoring camera props
               (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
-                (let [bbox (:bounds @plasio-state/root)]
-                  (.deserialize camera (plasio-state/js-camera-props bbox (:camera st)))))))))
+                (.deserialize camera (plasio-state/js-camera-props (:camera st))))))))
 
       (when (:bindKeyHandlers settings)
         (bind-system-key-handlers!))
@@ -506,8 +505,7 @@
 
            ;; there needs to be a better way of restoring camera props
            (when-let [camera (.-activeCamera (:mode-manager @plasio-state/comps))]
-             (let [bbox (:bounds @plasio-state/root)]
-               (.deserialize camera (plasio-state/js-camera-props bbox (:camera st)))))))
+             (.deserialize camera (plasio-state/js-camera-props (:camera st))))))
 
        "destroy"
        (fn []

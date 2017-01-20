@@ -563,18 +563,19 @@
             (not= old-source new-source)))
         (range 4)))
 
-
 (defn- default-ramp-for-source [source-name root-state renderer-state]
-  (let [bounds (:bounds root-state)]
-    (cond
-      (zero? (.indexOf source-name "local://elevation"))
-      (get-in renderer-state [:ro :zrange] [(bounds 2) (bounds 5)])
+  (let [lcase (str/lower-case source-name)
+        bounds (get-in root-state [:resource-info :bounds])]
+    (if (zero? (.indexOf lcase "local://ramp"))
+      (cond
+        (pos? (.indexOf lcase "field=z"))
+        (get-in renderer-state [:ro :zrange] [(bounds 2) (bounds 5)])
 
-      (zero? (.indexOf source-name "local://intensity"))
-      (get-in renderer-state [:ro :irange] [0 255])
+        (pos? (.indexOf lcase "field=intensity"))
+        (get-in renderer-state [:ro :irange] [0 255])
 
-      ;; probably just color
-      :else
+        :else
+        [0 255])
       [0 255])))
 
 (defcomponentk render-target [[:data renderer-state] state owner]
@@ -672,9 +673,6 @@
           ramp-lows (apply array (map first ramps))
           ramp-highs (apply array (map second ramps))]
 
-      (println "contributions:" blending-contributions)
-      (println "ramps:" ramp-lows ramp-highs)
-
       ;; standard render options
       ;;
       (.setRenderOptions r (js-obj
@@ -687,9 +685,11 @@
                              "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
      
       ;; apply any screen rejection values
-      #_(let [density (get ro :point-density 3)
-            factor (+ 100 (- 500 (* density 100)))]
-        (set! (.-REJECT_ON_SCREEN_SIZE_RADIUS js/PlasioLib.FrustumLODNodePolicy) factor))
+      (let [density (get ro :point-density 3)
+            ratio-map {1 0.5 2 0.4 3 0.35 4 0.3 5 0.2}
+            ratio (get ratio-map density)]
+        (println "density:" density ratio)
+        (js/Plasio.Device.overrideProperty "nodeRejectionRatio" ratio))
 
       ;; do we need a flicker fix?
       (let [flicker-fix? (get-in n [:ui :local-options :flicker-fix])]
@@ -731,7 +731,6 @@
                                seq
                                (sort-by first)
                                (map (comp :source second)))]
-            (println "xx" all-chans)
             (.setColorChannelBrushes point-cloud-viewer (apply array all-chans)))))))
 
   (render [_]
@@ -739,8 +738,8 @@
 
 (def ^:private z-vec (array 0 0 -1))
 
-(defcomponentk target-location [owner state]
-  (render-state [_ {:keys [target]}]
+(defcomponentk target-location [owner]
+  (render [_]
     (let [location @(om/observe owner plasio-state/target-location)]
       (when (seq location)
         (d/p {:class "target-location"}
@@ -749,47 +748,19 @@
              (.toFixed (location 1) 2) ", "
              (.toFixed (location 2) 2))))))
 
-(defcomponentk compass [owner state]
-  (did-mount [_]
-    (when-let [renderer (:renderer @plasio-state/comps)]
-      (.addPropertyListener
-        renderer (array "view")
-        (fn [view]
-             (when view
-               (let [eye (aget view "eye")
-                     target (aget view "target")]
-                 ;; such calculations, mostly project vectors to xz plane and
-                 ;; compute the angle between the two vectors
-                 (when (and eye target)
-                   (let [plane (math/target-plane target)       ;; plane at target
-                         peye (math/project-point plane eye)    ;; project eye
-                         v (math/make-vec target peye)          ;; vector from target to eye
-                         theta (math/angle-between z-vec v)     ;; angle between target->eye and z
-                         theta (math/->deg theta)               ;; in degrees
-
-                         t->e (math/make-vec target eye)        ;; target->eye vector
-                         t->pe (math/make-vec target peye)      ;; target->projected eye vector
-                         incline (math/angle-between t->e t->pe)  ;; angle between t->e and t->pe
-                         incline (math/->deg incline)]            ;; in degrees
-
-                     ;; make sure the values are appropriately adjusted for them to make sense as
-                     ;; css transforms
-                     (swap! state assoc
-                            :heading (if (< (aget v 0) 0)
-                                       theta
-                                       (- 360 theta))
-                            :incline (- 90 (max 20 incline)))))))))))
-  (render-state [_ {:keys [incline heading]}]
+(defcomponentk compass [owner]
+  (render [_]
     (let [comps (om/observe owner plasio-state/comps)
-          camera (:camera @comps)]
+          compass (om/observe owner plasio-state/compass)
+          camera (some-> @comps :point-cloud-viewer (.getModeManager) (.-activeCamera))]
       (d/a
         {:class    "compass"
-         :style    {:transform (str "rotateX(" incline "deg)")}
+         :style    {:transform (str "rotateX(" (:incline @compass) "deg)")}
          :href     "javascript:"
          :on-click #(when camera
-                     (.setHeading camera 0))}
+                      (.setHeading camera 0))}
         (d/div {:class "arrow"
-                :style {:transform (str "rotateZ(" heading "deg)")}}
+                :style {:transform (str "rotateZ(" (:heading @compass) "deg)")}}
                (d/div {:class "n"})
                (d/div {:class "s"}))
         (d/div {:class "circle"})))))
