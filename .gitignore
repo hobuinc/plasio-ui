@@ -11,6 +11,7 @@ pom.xml
 /deploy/
 /speckly/
 /target/
+/dev.speck.ly/
 .lein-deps-sum
 .lein-repl-history
 .lein-plugins/
