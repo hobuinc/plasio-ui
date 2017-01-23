@@ -234,12 +234,10 @@
 (defn z-range [bounds]
   (- (bounds 5) (bounds 2)))
 
-(defn print-histo [n]
-  (let [pairs (->> n
-                   seq
-                   (sort-by first))]
-    (doall
-      (map (partial println "-- --") pairs))))
+(defn- transform-z-render->geo [geo-transform z]
+  (let [in (array 0 z 0)
+        out (.transform geo-transform in "render" "geo")]
+    (aget out 2)))
 
 (let [id :inundation-plane]
   (defcomponentk inundation-plane-pane [state owner]
@@ -249,7 +247,9 @@
             ui-locals (om/observe owner plasio-state/ui-local-options)
             histogram (om/observe owner plasio-state/histogram)
 
-            bounds (:bounds @root)
+            geo-transform (-> @root :comps :point-cloud-viewer (.getGeoTransform))
+
+            bounds (-> @root :resource-info :bounds)
             zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
 
             inun-override (:inundation-range-override @ui-locals)
@@ -257,7 +257,9 @@
                                 inun-override
                                 zbounds)
             inun-height (get @ui-locals :innudation-height start-s)
-            clamped-inun-height (min (max inun-height start-s) start-e)]
+            clamped-inun-height (min (max inun-height start-s) start-e)
+
+            to-geo-fn #(transform-z-render->geo geo-transform %)]
         (d/div
           {:class "inundation-plane"}
           (d/form
@@ -267,18 +269,23 @@
                       :on-change (fn [] (om/transact!
                                           plasio-state/ui-local-options
                                           #(update % :inundation? not)))}))
+          (println "-- " clamped-inun-height)
           (om/build w/value-present {:key   "Current Height"
-                                     :value (commify clamped-inun-height)})
+                                     :value (->> clamped-inun-height
+                                                 (transform-z-render->geo geo-transform)
+                                                 commify)})
 
-          (om/build w/z-histogram-slider {:text      "Z Range Override"
-                                          :min       (zbounds 0)
-                                          :max       (zbounds 1)
-                                          :start     [start-s start-e]
-                                          :histogram @histogram
-                                          :f         #(do
-                                                       (om/update! plasio-state/ui-local-options
-                                                                   :inundation-range-override
-                                                                   %))})
+          (om/build w/z-histogram-slider {:text        "Z Range Override"
+                                          :min         (zbounds 0)
+                                          :min-display (transform-z-render->geo geo-transform (zbounds 0))
+                                          :max         (zbounds 1)
+                                          :max-display (transform-z-render->geo geo-transform (zbounds 1))
+                                          :start       [start-s start-e]
+                                          :histogram   @histogram
+                                          :f           #(do
+                                                          (om/update! plasio-state/ui-local-options
+                                                                      :inundation-range-override
+                                                                      %))})
 
           ;; build the slider that will help us change the position
           ;;
@@ -328,14 +335,14 @@
         (if r
           (let [[x y] (math/ll->webm (:coordinates r))]
             (om/set-state! owner :data r)
-            (if (in-bounds? (:bounds @plasio-state/root)
+            (if (in-bounds? (:bounds @plasio-state/resource-info)
                             [x y])
               (plasio-state/transition-to x y)
               (om/set-state! owner :error "Sorry, this address is out of bounds.")))
           (om/set-state! owner :error "Sorry, there was an error resolving this address.")))))
 
 (defn world-in-ll []
-  (let [bounds (:bounds @plasio-state/root)]
+  (let [bounds (:bounds @plasio-state/resource-info)]
     (let [[west south] (math/webm->ll [(bounds 0) (bounds 1)])
           [east north] (math/webm->ll [(bounds 3) (bounds 4)])]
       [(js/google.maps.LatLng. north east)

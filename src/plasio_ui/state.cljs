@@ -244,7 +244,10 @@
 
           ;; Pull out some props we need
           mode-manager (.getModeManager point-cloud-viewer)
-          camera (aget mode-manager "activeCamera")]
+          camera (aget mode-manager "activeCamera")
+
+          ;; Pull out the geo transform we need to compute geo space coordinates
+          geo-transform (.getGeoTransform point-cloud-viewer)]
 
       ;; Only when the point cloud viewer started correctly
       (when info
@@ -306,9 +309,10 @@
 
                                           ;; make sure the values are appropriately adjusted for them to make sense as
                                           ;; css transforms
-                                          (om/update! target-location [(aget target 0)
-                                                                       (aget target 1)
-                                                                       (aget target 2)])
+                                          (let [transformed (.transform geo-transform target "render" "geo")]
+                                            (om/update! target-location [(aget transformed 0)
+                                                                         (aget transformed 1)
+                                                                         (aget transformed 2)]))
                                           (om/transact! compass #(assoc % :heading
                                                                           (if (< (aget v 0) 0)
                                                                             theta
@@ -382,7 +386,7 @@
    (- (bounds 5) (bounds 2))])
 
 (defn transition-to [x y]
-  (let [bounds (:bounds @root)
+  (let [bounds (:bounds @resource-info)
         [rx ry _] (data-range bounds)
         x' (util/mapr (fix-easting bounds x)
                       (bounds 0) (bounds 3)

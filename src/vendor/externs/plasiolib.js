@@ -63,6 +63,12 @@ Plasio.FrustumLODNodePolicy = {};
 Plasio.FrustumLODNodePolicy.prototype.start = function() {};
 Plasio.FrustumLODNodePolicy.prototype.hookedReload = function() {};
 
+Plasio.GeoTransform = {};
+Plasio.GeoTransform.prototype.transform = function() {};
+Plasio.GeoTransform.prototype.coordinateSpaceRange = function() {};
+Plasio.GeoTransform.prototype.coordinateSpaceCenter = function() {};
+Plasio.GeoTransform.prototype.coordinateSpaceBounds = function() {};
+
 Plasio.Device.overrideProperty = function() {};
 
 Plasio.Util = {};

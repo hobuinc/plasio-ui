@@ -58,7 +58,8 @@
         color: white;
         font-size: 1.0em;
         padding: 2px 3px;
-        position: relative; }
+        position: relative;
+        top: -2px; }
       .plasio-ui .app-bar-container .app-bar .toolbar .separator {
         display: inline;
         margin-left: 10px;

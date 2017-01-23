@@ -247,7 +247,10 @@
            (d/div {:class "value pull-right"} value))))
 
 
-(defcomponentk z-histogram-slider [[:data text min max start histogram {f nil}] state owner]
+(defcomponentk z-histogram-slider [[:data text
+                                    min {min-display nil}
+                                    max {max-display nil}
+                                    start histogram {f nil}] state owner]
   (render [_]
     (d/div
       {:class "z-histogram"}
@@ -263,7 +266,7 @@
                         :step    0.01
                         :start   start
                         :connect false
-                        :guides [min max]
+                        :guides  [(or min-display min) (or max-display max)]
                         :f       f}))))
 
 
