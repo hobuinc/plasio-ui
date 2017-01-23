@@ -485,7 +485,7 @@
 
 (defn- encode-params [{:keys [:s :r] :as params}]
   ;; encode server and resource params first for usability purposes
-  (let [ef #(str %1 "=" (js/encodeURIComponent %2))]
+  (let [ef #(str (name %1) "=" (js/encodeURIComponent %2))]
     (str/join "&" (concat [(ef "s" s) (ef "r" r)]
                           (for [[k v] (dissoc params :s :r)]
                             (ef k v))))))

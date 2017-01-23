@@ -1,7 +1,13 @@
 (ns plasio-ui.util
   (:require [cljs.core.async :as async :refer [<!]]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [cljs.pprint :as pprint])
   (:require-macros [cljs.core.async.macros :refer [go]]))
+
+(defn v [txt v]
+  (println "-- v: " txt)
+  (pprint/pprint v)
+  v)
 
 (defn mapr
   "maps v which is in range ins -> ine, to the range outs -> oute"
@@ -176,3 +182,14 @@
           (for [p parts
                 :let [[k v] (str/split p #"=")]]
             [(keyword (str/lower-case k)) (js/decodeURIComponent v)]))))
+
+
+(declare deep-merge-item)
+
+(defn deep-merge [& ms]
+  (apply merge-with deep-merge-item ms))
+
+(defn- deep-merge-item [a b]
+  (if (and (map? a) (map? b))
+    (deep-merge a b)
+    b))

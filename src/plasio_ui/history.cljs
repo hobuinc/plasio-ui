@@ -120,6 +120,7 @@
                     :let [val (get-in obj ks)]
                     :when val]
                 [token val t])]
+    (println "hs:" pairs)
     (join "&"
           (map (fn [[token val t]]
                  (str token "=" (-> (compress-entity [t val])
@@ -139,6 +140,18 @@
            (assoc-in acc p val))))
      {}
      tokens)))
+
+(defn- decompress-map [m]
+  (let [reverse-map (into {}
+                          (for [[k v t] path-mappers]
+                            [(keyword v) [k t]]))]
+    (reduce
+     (fn [acc [k v]]
+       (if-let [[p t] (get reverse-map k)]
+         (let [val (decompress-entity [t (js/decodeURIComponent v)])]
+           (assoc-in acc p val))))
+     {}
+     m)))
 
 (defn- prep-state [obj]
   (let [url (compress obj)
@@ -167,6 +180,9 @@
     (when-let [history (.. js/window -history)]
       (let [[to-store url-qs] (prep-state obj)]
         (.replaceState history to-store title url-qs)))))
+
+(defn current-state-from-query-map [m]
+  (decompress-map m))
 
 (defn current-state-from-query-string
   ([]

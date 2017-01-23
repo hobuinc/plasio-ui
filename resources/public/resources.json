@@ -14,73 +14,124 @@
     "items": [
       {
         "name": "autzen",
-        "displayName": "Autzen"
+        "displayName": "Autzen",
+        "params": {
+          "c0s": "local://color"
+        }
       },
       {
         "name": "half-dome",
-        "displayName": "Half Dome"
+        "displayName": "Half Dome",
+        "params": {
+          "c0s": "local://color"
+        }
       },
       {
         "name": "iowa",
-        "displayName": "State of Iowa"
+        "displayName": "State of Iowa",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "iowa-bridge",
-        "displayName": "University Avenue in Cedar Falls"
+        "displayName": "University Avenue in Cedar Falls",
+        "params": {
+          "c0s": "local://ramp?field=Intensity"
+        }
       },
       {
         "name": "iowa-city",
-        "displayName": "City of Iowa City"
+        "displayName": "City of Iowa City",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "lake-isabella",
-        "displayName": "Lake Isabella"
+        "displayName": "Lake Isabella",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "lone-star",
-        "displayName": "Lone Star Geyser"
+        "displayName": "Lone Star Geyser",
+        "params": {
+          "c0s": "local://ramp?field=Intensity"
+        }
       },
       {
         "name": "vanuatu-village",
-        "displayName": "Vanuatu Village, Nepal"
+        "displayName": "Vanuatu Village, Nepal",
+        "params": {
+          "c0s": "local://color"
+        }
       },
       {
         "name": "nyc",
         "displayName": "New York City",
-        "default": true
+        "default": true,
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "nz",
-        "displayName": "New Zealand"
+        "displayName": "New Zealand",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "red-rocks",
-        "displayName": "Red Rocks Amphitheatre"
+        "displayName": "Red Rocks Amphitheatre",
+        "params": {
+          "c0s": "local://color"
+        }
       },
       {
         "name": "sncf",
         "displayName": "SNCF Railway",
+        "params": {
+          "c0s": "local://color"
+        },
         "credits": "https://ressources.data.sncf.com/explore/dataset/nuage-points-3d/"
       },
       {
         "name": "space-shuttle",
-        "displayName": "Space Shuttle Discovery"
+        "displayName": "Space Shuttle Discovery",
+        "params": {
+          "c0s": "local://ramp?field=Intensity"
+        }
       },
       {
         "name": "st-helens",
-        "displayName": "St. Helens"
+        "displayName": "St. Helens",
+        "params": {
+          "c0s": "local://color"
+        }
       },
       {
         "name": "ahn",
-        "displayName": "Netherlands"
+        "displayName": "Netherlands",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "mn-f",
-        "displayName": "State of Minnesota"
+        "displayName": "State of Minnesota",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       },
       {
         "name": "stpaul-h",
-        "displayName": "City of St. Paul"
+        "displayName": "City of St. Paul",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       }
     ]
   }

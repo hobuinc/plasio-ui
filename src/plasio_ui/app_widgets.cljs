@@ -126,162 +126,6 @@
        :on-click f}
       (grad-svg s e))))
 
-(defcomponentk ramp-widget [[:data ro f fr] owner]
-  (render [_]
-    (d/div
-      (d/div {:class "text"} "Height Ramp Color Source")
-      (d/div
-        {:class "ramps-container"}
-        (apply
-          b/button-group {}
-          (om/build-all ramp-button
-                        (map (fn [[id [s e]]]
-                               {:id id :s s :e e
-                                :f (partial f id)})
-                             config/color-ramps)
-                        {:key :id})))
-
-      ;; finally draw the fancy svg with our current offsets
-      (let [[left right] (:color-ramp-range ro)
-            [s e] (get config/color-ramps
-                       (or (:color-ramp ro) :red-to-green))]
-
-        (d/div {:class "ramp-range"}
-               (grad-svg s e 200 10 left right)
-
-               ;; and the slider
-               (om/build w/slider {:min     0
-                                   :max     1
-                                   :step    0.01
-                                   :start   [left right]
-                                   :connect true
-                                   :f       fr}))))))
-
-(let [id :imagery
-      preknown-imagery-sources [["none" "None"]
-                                [:divider/two :divider]
-                                ["mapbox.satellite" "Satellite"]
-                                ["mapbox.comic" "Comic"]
-                                ["mapbox.wheatpaste" "Wheatpaste"]
-                                ["mapbox.emerald" "Emerald"]
-                                ["mapbox.pencil" "Pencil"]
-                                [:divider/one :divider]
-                                ["local.elevation" "Elevation"]]]
-  (defcomponentk imagery-pane [state owner]
-    (render-state [_ _]
-      (let [ro (om/observe owner plasio-state/ro)
-            as (om/observe owner plasio-state/root)
-            lo (om/observe owner plasio-state/ui-local-options)
-            histogram (om/observe owner plasio-state/histogram)
-
-            schema-info (util/schema->color-info (:schema @as))
-
-            known-imagery-sources (conj preknown-imagery-sources
-                                        (when (:origin? schema-info)
-                                          ["local.origin" "Origin"])
-                                        (when (:classification? schema-info)
-                                          ["local.classification" "Classification"])
-                                        (when (:point-source-id? schema-info)
-                                          ["local.pointSourceId" "Point Source ID"]))
-            imagery-source (or (:imagery-source @ro) (if (:color? schema-info)
-                                                       "none"
-                                                       "mapbox.satellite"))
-            as-map (into {} known-imagery-sources)
-
-
-            override (:color-ramp-override @lo)
-
-            bounds (:bounds @as)
-            zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
-            [ss se] (if override
-                      override
-                      zbounds)
-            imager-source-title (get as-map
-                                     imagery-source
-                                     "No Source")
-            color? (:color? schema-info)]
-
-        (d/div
-          {:class "imagery"}
-
-          ;; imagery source
-          (d/div
-           (d/div {:class "imagery-source"}
-                  (d/div {:class "text"} "Imagery Source")
-                  (apply b/dropdown {:bs-size "small"
-                                     :title   imager-source-title}
-                         (for [[id name] known-imagery-sources]
-                           (if (keyword? id)
-                             (b/menu-item {:divider? true})
-                             (b/menu-item {:key       id
-                                           :on-select (fn []
-                                                        (om/transact! plasio-state/ro
-                                                                      #(assoc % :imagery-source id)))}
-                                          name))))
-                  (d/p {:class "tip"} "Note: The current scene will be reloaded with new imagery.")
-
-                  (when (and (= "none" imagery-source)
-                             (not color?))
-                    (d/p {:class "tip-warn"}
-                         "You have chosen to not apply any imagery color to this point cloud which has no color information.  Point cloud visibility may be low."))
-
-                  (when (and (util/overlayed-imagery? imagery-source)
-                             color?)
-                    (d/p {:class "tip-warn"}
-                         "You have chosen overlay imagery for coloring point cloud while the source has color. "
-                         "Image overlay may not match point cloud unless point cloud is projected with Web Mercator.")))
-
-           ;; imagery quality
-           (om/build w/labeled-slider
-                     {:text   "Imagery Quality"
-                      :min    0
-                      :max    2
-                      :step   1
-                      :guides ["Low" "High"]
-                      :start  (or (:imagery-quality @lo) 1)
-                      :f      (fn [nv]
-                                (om/transact! plasio-state/ui-local-options
-                                              #(assoc % :imagery-quality nv)))})
-
-           (d/p {:class "tip"} "Note: This setting only affects the newly fetched imagery."))
-
-          ;; z-range override
-          ;;
-          (om/build w/z-histogram-slider
-                    {:text      "Z Range Override"
-                     :min       (zbounds 0)
-                     :max       (zbounds 1)
-                     :start     [ss se]
-                     :histogram @histogram
-                     :f         #(om/update! plasio-state/ui-local-options
-                                             :color-ramp-override %)})
-
-
-          ;; draw the widget for selecting ramps
-          (om/build ramp-widget {:ro @ro
-                                 :f  (fn [new-mode]
-                                       (om/transact!
-                                         plasio-state/ro
-                                         #(assoc % :color-ramp new-mode)))
-                                 :fr (fn [new-range]
-                                       (om/transact!
-                                         plasio-state/ro
-                                         #(assoc % :color-ramp-range new-range)))})
-
-          ;; blend factor between the color and ramp color
-          (om/build w/labeled-slider
-                    {:text  "Imagery/Ramp Color Blending"
-                     :min   0
-                     :max   1
-                     :step  0.01
-                     :guides ["All Imagery" "All Color Ramp"]
-                     :start (or (:map_f @ro) 0)
-                     :f     (fn [nv]
-                              (om/transact! plasio-state/ro
-                                            #(assoc %
-                                              :map_f nv
-                                              :rgb_f (- 1 nv))))}))))))
-
 
 (let [id :point-manipulation]
   (defcomponentk point-manipulation-pane [owner]
@@ -308,7 +152,8 @@
       (let [all-resources (om/observe owner plasio-state/available-resources)]
         (d/div
           {:class "switch-resource"}
-          (om/build-all resource-item @all-resources {:key :id}))))))
+          (om/build-all resource-item (->> @all-resources
+                                           (sort-by :displayName)) {:key :id}))))))
 
 
 (defn commify [n]
@@ -885,15 +730,13 @@
     (let [all-options (->> all
                            seq
                            (cons [nil "None"]))
-          all-as-map (into {} all)
-          selected-option (fn [e]
-                            (let [index (aget e "selectedIndex")
-                                  item  (aget e "options" index "value")]
-                              item))]
+          all-as-map (into {} (for [[k v] all]
+                                [(js/decodeURIComponent k) v]))]
 
-      (println "seleceted:" selected ", all:" all)
+      (println "seleceted:" selected ", all:" all-as-map)
       (apply b/dropdown {:bs-size "small"
-                         :title   (if (nil? selected) "None"  (get all-as-map selected))}
+                         ;; the selected may come down as an un-encoded url
+                         :title   (if (nil? selected) "None" (or (get all-as-map (js/decodeURIComponent selected))))}
              (for [[id name] all-options]
                (b/menu-item {:key       id
                              :on-select (fn []

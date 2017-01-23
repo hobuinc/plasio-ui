@@ -31,7 +31,6 @@
   [[:switch-resource "Switch Resource" :database aw/switch-resource-pane]
    [:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
    [:channels "Color Channels" :picture-o aw/channels-pane]
-   [:imagery "Imagery Options" :picture-o aw/imagery-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
    [:inundation-plane "Inundation Plane" :street-view aw/inundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
@@ -169,26 +168,38 @@
 
 (defn startup [div-element options]
   (go
-    (let [url-state-settings (when (:useBrowserHistory options)
+    (let [ ;; figure out what all resources we know of
+          all-resources (<! (plasio-state/load-available-resources<!))
+          default-resource (first (filter :default all-resources))
+
+          ;; compose parameters
+          url-state-settings (when (:useBrowserHistory options)
                                (or (history/current-state-from-query-string) {}))
           local-options (merge options url-state-settings)
 
-          ;; figure out what all resources we know of
-          all-resources (<! (plasio-state/load-available-resources<!))
-          default-resource (first (filter :default all-resources))
 
           ;; start building our settings map
           ;; if no server or resource parameters were supplied we need to fallback onto a default resource
           settings (if (or (str/blank? (:server local-options))
                            (str/blank? (:resource local-options)))
                      (if default-resource
-                       (assoc local-options :server (:server-url default-resource)
-                                            :resource (:name default-resource))
+                       (util/deep-merge
+                         (util/v "local-options"
+                                 (assoc local-options :server (:server-url default-resource)
+                                                      :resource (:name default-resource)))
+                         ;; Also merge in any params that the default resource may specify
+                         (util/v "query-string"
+                                 (history/current-state-from-query-string (str "?" (:queryString default-resource))))
+
+                         ;; merge any default params
+                         (util/v "params"
+                                 (history/current-state-from-query-map (:params default-resource))))
                        (throw (js/Error. "No server or resource configuration available and no default resource was found.")))
                      local-options)
 
-          ;; we may need more information about the resource we've loaded (e.g. credits etc.) get that info
-          ;; now
+          _ (println "settings:" settings)
+
+          ;; Save the resource info, we would need it to show the resource info and any credits associated with it.
           settings (assoc settings :resource-info (some->> all-resources
                                                            (filter #(and (= (:server settings) (:server-url %))
                                                                          (= (:resource settings) (:name %))))
