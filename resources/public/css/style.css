@@ -359,23 +359,27 @@
     left: 0px;
     top: 30px;
     bottom: 0px;
-    width: 300px;
+    width: 350px;
     background-color: white;
-    transition: left 0.2s; }
+    transition: left 0.2s;
+    display: flex;
+    flex-direction: row; }
     .plasio-ui .docker-widget .toolbar {
       margin-top: 0;
-      background-color: RGBA(0, 187, 215, 1);
       padding: 10px 5px 10px 5px;
       box-shadow: 0px 1px 2px #333;
-      width: 325px; }
+      width: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-right: 1px solid #eee;
+      flex: 0 0 50px; }
     .plasio-ui .docker-widget .toolbar-item {
       position: relative;
       font-size: 1.1em;
-      background-color: RGBA(0, 187, 215, 1);
-      margin-right: 2px;
-      border-radius: 2px;
-      box-shadow: 0px 1px 2px #333;
-      color: #ddd;
+      margin-bottom: 4px;
+      border-radius: 0px;
+      color: #bbb;
       display: inline-block;
       width: 32px;
       height: 32px;
@@ -388,33 +392,38 @@
       color: white;
       padding-top: 10px; }
     .plasio-ui .docker-widget .toolbar-item.active {
-      background-color: RGBA(242, 105, 0, 1);
+      background-color: RGBA(0, 187, 215, 1);
       color: white; }
     .plasio-ui .docker-widget .toolbar-item:hover {
-      color: #fff; }
+      background-color: RGBA(0, 187, 215, 1);
+      color: white; }
     .plasio-ui .docker-widget .toolbar-item:hover .tooltip {
       display: inherit; }
     .plasio-ui .docker-widget.off {
-      left: -300px; }
+      left: -350px; }
     .plasio-ui .docker-widget .toggle-docker {
       position: absolute;
       z-index: 1000;
-      top: 10px;
+      top: 0px;
       right: -20px;
+      text-align: center;
+      width: 20px;
       color: #ddd;
-      font-size: 22px;
-      font-weight: 700; }
+      font-size: 18px;
+      padding: 0 5px;
+      line-height: 40px;
+      font-weight: 700;
+      background-color: white;
+      color: RGBA(0, 187, 215, 1);
+      border-bottom-right-radius: 3px; }
     .plasio-ui .docker-widget .toggle-docker:hover {
-      color: white; }
+      color: RGBA(0, 187, 215, 0.6); }
     .plasio-ui .docker-widget .active-pane {
-      padding: 20px 45px 65px 45px;
+      padding: 20px 30px;
       background-color: white;
       font-size: 0.8em;
       overflow: auto;
-      position: absolute;
-      top: 53px;
-      bottom: 0;
-      width: 100%; }
+      flex: 1 1; }
       .plasio-ui .docker-widget .active-pane table {
         font-size: 1em; }
   .plasio-ui .bool-field {
@@ -656,6 +665,8 @@
     border: 2px solid #333; }
   .plasio-ui .point-info-container {
     position: relative; }
+    .plasio-ui .point-info-container h4 {
+      margin-top: 0px; }
     .plasio-ui .point-info-container .fa-spinner {
       position: absolute;
       right: 10px;

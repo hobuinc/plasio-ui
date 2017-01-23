@@ -618,7 +618,7 @@
           :href "http://github.com/connormanning/entwine"
           :style {:position "absolute"
                   :bottom "10px"
-                  :left "10px"}})))
+                  :left "60px"}})))
 
 
 (def ^:private menu-item-mapping
@@ -733,7 +733,6 @@
           all-as-map (into {} (for [[k v] all]
                                 [(js/decodeURIComponent k) v]))]
 
-      (println "seleceted:" selected ", all:" all-as-map)
       (apply b/dropdown {:bs-size "small"
                          ;; the selected may come down as an un-encoded url
                          :title   (if (nil? selected) "None" (or (get all-as-map (js/decodeURIComponent selected))))}

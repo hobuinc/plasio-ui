@@ -276,10 +276,9 @@
           :href     "javascript:"
           :alt      title}
          (fa-icon icon)
-         (r/tooltip {:placement         "bottom"
-                     :position-left     0
-                     :position-top      42
-                     :arrow-offset-left 23}
+         (r/tooltip {:placement         "right"
+                     :position-left     35
+                     :position-top      -5}
                     title))))
 
 (defcomponentk docked-widget-toolbar [[:data items active activate-fn]]
