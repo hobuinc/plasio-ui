@@ -63,6 +63,16 @@
 (def compass (om/ref-cursor (:compass root-state)))
 (def available-resources (om/ref-cursor (:available-resources root-state)))
 
+
+(def ^:const default-point-cloud-density-level 4)
+(def ^:const point-cloud-density-levels
+  {1 0.5
+   2 0.4
+   3 0.35
+   4 0.3
+   5 0.2
+   6 0.1})
+
 (defn reset-app-state! []
   (om/update! root default-init-state))
 

@@ -286,6 +286,11 @@
       (when (:bindKeyHandlers settings)
         (bind-system-key-handlers!))
 
+      ;; set any other initialization params the default point cloud density
+      (js/Plasio.Device.overrideProperty "nodeRejectionRatio"
+                                         (get plasio-state/point-cloud-density-levels plasio-state/default-point-cloud-density-level))
+
+      ;; finally enable HUD
       (om/root hud
                plasio-state/app-state
                {:target div-element}))))

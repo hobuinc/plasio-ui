@@ -51,15 +51,17 @@
                                 (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))})
 
           ;; point density loading
-          (om/build w/labeled-slider
-                    {:text "Point Density"
-                     :min 1
-                     :max 5
-                     :start (get @ro :point-density 3)
-                     :step 1
-                     :guides ["Low" "High"]
-                     :f (fn [val]
-                          (om/transact! plasio-state/ro #(assoc % :point-density val)))})
+          (let [all-keys (->> (keys plasio-state/point-cloud-density-levels)
+                              sort)]
+            (om/build w/labeled-slider
+                      {:text "Point Density"
+                       :min (first all-keys)
+                       :max (last all-keys)
+                       :start (get @ro :point-density plasio-state/default-point-cloud-density-level)
+                       :step 1
+                       :guides ["Low" "High"]
+                       :f (fn [val]
+                            (om/transact! plasio-state/ro #(assoc % :point-density val)))}))
 
           (d/p {:class "tip-warn"}
                "WARNING: Setting this value to higher values may render your browser unusable. "
@@ -537,9 +539,8 @@
                              "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
      
       ;; apply any screen rejection values
-      (let [density (get ro :point-density 3)
-            ratio-map {1 0.5 2 0.4 3 0.35 4 0.3 5 0.2}
-            ratio (get ratio-map density)]
+      (let [density (get ro :point-density plasio-state/default-point-cloud-density-level)
+            ratio (get plasio-state/point-cloud-density-levels density)]
         (println "density:" density ratio)
         (js/Plasio.Device.overrideProperty "nodeRejectionRatio" ratio))
 
