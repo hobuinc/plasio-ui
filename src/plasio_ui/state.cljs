@@ -39,7 +39,8 @@
    :compass {}
    :comps  {}
    :clicked-point-info {}
-   :available-resources {}})
+   :available-resources {}
+   :available-filters []})
 
 (defonce app-state (atom default-init-state))
 
@@ -62,6 +63,7 @@
 (def target-location (om/ref-cursor (:target-location root-state)))
 (def compass (om/ref-cursor (:compass root-state)))
 (def available-resources (om/ref-cursor (:available-resources root-state)))
+(def available-filters (om/ref-cursor (:available-filters root-state)))
 
 
 (def ^:const default-point-cloud-density-level 4)
@@ -529,3 +531,19 @@
                                      :url (make-resource-url rr))))))]
       (om/update! available-resources resources)
       resources)))
+
+
+(defn load-available-filters<! []
+  (go
+    (let [filters (-> "filters.json" http/get <! :body)]
+      (om/update! available-filters filters)
+      filters)))
+
+
+(defn apply-filter! [filter-as-string]
+  (let [viewer (-> @comps :point-cloud-viewer)
+        json (when-not (str/blank? filter-as-string)
+               (js/JSON.parse filter-as-string))]
+    (om/transact! ro #(assoc % :filter filter-as-string))
+    (when viewer
+      (.setFilter viewer json))))

@@ -271,7 +271,6 @@
                       :on-change (fn [] (om/transact!
                                           plasio-state/ui-local-options
                                           #(update % :inundation? not)))}))
-          (println "-- " clamped-inun-height)
           (om/build w/value-present {:key   "Current Height"
                                      :value (->> clamped-inun-height
                                                  (transform-z-render->geo geo-transform)
@@ -315,6 +314,68 @@
                                                            #(assoc % :inundation-plane-opacity
                                                                      val)))})))))))
 
+(let [id :filter]
+  (defcomponentk filters-dropdown [[:data all f-changed]]
+    (render [_]
+      (let [all-options (->> all
+                             seq
+                             (cons {:name "None"
+                                    :spec nil}))]
+        (apply b/dropdown {:bs-size "small"
+                           ;; the selected may come down as an un-encoded url
+                           :title   "Load a pre-defined filter"}
+               (for [{:keys [:name :spec]} all-options]
+                 (b/menu-item {:key       name
+                               :on-select (fn []
+                                            (f-changed spec))}
+                              name))))))
+
+  (defcomponentk filter-pane [owner state]
+    (render [_]
+      (let [filters (om/observe owner plasio-state/available-filters)
+            render-options (om/observe owner plasio-state/ro)
+
+            active-filter (or (:filter @state)
+                              (:filter @render-options)
+                              "")
+
+            direct-set-filter (fn []
+                                (let [value active-filter]
+                                  (try
+                                    ;; if string is not empty, try parsing the JSON
+                                    (when-not (str/blank? value)
+                                      (js/JSON.parse value))
+                                    ;; if no text, clear filter
+                                    (plasio-state/apply-filter! (if (str/blank? value) nil value))
+                                    (swap! state dissoc :syntax-error)
+                                    (catch js/SyntaxError e
+                                      (swap! state assoc :syntax-error (.-message e))))))]
+        (d/div
+          {:class "filter"}
+          (d/p "Enter filter description below and click the "
+               (d/strong "Apply Filter")
+               " button to apply filter to the current point cloud view.")
+
+          (om/build filters-dropdown {:all       @filters
+                                      :f-changed #(swap! state assoc :filter (if %
+                                                                               (-> % clj->js (js/JSON.stringify nil 2))
+                                                                               ""))})
+
+          (d/textarea {:class "textarea"
+                       :ref "filter-text"
+                       :value active-filter
+                       :on-change #(swap! state assoc :filter (.. % -target -value))
+                       :rows  20})
+
+          (when-not (str/blank? (:syntax-error @state))
+            (d/p {:class "text-danger"} "Could not apply filter: " (:syntax-error @state)))
+
+          (b/button
+            {:bs-style "default"
+             :bs-size  "medium"
+             :title    "Apply Filter"
+             :on-click #(direct-set-filter)}
+            "Apply Filter"))))))
 
 (defn- in-bounds? [[a b _ d e _] [g h]]
   (and (>= g a)

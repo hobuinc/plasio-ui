@@ -931,6 +931,28 @@
     }
   }
 
+  .filter {
+    .textarea {
+      width: 100%;
+      resize: vertical;
+      box-sizing: border-box;
+      max-height: 400px;
+      font-family: 'Monaco', 'Menlo', 'Consolas', 'Ubuntu Mono', Monospace;
+      font-size: 12px;
+    }
+
+    .btn-group {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+
+    li > a {
+      color: black;
+    }
+  }
+
+
 
   .context-menu {
     position: relative;

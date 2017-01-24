@@ -19,6 +19,9 @@
    [[:ro :point-size-attenuation] "pa" :number]
    [[:pm :z-exaggeration] "ze" :number]
 
+   ;; Active filter
+   [[:ro :filter] "filter" :string]
+
    ;; per channel values
    [[:ro :channels :channel0 :source] "c0s" :string]
    [[:ro :channels :channel0 :contribution] "c0c" :number]

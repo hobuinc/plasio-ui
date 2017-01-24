@@ -1,0 +1,26 @@
+[
+  {
+    "name": "De-noise",
+    "spec": {
+      "$and": [
+        {
+          "Classification": {
+            "$ne": 7
+          }
+        },
+        {
+          "Classification": {
+            "$lt": 18
+          }
+        }
+      ]
+    }
+  },
+
+  {
+    "name": "Ground",
+    "spec": {
+      "Classification": 2
+    }
+  }
+]

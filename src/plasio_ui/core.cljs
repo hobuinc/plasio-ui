@@ -36,6 +36,7 @@
    [:information "Information" :info-circle aw/information-pane]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
    [:point-info "Point Information" :eye aw/point-info-pane]
+   [:filter "Filter" :filter aw/filter-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
    [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
 
@@ -46,6 +47,7 @@
    :channels
    :point-manipulation
    :inundation-plane
+   :filter
    :information
    :point-info
    :local-settings])
@@ -123,7 +125,7 @@
         ;; render all docked panes
         (when (:showPanels settings)
           (println "panes-to-hide:" panes-to-hide)
-          (om/build docked-panes {:panes (remove panes-to-hide all-docked-panes)}))
+          (om/build docked-panes {:panes (vec (remove panes-to-hide all-docked-panes))}))
 
         (om/build aw/logo {})
 
@@ -170,6 +172,10 @@
   (go
     (let [ ;; figure out what all resources we know of
           all-resources (<! (plasio-state/load-available-resources<!))
+
+          ;; while we are at it load other async resources as well.
+          _ (<! (plasio-state/load-available-filters<!))
+
           default-resource (first (filter :default all-resources))
 
           ;; compose parameters
