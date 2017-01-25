@@ -169,7 +169,7 @@
     "azimuth" azimuth
     "distance" distance
     "maxDistance" max-distance
-    "targetInGeo" (apply array target)
+    "target" (apply array target)
     "elevation" elevation))
 
 
@@ -178,7 +178,7 @@
     {:azimuth      (aget cam "azimuth")
      :distance     (aget cam "distance")
      :max-distance (aget cam "maxDistance")
-     :target       (aget cam "target")
+     :target       (into [] (aget cam "target"))
      :elevation    (aget cam "elevation")}))
 
 (defn- ui-state [st]
