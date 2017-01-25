@@ -300,7 +300,7 @@
     (let [ui-options (om/observe owner plasio-state/ui-local-options)
           collapsed? (:docker-collapsed? @ui-options)
           active-panel (or (:active-panel @ui-options)
-                           :rendering-options)]
+                           :channels)]
       (d/div
         {:class (str "docker-widget"
                      (if collapsed? " off" " on"))}

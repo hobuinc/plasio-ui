@@ -43,14 +43,14 @@
 
 (def ^:private all-docked-panes
   [:switch-resource
-   :rendering-options
    :channels
-   :point-manipulation
-   :inundation-plane
    :filter
-   :information
+   :rendering-options
+   :inundation-plane
+   :local-settings
+   :point-manipulation
    :point-info
-   :local-settings])
+   :information])
 
 (def ^:private top-bar-panes
   #{:search-location})
@@ -81,20 +81,20 @@
                                     :icon  icon
                                     :child w}]))
                           panes))]
-    (select-keys as-map ids)))
+    ;; return keys panes in same order as requested IDs
+    (reduce #(conj %1 (get as-map %2)) [] ids)))
 
 
-(defcomponentk floating-panes [[:data panes] owner]
+#_(defcomponentk floating-panes [[:data panes] owner]
   (render [_]
-    (when-let [ps (-> panes coerce-panes vals seq)]
+    (when-let [ps (-> panes coerce-panes)]
       (d/div {:class "open-panes"}
              (om/build-all w/floating-panel ps {:key :id})))))
 
 (defcomponentk docked-panes [[:data panes] owner]
   (render [_]
-    (when-let [ps (-> panes coerce-panes vals seq)]
-      (om/build w/docked-widgets
-                {:children ps}))))
+    (when-let [ps (coerce-panes panes)]
+      (om/build w/docked-widgets {:children ps}))))
 
 (defcomponentk hud [owner]
   (render [_]

@@ -684,7 +684,7 @@
   (render [_]
     (d/a {:class "entwine"
           :target "_blank"
-          :href "http://github.com/connormanning/entwine"
+          :href "https://entwine.io"
           :style {:position "absolute"
                   :bottom "10px"
                   :left "60px"}})))
