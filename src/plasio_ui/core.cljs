@@ -227,14 +227,16 @@
 
       ;; if we don't have any channels, enable the first specified source
       (when-not (seq (get-in @plasio-state/app-state [:ro :channels]))
-        (swap! plasio-state/app-state assoc-in [:ro :channels :channel0 :source]
-               (first (nth (:colorSources options)
-                           (or
-                            ;; do we have any channel selection rules?
-                            (when-let [rules (:colorChannelRules options)]
-                              (determine-default-color-channel (:schema settings) rules))
-                            ;; do we have any default color channels specified
-                            (:defaultColorChannelIndex options 0))))))
+        (let [chosen-color-channel (first (nth (:colorSources options)
+                                               (or
+                                                 ;; do we have any channel selection rules?
+                                                 (when-let [rules (:colorChannelRules options)]
+                                                   (println "xx" rules)
+                                                   (determine-default-color-channel (:schema settings) rules))
+                                                 ;; do we have any default color channels specified
+                                                 (:defaultColorChannelIndex options 0))))]
+          (println "xx" chosen-color-channel)
+          (swap! plasio-state/app-state assoc-in [:ro :channels :channel0 :source] chosen-color-channel)))
 
       (println "Startup state: " @plasio-state/app-state)
 

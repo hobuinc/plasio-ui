@@ -177,7 +177,7 @@
     width: 100%;
     border-collapse: collapse; }
     .plasio-ui table.key-val tr {
-      border-bottom: 1px dotted #ddd; }
+      border-bottom: 1px dashed #ddd; }
     .plasio-ui table.key-val tr:last-child {
       border-bottom: none; }
     .plasio-ui table.key-val td {
@@ -562,7 +562,7 @@
     .plasio-ui .histogram .histogram-item:last-child {
       border-right: none; }
   .plasio-ui .value-present {
-    border-bottom: 1px dotted #ccc;
+    border-bottom: 1px dashed #ccc;
     margin-bottom: 10px; }
     .plasio-ui .value-present .key {
       margin-top: 6px; }
@@ -685,5 +685,11 @@
       right: 10px;
       font-size: 16px;
       top: 2px; }
+    .plasio-ui .point-info-container .source-metadata-link {
+      display: block;
+      text-align: right;
+      margin-top: 10px;
+      font-size: 1.2em;
+      color: #00BBD6; }
 
 /*# sourceMappingURL=style.css.map */

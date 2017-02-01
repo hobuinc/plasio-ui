@@ -258,7 +258,7 @@
     border-collapse: collapse;
 
     tr {
-      border-bottom: 1px dotted #ddd;
+      border-bottom: 1px dashed #ddd;
     }
 
     tr:last-child {
@@ -854,7 +854,7 @@
   }
 
   .value-present {
-    border-bottom: 1px dotted #ccc;
+    border-bottom: 1px dashed #ccc;
     margin-bottom: 10px;
 
     .key {
@@ -1036,6 +1036,14 @@
       right: 10px;
       font-size: 16px;
       top: 2px;
+    }
+
+    .source-metadata-link {
+      display: block;
+      text-align: right;
+      margin-top: 10px;
+      font-size: 1.2em;
+      color: #00BBD6;
     }
   }
 }

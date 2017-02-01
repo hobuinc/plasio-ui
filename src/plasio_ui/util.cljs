@@ -36,6 +36,17 @@
     s
     (str "http://" s)))
 
+(defn- trim-slashes [s]
+  (println "xx" s)
+  (let [s1 (if (str/starts-with? s "/") (subs s 1) s)
+        s2 (if (str/ends-with? s1 "/") (subs s1 0 (dec (count s1))) s1)]
+    s2))
+
+(defn join-url-parts [server & parts]
+  (str (urlify server)
+       "/"
+       (str/join "/" (map (comp trim-slashes str) parts))))
+
 (defn random-id []
   (let [s (.toFixed (js/Math.random) 16)]
     (.substring s 2)))
