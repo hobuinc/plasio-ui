@@ -965,28 +965,37 @@
   (defcomponentk point-info-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
-            points (om/observe owner plasio-state/clicked-point-info)]
+            point (om/observe owner plasio-state/clicked-point-info)]
         (d/div
          {:class "point-info-container"}
          (d/h4 "Point Information")
          (when (:clicked-point-load-in-progress? @root)
            (d/i {:class "fa fa-spinner fa-pulse"}))
-         (if-not (seq @points)
+         (if-not (seq @point)
            (d/div {:class "no-items"} "Click on a point to see its information here.")
            (d/div
              (om/build w/key-val-table
-                       {:data (->> @points
-                                   first
-                                   (map (fn [[name size val]]
-                                          [name val]))
-                                   (filterv some?))})
+                       {:data (->> @point
+                                   (sort-by (comp :index second))
+                                   (keep (fn [[_ {:keys [:displayName :val]}]]
+                                           (when-not (str/blank? displayName)
+                                             [displayName val])))
+                                   (util/v "xx")
+                                   vec)})
+
              ;; Link to origin id
-             (when-let [origin-id (->> @points first
-                                       (keep (fn [[name size val]]
-                                               (when (= (str/lower-case name) "originid")
-                                                 val)))
-                                       first)]
-               (d/a {:href   (util/join-url-parts (js/Plasio.Util.pickOne (:server @root)) "resource"
-                                                  (:resource @root) "files" origin-id)
+             (when-let [{:keys [:path :numPoints :inserts :href]} (get @point :x-point-metadata)]
+               (d/div
+                 {:class "metadata"}
+                 (d/h5 "Source Tile Metadata")
+                 (om/build w/key-val-table
+                           {:data [["Path" path]
+                                   ["Total Points" numPoints]
+                                   ["Points Inserted" (str inserts " (" (.toFixed (* 100 (/ inserts numPoints)) 1) "%)")]]})
+                 (d/a {:href   href
+                       :class  "source-metadata-link"
+                       :target "_blank"} "Additional Metadata Details"))
+
+               #_(d/a {:href   (:href metadata)
                      :class  "source-metadata-link"
                      :target "_blank"} "Source Tile Metadata")))))))))

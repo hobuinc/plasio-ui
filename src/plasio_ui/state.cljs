@@ -493,11 +493,35 @@
                      "depthBegin=0&depthEnd=30" "&"
                      "compress=false")
             res (<! (util/binary-http-get< url {:with-credentials? allowGreyhoundCredentials}))
-            points (when res (decode-points schema res))]
-
+            point (when res (first (decode-points schema res)))
+            point (into {} (map-indexed (fn [index [name _ val]]
+                                          [(keyword (str/lower-case name)) {:displayName name :val val :index index}])
+                                        point))]
+        ;; indicate that we're no longer loading
+        ;;
         (om/update! root :clicked-point-load-in-progress? false)
-        (when (seq points)
-          (om/update! clicked-point-info points))))))
+
+        ;; when we have a point load up its info
+        (when (seq point)
+          (let [load-id (util/random-id)]
+            ;; save in the load id, we need this when we get the results for addition points
+            (om/update! clicked-point-info (assoc point :x-point-load-id {:id load-id}))
+
+            ;; if we have origin id, access addition information about it
+            (when-let [origin-id (get point :originid)]
+              (let [href (util/join-url-parts (js/Plasio.Util.pickOne (:server @root)) "resource"
+                                              (:resource @root) "files" (:val origin-id))
+                    json (-> href
+                             (http/get {:with-credentials? allowGreyhoundCredentials})
+                             <! :body)]
+                ;; if we loaded data and we're still looking at the point that was last loaded transact the
+                ;; metadata in
+                (when (and json (= load-id (-> @clicked-point-info :x-point-load-id :id)))
+                  (om/transact! clicked-point-info #(assoc % :x-point-metadata {:href href
+                                                                                :path (:path json)
+                                                                                :bounds (:bounds json)
+                                                                                :numPoints (:numPoints json)
+                                                                                :inserts (-> json :pointStats :inserts)})))))))))))
 
 (defn- encode-params [{:keys [:s :r] :as params}]
   ;; encode server and resource params first for usability purposes
