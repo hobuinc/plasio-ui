@@ -72,10 +72,8 @@ mkdir -p $OUT_DIR/img
 
 sass --scss -t compressed "$TEMP_DIR/scss/style.scss" "$OUT_DIR/css/style.css"
 cp "$TEMP_DIR/resources/public/js/compiled/plasio_ui.js" "$OUT_DIR/plasio-ui.js"
-cp "$TEMP_DIR/resources/public/js/plasio-renderer.js" "$OUT_DIR/js/plasio-renderer.js"
-cp "$TEMP_DIR/resources/public/lib/dist/plasio-lib.js" "$OUT_DIR/js/plasio-lib.js"
-cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.js" "$OUT_DIR/js/laz-perf.js"
-cp "$TEMP_DIR/resources/public/workers/decompress.js" "$OUT_DIR/workers/decompress.js"
+cp "$TEMP_DIR/resources/public/js/plasio-renderer.cljs.js" "$OUT_DIR/js/plasio-renderer.cljs.js"
+cp "$TEMP_DIR/resources/public/lib/dist/plasio.js" "$OUT_DIR/js/plasio.js"
 cp "$TEMP_DIR/resources/public/img/entwine.png" "$OUT_DIR/img/entwine.png"
 
 

@@ -7,6 +7,11 @@ plasio-ui is a prefabricated, ready to use point cloud user interface which can 
 plasio-ui depends on a few external dependencies to work and look right.  It can automatically include all of these needed dependencies.  If its loading stuff that's conflicting with your libraries,
 you can turn off external libraries loading and manually supply these dependencies.
 
+The latest version of hosted plasio-ui is available at:
+```
+https://cdn.entwine.io/plasio-ui/0.3.1/plasio-ui.js
+```
+
 ## Express Mode
 
 In this mode plasio-ui sets up everything for you, just include the library from the CDN and create the UI.
@@ -15,13 +20,17 @@ In this mode plasio-ui sets up everything for you, just include the library from
             includeExternalDependencies: true,
             googleMapsAPIKey: "AIzaSyAUWT5-vsCeQb1vYYamCw-RFvKTzLlY9iU",
             useBrowserHistory: true,
-            // in case the browser url is empty, use the following resource as fallback
-            server: "http://devdata.greyhound.io/",
-            resource: "nyc",
-            colorSources: {"local://elevation": "Elevation",
-                           "local://intensity": "Intensity",
-                           "local://elevation?start=#FF0000&end=#00FF00": "Elevation RED to GREEN"
-                           "https://imageryserver.com/{{z}}/{{x}}/{{y}}.jpg": "Some Imagery Server"}
+
+            colorSources: [
+             ["local://ramp?field=Z", "Elevation"],
+             ["local://ramp?field=Z&start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
+             ["local://ramp?field=Z&start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
+             ["local://color", "Color"],
+             ["local://field-color?field=Classification", "Classification"],
+             ["local://ramp?field=Intensity", "Intensity"],
+             ["local://field-color?field=OriginId", "Origin ID"],
+             ["local://field-color?field=point-source-id", "Point Source ID"]
+           ]
         });
         
 Note the `includeExternalDependencies` option (`true` by default, mentioned for verbosity), this option turns on external dependencies inclusion.  This is all you need to get the UI up and running in express mode.
@@ -67,6 +76,37 @@ Remember to substitute in your [Google Maps API](https://developers.google.com/m
         
 The `includeExternalDependencies` value is `false` here.
 
+# Resources
+Plasio-ui will try to read a file named `resources.json` which should be placed right alongside the HTML page hosting plasio-ui.  This resource file is a list of servers/resources and some default parameters that go along with them (which brush to use etc.).  The file looks like this:
+
+```
+{
+  "servers": {
+    "items": [
+      {
+        "url": "c[0-7].greyhound.io",
+        "name": "cache.greyhound.io"
+      }
+    ]
+  },
+  "resources": {
+    "defaults": {
+      "server": "cache.greyhound.io"
+    },
+    "items": [
+      {
+        "name": "autzen",
+        "displayName": "Autzen",
+        "params": {
+          "c0s": "local://color"
+        }
+      }
+  }
+}
+```
+
+Here we are defining a list of `servers` (which are then referred to in the `resources` section).  Each resource then has the name of the resource, the display name and any initial query parameters you may wish to apply (here its setting `c0s` channel 0 source to local color).  The `resources.defaults` section are the defaults values which are copied into each item under `resources.items`.
+
 # Self-hosting plasio-ui
 
 It is recommended that you refer to plasio-ui on the provided CDN location.  If that wouldn't work for you, pick the latest version from under the `dist/` directory and extract it somewhere your web-page can access it.  You would still just need to directly include `plasio-ui.js`.  It will find all needed dependencies as long as you don't mess with the directory structure from the zip archive.
@@ -99,12 +139,10 @@ The following options are accepted:
 |`includeExternalDependencies`|`true`|When set to `true`, plasio-ui will automatically include all needed 3rd party dependencies.  If this flag is `false`, you would need to specify all the required dependencies.|
 |`rememberUIState`|`false`|When turned on, plasio-ui will employ web-browser local storage to store UI state (opened windows, certain preferences) per point cloud resource.  When the users return to the same pipeline, they see the UI as they left it.|
 |`resource` | **Required** | When `useBrowserHistory` is `false`.  The resource load and show, should be available on the provided `server`.  If `useBrowserHistory` is `true` and this field is not specified, then plasio-ui assumes that this value will be provided from the browser URL.  If plasio-ui fails to get this value from the URL, an error will be thrown.|
-|`resourceName`|resource@server| The resource name to show in the application bar.  Specifying an empty string for this value will result in no resource name showing up.
 | `showPanels`| `true` | Shows collapsible panels to the left.|
 | `showCompass` | `true` | Shows the compass widget at bottom right corner of the render area.|
 | `showApplicationBar` | `true`|  Shows the application bar on top of the render area.|
 | `showSearch` | `true` |  Shows the little search icon on the right end of the application bar, which triggers a search dropdown for region local searches.  This value is only considered when the application bar is visible, i.e.  `showApplicationBar` is `true`.|
-|`server`| **Required** | When `useBrowserHistory` is `false`. The address of the server where the resource is located.  A hostname or an IP address.  If `useBrowserHistory` is `true` and this field is not specified, then plasio-ui assumes that this value will be provided from the browser URL.  If plasio-ui fails to get this value from the URL, an error will be thrown.  Note that the server is used as specified, you would need to make sure that the URLs generated are correct but appropriately adjusting this value (e.g. with trailing slashes etc.).|
 |`useBrowserHistory`|`false`|Manages browser history so that you can use the back and forward button to navigate through the renderer's state.   Please note that for now, plasio takes over the browser URL, so unless you're making a full screen viewer, stay away from this option.|
 
 E.g. to create a bare bone viewer without any of the UI components you could create a renderer like:
@@ -128,30 +166,32 @@ Or to create a renderer to view a point cloud without messing around with the br
 
 # Configuring Color Sources
 
-Color sources are specified as an array of pairs.  The first element of each pair is the color source description and the second element is a user friendly name for the source.
+Color sources are specified as an array of pairs.  The first element of each pair is the brush description and the second element is a user friendly name for the source.
 
-Several inbuilt configurable color sources are provided.  There are two kinds of sources:
+Several inbuilt configurable color brushes are provided.  There are two kinds of brushes:
 
   - `local` - The color information is generated locally using the point description available, These sources start with `local://` prefix.
-  - `remote` - The color information is fetched remotely, usually from a tiling imagery source.  These sources start with `http(s)://` prefix.
+  - `remote` - The color information is fetched remotely, usually from a tiling imagery source.  These sources start with `remote://` prefix.
 
-## Local Sources
+## Local Brushes
 
-Local sources use the available point description (from schema) to compute a color.  Some of the local sources available are:
+Local brushes use the available point information to compute a color.  Some of the local sources available are:
 
-  - `elevation` - Compute a color based on points Z value.  Can be ramped using a start and end color like: `http://elevation?start=#FF0000&end=#00FF00` will use elevation to generate a red to green color ramp.
-  - `intensity` - Compute a color based on points intensity if available, black otherwise.  Can be ramped.
-  - `color` - Use the point color information if available, black otherwise.
-  - `origin` - Use the origin of the point to generate point color.
-  - `point-source-id` - Use the point source ID of the point to generate color information.
+|Brush Name|Description|Parameters|
+|-|-|-|
+|`ramp`|Computes a ramped color on the given field.|`field` **[REQUIRED]** - e.g. `field=Z` or `field=Intensity`<br>`start` - The start color e.g.`#FF0000`.<br>`end` - The ending color e.g. `#00FF00`.|
+|`field-color`|Assigns a random color to each unique value.|`field` **[REQUIRED]** - e.g. `field=Classification`|
+|`color`|Use the color from Red, Green and Blue color channels.|No arguments|
 
 The user interface will provide appropriate controls to adjust the ramping stop points and histograms over Z values and Intensity values.
 
 ## Remote Sources
 
-For now, remote sources are imagery services which provide tiles in either TMS or Google style layout.  A remote source can be configured using the service's URL.  The user would need to make sure that the 3 placeholders are available in the specified URL.  These are the `{{x}}`, `{{y}}` and `{{z}}`, which stand for the X, Y and Zomm values for TMS/Google tiling scheme.
+The remote color brushes use satellite imagery to paint points.  At this point only one remote brush is supported:
 
-E.g. you can specify a mapbox tiling source like: `http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=...`.
+|Brush Name|Description|Parameters|
+|-|-|-|
+|`imagery`|Fetches remote imagery and overlays it on points.|`url` **[REQUIRED]** - e.g. `url=https://.../{x}/{y}/{z}` - The placeholders `{x}`, `{y}` and `{z}` are required and will be substituted when querying imagery. Remember to URL encode the URL.|
 
 ## Example
 
@@ -159,15 +199,12 @@ Here is an example of setting color sources:
 
 ```
 colorSources: [
-    ["http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=...", "Mapbox Satellite Imagery"],
-    ["http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}.jpg", "ArcGIS Satellite Imagery"],
-    ["local://elevation", "Elevation"],
-    ["local://elevation?start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
-    ["local://elevation?start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
-    ["local://color", "Color"],
-    ["local://intensity", "Intensity"],
-    ["local://origin", "Origin"],
-    ["local://point-source-id", "Point Source ID"]
+     ["remote://imagery?url=" + encodeURIComponent("http://suchurl.com/images/tiles/{{z}}/{{y}}/{{x}}.jpg"), "Satellite Imagery"],
+     ["local://ramp?field=Z", "Elevation"],
+     ["local://ramp?field=Z&start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
+     ["local://ramp?field=Z&start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
+     ["local://color", "Color"],
+     ["local://field-color?field=Classification", "Classification"],
 ]
 ```
 
@@ -183,26 +220,6 @@ availableResources: [
 ],
 ...
 ```
-
-# Default Color Channel Selection
-
-The property `defaultColorChannelIndex` controls the default fallback color channel to use if no color channel information is available through the URL.  This is however, not sufficient.  E.g. you wouldn't want to choose the Satellite Imagery Color Source when your data hasn't been projected to Web Mercator or might have its own color information available. In that case using the `local://color` color source would be a better option.
-
-You can specify the `colorChannelRules` property to control this behavior.  This property is defined as an array of 2-tuples (also arrays) like:
-
-```
-colorChannelRules: [
-    ["Red", 5],
-    ["Intensity", 7]
-    ["Classification", 6],
-]
-```
-
-The attribute names are case insensitive.
-
-The rules are simple: check if a schema attribute identified by the first member of the 2-tuple is available.  If it is, then select the color channel identified by the index from the second member of the 2-tuple.  E.g. for the above rules, if `Red` schema attribute is available for the data source, plasio-ui will pick the 5th index (zero based) from your specified `colorSources` as your default color channel.
-
-Plasio-ui will keep doing down the rules list till it finds a match, if it goes through all the rules and doesn't find a match, or there are no `colorChannelRules` specified, then index specified by `defaultColorChannelIndex` is used.  If `defaultColorChannelIndex` is missing then the first color source from `colorSources` is used.
 
 # Hosting multiple Plasio UIs on a Single Page
 
