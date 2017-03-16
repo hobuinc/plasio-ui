@@ -139,6 +139,13 @@
         "params": {
           "c0s": "local://color"
         }
+      },
+      {
+        "name": "dc",
+        "displayName": "Washington, D.C.",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       }
     ]
   }
