@@ -170,11 +170,11 @@
 
 (defn startup [div-element options]
   (go
-    (let [ ;; figure out what all resources we know of
-          all-resources (<! (plasio-state/load-available-resources<!))
+    (let [;; figure out what all resources we know of
+          all-resources (<! (plasio-state/load-available-resources<! (:resources options)))
 
           ;; while we are at it load other async resources as well.
-          _ (<! (plasio-state/load-available-filters<!))
+          _ (<! (plasio-state/load-available-filters<! (:filters options)))
 
           default-resource (first (filter :default all-resources))
 

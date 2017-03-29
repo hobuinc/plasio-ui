@@ -537,9 +537,11 @@
     ;; always override server and resource (qs may have them but we don't care about those).
     (str current-origin "?" (encode-params (assoc final-params :s server-url :r name)))))
 
-(defn load-available-resources<! []
+(defn load-available-resources<! [specified-resources]
   (go
-    (let [data (-> "resources.json" http/get <! :body)
+    (let [data (if (seq specified-resources)
+                 specified-resources
+                 (-> "resources.json" http/get <! :body))
           {:keys [:servers :resources]} data
           server-map (into {} (for [{:keys [:name :url]} (:items servers)
                                     :when (not (str/blank? name))]
@@ -557,9 +559,11 @@
       resources)))
 
 
-(defn load-available-filters<! []
+(defn load-available-filters<! [specified-filters]
   (go
-    (let [filters (-> "filters.json" http/get <! :body)]
+    (let [filters (if (seq specified-filters)
+                    specified-filters
+                    (-> "filters.json" http/get <! :body))]
       (om/update! available-filters filters)
       filters)))
 
