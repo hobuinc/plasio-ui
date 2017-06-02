@@ -197,8 +197,8 @@
                    {:data (->> [["Server" (:server @root)]
                                 ["Resource" (:resource @root)]
                                 ["Point Cloud Info"
-                                 (d/a {:href (str (:server @root)
-                                                  "resource/" (:resource @root) "/info")
+                                 (d/a {:href (util/join-url-parts
+                                              (js/Plasio.Util.pickOne (:server @root)) "resource" (:resource @root) "info")
                                        :target "_blank"}
                                       "Click here")]
 
