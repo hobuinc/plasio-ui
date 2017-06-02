@@ -487,9 +487,10 @@
             bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
                     (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
 
-            url (str (js/Plasio.Util.pickOne server) "/resource/" resource "/read?"
-                     (str "bounds=" (js/encodeURIComponent (mkjson bounds))) "&"
-                     (str "schema=" (js/encodeURIComponent (mkjson schema))) "&"
+            url (str (util/join-url-parts (js/Plasio.Util.pickOne server) "resource" resource "read")
+                     "?"
+                     "bounds=" (js/encodeURIComponent (mkjson bounds)) "&"
+                     "schema=" (js/encodeURIComponent (mkjson schema)) "&"
                      "depthBegin=0&depthEnd=30" "&"
                      "compress=false")
             res (<! (util/binary-http-get< url {:with-credentials? allowGreyhoundCredentials}))

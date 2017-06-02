@@ -37,7 +37,6 @@
     (str "http://" s)))
 
 (defn- trim-slashes [s]
-  (println "xx" s)
   (let [s1 (if (str/starts-with? s "/") (subs s 1) s)
         s2 (if (str/ends-with? s1 "/") (subs s1 0 (dec (count s1))) s1)]
     s2))
