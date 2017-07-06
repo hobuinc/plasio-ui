@@ -42,9 +42,10 @@
     s2))
 
 (defn join-url-parts [server & parts]
-  (str (urlify server)
-       "/"
-       (str/join "/" (map (comp trim-slashes str) parts))))
+  (let [fixed-server (urlify server)]
+    (str (trim-slashes fixed-server)
+         "/"
+         (str/join "/" (map (comp trim-slashes str) parts)))))
 
 (defn random-id []
   (let [s (.toFixed (js/Math.random) 16)]
