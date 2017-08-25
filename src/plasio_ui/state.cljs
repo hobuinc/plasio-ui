@@ -473,21 +473,17 @@
                        (decode-point dv schema)))]
     points))
 
-(defn update-current-point-info! [loc]
-  (when-let [point-cloud-viewer (:point-cloud-viewer @comps)]
-    (om/update! root :clicked-point-load-in-progress? true)
-    (go
-      (let [{:keys [:server :resource :allowGreyhoundCredentials]} (:init-params @root)
-
-            geotransform (.getGeoTransform point-cloud-viewer)
+(defn point-info-for-resource< [point-cloud-viewer resource-info allowGreyhoundCredentials loc]
+  (go
+      (let [geotransform (.getGeoTransform point-cloud-viewer)
             geo-space-loc (.transform geotransform (apply array loc) "render" "geo")
 
-            schema (:schema @resource-info)
+            schema (:schema resource-info)
             delta 0.1                                     ; this probably needs to be something based on the data range
             bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
                     (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
 
-            url (str (util/join-url-parts (js/Plasio.Util.pickOne server) "resource" resource "read")
+            url (str (util/join-url-parts (js/Plasio.Util.pickOne (:server resource-info)) "resource" (:resource resource-info) "read")
                      "?"
                      "bounds=" (js/encodeURIComponent (mkjson bounds)) "&"
                      "schema=" (js/encodeURIComponent (mkjson schema)) "&"
@@ -495,34 +491,44 @@
                      "compress=false")
             res (<! (util/binary-http-get< url {:with-credentials? allowGreyhoundCredentials}))
             point (when res (first (decode-points schema res)))
-            point (into {} (map-indexed (fn [index [name _ val]]
-                                          [(keyword (str/lower-case name)) {:displayName name :val val :index index}])
-                                        point))]
-        ;; indicate that we're no longer loading
-        ;;
-        (om/update! root :clicked-point-load-in-progress? false)
-
+            point (assoc (into {} (map-indexed (fn [index [name _ val]]
+                                                 [(keyword (str/lower-case name)) {:displayName name :val val :index index}])
+                                               point))
+                    :server (:server resource-info)
+                    :resource (:resource resource-info))]
         ;; when we have a point load up its info
         (when (seq point)
-          (let [load-id (util/random-id)]
-            ;; save in the load id, we need this when we get the results for addition points
-            (om/update! clicked-point-info (assoc point :x-point-load-id {:id load-id}))
+          (if-let [origin-id (get point :originid)]
+            (let [href (util/join-url-parts (js/Plasio.Util.pickOne (:server resource-info)) "resource"
+                                            (:resource resource-info) "files" (:val origin-id))
+                  res (-> href
+                           (http/get {:with-credentials? allowGreyhoundCredentials})
+                           <!)
+                  json (when (:success res)
+                         (:body res))]
+              ;; if we loaded data and we're still looking at the point that was last loaded transact the
+              ;; metadata in
+              (if (seq json)
+                (assoc point :x-point-metadata {:href      href
+                                             :path      (:path json)
+                                             :bounds    (:bounds json)
+                                             :numPoints (:numPoints json)
+                                             :inserts   (-> json :pointStats :inserts)})
+                point))
+            point)))))
 
-            ;; if we have origin id, access addition information about it
-            (when-let [origin-id (get point :originid)]
-              (let [href (util/join-url-parts (js/Plasio.Util.pickOne (:server @root)) "resource"
-                                              (:resource @root) "files" (:val origin-id))
-                    json (-> href
-                             (http/get {:with-credentials? allowGreyhoundCredentials})
-                             <! :body)]
-                ;; if we loaded data and we're still looking at the point that was last loaded transact the
-                ;; metadata in
-                (when (and json (= load-id (-> @clicked-point-info :x-point-load-id :id)))
-                  (om/transact! clicked-point-info #(assoc % :x-point-metadata {:href href
-                                                                                :path (:path json)
-                                                                                :bounds (:bounds json)
-                                                                                :numPoints (:numPoints json)
-                                                                                :inserts (-> json :pointStats :inserts)})))))))))))
+(defn update-current-point-info! [loc]
+  (when-let [point-cloud-viewer (:point-cloud-viewer @comps)]
+    (om/update! root :clicked-point-load-in-progress? true)
+    (go
+      ;; query all resources and determine what they have to say about the clicked point
+      (let [allow-creds (-> @root :init-params :allowGreyhoundCredentials)
+            chans (map #(point-info-for-resource< point-cloud-viewer % allow-creds loc) (:resource-info @root))
+            results (<! (async/into [] (async/merge chans)))]
+        (om/update! root :clicked-point-load-in-progress? false)
+        (om/update! clicked-point-info results)
+
+        results))))
 
 (defn- encode-params [{:keys [:s :r] :as params}]
   ;; encode server and resource params first for usability purposes

@@ -691,6 +691,11 @@
       margin-top: 10px;
       font-size: 1.1em;
       color: #00BBD6; }
+    .plasio-ui .point-info-container .resource {
+      background-color: #eee;
+      padding: 5px;
+      border-radius: 4px;
+      font-weight: bold; }
     .plasio-ui .point-info-container .metadata h5 {
       margin: 25px 0 0 0;
       text-transform: uppercase;

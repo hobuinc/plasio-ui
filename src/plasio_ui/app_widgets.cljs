@@ -186,33 +186,38 @@
 (let [id :information]
   (defcomponentk information-pane [owner]
     (render [_]
-      (let [root (om/observe owner plasio-state/root)
-            resource-info (:resource-info @root)
-            schema (:schema resource-info)
-            init-params (:init-params @root)
-            [points size] (index-size resource-info)
-            col-info (util/schema->color-info schema)]
+      (let [root (om/observe owner plasio-state/root)]
+        (println "-- -- res:" (:resource-info @root) (-> @root :resource-info first :server))
         (d/div
-         (om/build w/key-val-table
-                   {:data (->> [["Server" (:server @root)]
-                                ["Resource" (:resource @root)]
-                                ["Point Cloud Info"
-                                 (d/a {:href (util/join-url-parts
-                                              (js/Plasio.Util.pickOne (:server @root)) "resource" (:resource @root) "info")
-                                       :target "_blank"}
-                                      "Click here")]
+          (for [resource-info (:resource-info @root)]
+            (let [_ (println "showing:" resource-info)
+                  schema (:schema resource-info)
+                  init-params (:init-params @root)
+                  [points size] (index-size resource-info)
+                  col-info (util/schema->color-info schema)]
+              (d/div
+                {:key (str (:resource resource-info) "@" (:server resource-info))}
+                (d/h4 (:resource resource-info))
+                (om/build w/key-val-table
+                          {:data (->> [["Server" (:server resource-info)]
+                                       ["Resource" (:resource resource-info)]
+                                       ["Point Cloud Info"
+                                        (d/a {:href   (util/join-url-parts
+                                                        (js/Plasio.Util.pickOne (:server resource-info)) "resource" (:resource resource-info) "info")
+                                              :target "_blank"}
+                                             "Click here")]
 
-                                ["Points" points]
-                                ["Uncompressed Size" size]
-                                ["Point Size" (util/schema->point-size schema )]
-                                ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
-                                ["Color?" (if (:color? col-info) "Yes" "No")]]
-                               (filterv some?))})
-         (let [info (:additionalInformation init-params)]
-           (when-not (s/blank? info)
-             (d/div
-              {:class "additional-info"
-               :dangerouslySetInnerHTML {:__html info}}))))))))
+                                       ["Points" points]
+                                       ["Uncompressed Size" size]
+                                       ["Point Size" (util/schema->point-size schema)]
+                                       ["Intensity?" (if (:intensity? col-info) "Yes" "No")]
+                                       ["Color?" (if (:color? col-info) "Yes" "No")]]
+                                      (filterv some?))})
+                (let [info (:additionalInformation init-params)]
+                  (when-not (s/blank? info)
+                    (d/div
+                      {:class                   "additional-info"
+                       :dangerouslySetInnerHTML {:__html info}})))))))))))
 
 
 (let [id :local-settings]
@@ -251,7 +256,7 @@
 
             geo-transform (-> @root :comps :point-cloud-viewer (.getGeoTransform))
 
-            bounds (-> @root :resource-info :bounds)
+            bounds (util/resources-bounds (:resource-info @root))
             zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
 
             inun-override (:inundation-range-override @ui-locals)
@@ -480,7 +485,7 @@
 
 (defn- default-ramp-for-source [source-name root-state renderer-state]
   (let [lcase (str/lower-case source-name)
-        bounds (get-in root-state [:resource-info :bounds])]
+        bounds (util/resources-bounds (:resource-info root-state))]
     (if (zero? (.indexOf lcase "local://ramp"))
       (cond
         (pos? (.indexOf lcase "field=z"))
@@ -612,7 +617,7 @@
 
       ;; check for inundation plane stuff
       ;;
-      (let [bounds (:bounds resource-info)
+      (let [bounds (util/resources-bounds resource-info)
             zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
             range (- (zbounds 1) (zbounds 0))
             size  (max (- (bounds 3) (bounds 0))
@@ -965,37 +970,43 @@
   (defcomponentk point-info-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
-            point (om/observe owner plasio-state/clicked-point-info)]
+            points (om/observe owner plasio-state/clicked-point-info)]
         (d/div
          {:class "point-info-container"}
          (d/h4 "Point Information")
          (when (:clicked-point-load-in-progress? @root)
            (d/i {:class "fa fa-spinner fa-pulse"}))
-         (if-not (seq @point)
+         (if-not (seq @points)
            (d/div {:class "no-items"} "Click on a point to see its information here.")
            (d/div
-             (om/build w/key-val-table
-                       {:data (->> @point
-                                   (sort-by (comp :index second))
-                                   (keep (fn [[_ {:keys [:displayName :val]}]]
-                                           (when-not (str/blank? displayName)
-                                             [displayName val])))
-                                   (util/v "xx")
-                                   vec)})
-
-             ;; Link to origin id
-             (when-let [{:keys [:path :numPoints :inserts :href]} (get @point :x-point-metadata)]
+             (d/h5 "Following resources responded to point info query:")
+             (for [point @points
+                   :when point]
                (d/div
-                 {:class "metadata"}
-                 (d/h5 "Source Tile Metadata")
+                 (d/h5 {:class "resource"} (:resource point) "@" (:server point))
                  (om/build w/key-val-table
-                           {:data [["Path" path]
-                                   ["Total Points" numPoints]
-                                   ["Points Inserted" (str inserts " (" (.toFixed (* 100 (/ inserts numPoints)) 1) "%)")]]})
-                 (d/a {:href   href
-                       :class  "source-metadata-link"
-                       :target "_blank"} "Additional Metadata Details"))
+                           {:data (->> point
+                                       (sort-by (comp :index second))
+                                       (keep (fn [[_ {:keys [:displayName :val]}]]
+                                               (when-not (str/blank? displayName)
+                                                 [displayName val])))
+                                       (util/v "xx")
+                                       vec)}
+                           {:key point})
 
-               #_(d/a {:href   (:href metadata)
-                     :class  "source-metadata-link"
-                     :target "_blank"} "Source Tile Metadata")))))))))
+                 ;; Link to origin id
+                 (when-let [{:keys [:path :numPoints :inserts :href]} (get point :x-point-metadata)]
+                   (d/div
+                     {:class "metadata"}
+                     (d/h5 "Source Tile Metadata")
+                     (om/build w/key-val-table
+                               {:data [["Path" path]
+                                       ["Total Points" numPoints]
+                                       ["Points Inserted" (str inserts " (" (.toFixed (* 100 (/ inserts numPoints)) 1) "%)")]]})
+                     (d/a {:href   href
+                           :class  "source-metadata-link"
+                           :target "_blank"} "Additional Metadata Details"))
+
+                   #_(d/a {:href   (:href metadata)
+                           :class  "source-metadata-link"
+                           :target "_blank"} "Source Tile Metadata")))))))))))

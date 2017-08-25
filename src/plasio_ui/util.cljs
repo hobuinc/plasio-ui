@@ -204,3 +204,12 @@
   (if (and (map? a) (map? b))
     (deep-merge a b)
     b))
+
+
+(defn resources-bounds [resources]
+  ;; cumulative bounds of all resources
+  (reduce (fn [[nx ny nz mx my mz] {:keys [:bounds]}]
+            [(min nx (bounds 0)) (min ny (bounds 1)) (min nz (bounds 2))
+             (max mx (bounds 3)) (max my (bounds 4)) (max mz (bounds 5))])
+          (-> resources first :bounds)
+          (rest resources)))
