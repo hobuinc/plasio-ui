@@ -253,8 +253,6 @@
                            (plasio-state/do-save-current-snapshot)))))))
 
       (when (:rememberUIState settings)
-        (println "-- -- going to remember UI options ...")
-        (println "--- settings:" settings)
         (let [state-id (str (:resource settings) "@" (:server settings))]
           ;; some of the local state is persistant, keep it in sync
           (println "-- state-id:" state-id)
@@ -268,15 +266,12 @@
 
           ;; also make sure the state is local state is loaded, but only when
           ;; we're saving state
-          (println "-- -- local state:" (plasio-state/load-local-state state-id))
-          (println "-- -- pre:" (:ui @plasio-state/app-state))
           (swap! plasio-state/app-state merge (plasio-state/load-local-state state-id))
-          (println "-- -- post:" (:ui @plasio-state/app-state))
 
           ;; certain UI properties are saved off in the URL and for now overrides the default
           ;; state that the user may have locally, we override such properties all over again
           ;; so that our initial state reflects the correct overriden value
-          #_(let [override-keys #{[:ui]}]
+          (let [override-keys #{[:ui]}]
             (swap! plasio-state/app-state
                    merge (select-keys url-state-settings override-keys)))))
 

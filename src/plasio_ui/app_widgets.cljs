@@ -408,7 +408,7 @@
         (if r
           (let [[x y] (math/ll->webm (:coordinates r))]
             (om/set-state! owner :data r)
-            (if (in-bounds? (:bounds @plasio-state/resource-info)
+            (if (in-bounds? (util/resources-bounds @plasio-state/resource-info)
                             [x y])
               (plasio-state/transition-to x y)
               (om/set-state! owner :error "Sorry, this address is out of bounds.")))
@@ -661,10 +661,12 @@
       (let [current-filter (:filter ro)
             old-filter (get-in pn [:ro :filter])]
         (when-not (= current-filter old-filter)
-          (if-let [filter (try (js/JSON.parse current-filter)
-                               (catch js/Error _ nil))]
-            (.setFilter (-> @plasio-state/comps :point-cloud-viewer) filter)
-            (js/console.warn "The filter could not be applied because it couldn't be parsed"))))))
+          (if (str/blank? current-filter)
+            (.setFilter (-> @plasio-state/comps :point-cloud-viewer) nil)
+            (if-let [filter (try (js/JSON.parse current-filter)
+                                 (catch js/Error _ nil))]
+              (.setFilter (-> @plasio-state/comps :point-cloud-viewer) filter)
+              (js/console.warn "The filter could not be applied because it couldn't be parsed")))))))
 
   (render [_]
     (d/div {:class "render-target"})))
