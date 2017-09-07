@@ -9,7 +9,7 @@ you can turn off external libraries loading and manually supply these dependenci
 
 The latest version of hosted plasio-ui is available at:
 ```
-https://cdn.entwine.io/plasio-ui/0.3.1/plasio-ui.js
+https://cdn.entwine.io/plasio-ui/0.3.7/plasio-ui.js
 ```
 
 ## Express Mode
