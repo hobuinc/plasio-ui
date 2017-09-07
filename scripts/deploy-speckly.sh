@@ -22,5 +22,8 @@ echo ":: copying resources ..."
 cp "$RESOURCES_DIR/index-speckly.html" "$DEPLOY_DIR/index.html"
 cp -r "$RESOURCES_DIR/img" "$DEPLOY_DIR"
 
+echo ":: staging most recent resources.json ..."
+curl -o "$RESOURCES_DIR/resources.json" http://speck.ly/resources.json
+
 echo ":: done."
 
