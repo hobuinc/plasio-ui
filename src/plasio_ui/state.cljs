@@ -332,6 +332,13 @@
                                                                           :incline
                                                                           (- 90 (max 20 incline)))))))))))
 
+        ;; set some startup conditions on point cloud viewer
+        (when-not (str/blank? (:filter ro))
+          (if-let [filter (try (js/JSON.parse (:filter ro))
+                               (catch js/Error _ nil))]
+            (.setFilter point-cloud-viewer filter)
+            (js/console.warn "The filter could not be applied because it couldn't be parsed")))
+
         ;; TODO: This is TEMPORARY
         #_(components/set-active-autotool! :profile renderer {})
 
@@ -580,5 +587,5 @@
         json (when-not (str/blank? filter-as-string)
                (js/JSON.parse filter-as-string))]
     (om/transact! ro #(assoc % :filter filter-as-string))
-    (when viewer
+    #_(when viewer
       (.setFilter viewer json))))

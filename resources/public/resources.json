@@ -20,6 +20,14 @@
         }
       },
       {
+        "name": "dublin",
+        "displayName": "City of Dublin",
+        "params": {
+          "c0s": "local://ramp?field=Z&start=#169B62&end=#FFFFFF",
+          "c0r": "-130,-80"
+        }
+      },
+      {
         "name": "half-dome",
         "displayName": "Half Dome",
         "params": {
@@ -27,7 +35,7 @@
         }
       },
       {
-        "name": "iowa",
+        "name": "iowa-z",
         "displayName": "State of Iowa",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
@@ -41,14 +49,14 @@
         }
       },
       {
-        "name": "iowa-city",
+        "name": "iowa-city-z",
         "displayName": "City of Iowa City",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "lake-isabella",
+        "name": "lake-isabella-z",
         "displayName": "Lake Isabella",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
@@ -69,7 +77,14 @@
         }
       },
       {
-        "name": "nyc",
+        "name": "nc-z",
+        "displayName": "State of North Carolina",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
+      },
+      {
+        "name": "nyc-z",
         "displayName": "New York City",
         "default": true,
         "params": {
@@ -77,7 +92,7 @@
         }
       },
       {
-        "name": "nz",
+        "name": "nz-z",
         "displayName": "New Zealand",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
@@ -91,7 +106,7 @@
         }
       },
       {
-        "name": "sncf",
+        "name": "sncf-z",
         "displayName": "SNCF Railway",
         "params": {
           "c0s": "local://color"
@@ -113,28 +128,28 @@
         }
       },
       {
-        "name": "ahn",
+        "name": "ahn-z",
         "displayName": "Netherlands",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "mn-f",
+        "name": "mn-z",
         "displayName": "State of Minnesota",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "stpaul-h",
+        "name": "st-paul-z",
         "displayName": "City of St. Paul",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "dk",
+        "name": "dk-z",
         "displayName": "Denmark",
         "params": {
           "c0s": "local://color"
@@ -150,5 +165,5 @@
     ]
   }
 }
-    
-            
+
+

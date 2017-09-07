@@ -51,21 +51,9 @@
                                 (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))})
 
           ;; point density loading
-          (let [all-keys (->> (keys plasio-state/point-cloud-density-levels)
-                              sort)]
-            (om/build w/labeled-slider
-                      {:text "Point Density"
-                       :min (first all-keys)
-                       :max (last all-keys)
-                       :start (get @ro :point-density plasio-state/default-point-cloud-density-level)
-                       :step 1
-                       :guides ["Low" "High"]
-                       :f (fn [val]
-                            (om/transact! plasio-state/ro #(assoc % :point-density val)))}))
+          
 
-          (d/p {:class "tip-warn"}
-               "WARNING: Setting this value to higher values may render your browser unusable. "
-               "Changes will take effect next time you move your camera around.")
+          
 
 
           ;; intensity blending
@@ -236,7 +224,22 @@
                                      #(update % :flicker-fix not)))})
             (d/p {:class "tip"}
                  "If you're seeing visual artifacts like points appearing and disappearing, "
-                 "enabling this options may work.")))))))
+                 "enabling this options may work."))
+
+          (let [all-keys (->> (keys plasio-state/point-cloud-density-levels)
+                              sort)]
+            (om/build w/labeled-slider
+                      {:text "Point Density"
+                       :min (first all-keys)
+                       :max (last all-keys)
+                       :start (get @local-options :point-density plasio-state/default-point-cloud-density-level)
+                       :step 1
+                       :guides ["Low" "High"]
+                       :f (fn [val]
+                            (om/update! plasio-state/ui-local-options :point-density val))}))
+          (d/p {:class "tip-warn"}
+               "WARNING: Setting this value to higher values may render your browser unusable. "
+               "Changes will take effect next time you move your camera around."))))))
 
 (defn z-range [bounds]
   (- (bounds 5) (bounds 2)))
@@ -254,7 +257,7 @@
             ui-locals (om/observe owner plasio-state/ui-local-options)
             histogram (om/observe owner plasio-state/histogram)
 
-            geo-transform (-> @root :comps :point-cloud-viewer (.getGeoTransform))
+            geo-transform (some-> @root :comps :point-cloud-viewer (.getGeoTransform))
 
             bounds (util/resources-bounds (:resource-info @root))
             zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
@@ -277,15 +280,17 @@
                                           plasio-state/ui-local-options
                                           #(update % :inundation? not)))}))
           (om/build w/value-present {:key   "Current Height"
-                                     :value (->> clamped-inun-height
-                                                 (transform-z-render->geo geo-transform)
-                                                 commify)})
+                                     :value (if geo-transform
+                                              (->> clamped-inun-height
+                                                   (transform-z-render->geo geo-transform)
+                                                   commify)
+                                              "--")})
 
           (om/build w/z-histogram-slider {:text        "Z Range Override"
                                           :min         (zbounds 0)
-                                          :min-display (transform-z-render->geo geo-transform (zbounds 0))
+                                          :min-display (if geo-transform (transform-z-render->geo geo-transform (zbounds 0)) "--")
                                           :max         (zbounds 1)
-                                          :max-display (transform-z-render->geo geo-transform (zbounds 1))
+                                          :max-display (if geo-transform (transform-z-render->geo geo-transform (zbounds 1)) "--")
                                           :start       [start-s start-e]
                                           :histogram   @histogram
                                           :f           #(do
@@ -410,7 +415,7 @@
           (om/set-state! owner :error "Sorry, there was an error resolving this address.")))))
 
 (defn world-in-ll []
-  (let [bounds (:bounds @plasio-state/resource-info)]
+  (let [bounds (util/resources-bounds @plasio-state/resource-info)]
     (let [[west south] (math/webm->ll [(bounds 0) (bounds 1)])
           [east north] (math/webm->ll [(bounds 3) (bounds 4)])]
       [(js/google.maps.LatLng. north east)
@@ -605,7 +610,7 @@
                              "xyzScale" (array 1 (get-in n [:pm :z-exaggeration]) 1)))
      
       ;; apply any screen rejection values
-      (let [density (get ro :point-density plasio-state/default-point-cloud-density-level)
+      (let [density (get lo :point-density plasio-state/default-point-cloud-density-level)
             ratio (get plasio-state/point-cloud-density-levels density)]
         (println "density:" density ratio)
         (js/Plasio.Device.overrideProperty "nodeRejectionRatio" ratio))
@@ -650,7 +655,16 @@
                                seq
                                (sort-by first)
                                (map (comp :source second)))]
-            (.setColorChannelBrushes point-cloud-viewer (apply array all-chans)))))))
+            (.setColorChannelBrushes point-cloud-viewer (apply array all-chans)))))
+
+      ;; do we need to apply filter
+      (let [current-filter (:filter ro)
+            old-filter (get-in pn [:ro :filter])]
+        (when-not (= current-filter old-filter)
+          (if-let [filter (try (js/JSON.parse current-filter)
+                               (catch js/Error _ nil))]
+            (.setFilter (-> @plasio-state/comps :point-cloud-viewer) filter)
+            (js/console.warn "The filter could not be applied because it couldn't be parsed"))))))
 
   (render [_]
     (d/div {:class "render-target"})))
