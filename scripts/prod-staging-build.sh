@@ -31,3 +31,9 @@ echo ":: statging latest resources.json ..."
 curl -o "$DEST/resources.json" http://speck.ly/resources.json
 
 echo ":: done."
+
+
+if [[ "$1" = "--deploy" ]] ; then
+    echo ":: deploy requested ..."
+    cd $DEST && s3cmd put --recursive . s3://speck.ly/ --acl-public
+fi

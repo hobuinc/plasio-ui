@@ -405,7 +405,7 @@
    (- (bounds 5) (bounds 2))])
 
 (defn transition-to [x y]
-  (let [bounds (:bounds @resource-info)
+  (let [bounds (util/resources-bounds @resource-info)
         [rx ry _] (data-range bounds)
         x' (util/mapr (fix-easting bounds x)
                       (bounds 0) (bounds 3)

@@ -255,18 +255,20 @@
       (when (:rememberUIState settings)
         (let [state-id (str (:resource settings) "@" (:server settings))]
           ;; some of the local state is persistant, keep it in sync
-          (println "-- state-id:" state-id)
           (add-watch plasio-state/app-state "__ui-local-state-watcher"
                      (fn [_ _ o n]
                        (let [o' (select-keys o [:ui])
                              n' (select-keys n [:ui])]
                          (when-not (= o' n')
-                           (println "ui options have changed!")
                            (plasio-state/save-local-state! state-id n')))))
 
           ;; also make sure the state is local state is loaded, but only when
           ;; we're saving state
-          (swap! plasio-state/app-state merge (plasio-state/load-local-state state-id))
+          (println "local state:" (plasio-state/load-local-state state-id))
+          (swap! plasio-state/app-state merge
+                 ;; certain properties should not be merged back
+                 (-> (plasio-state/load-local-state state-id)
+                     (update-in [:ui :local-options] dissoc :search-box-visible?)))
 
           ;; certain UI properties are saved off in the URL and for now overrides the default
           ;; state that the user may have locally, we override such properties all over again
