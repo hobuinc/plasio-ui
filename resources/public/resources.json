@@ -13,14 +13,14 @@
     },
     "items": [
 	{
-	    "dislayName": "AHN & DK",
+	    "displayName": "AHN & DK",
 	    "name": ["ahn-z", "dk-z"],
 	    "params": {
 		"c0s": "local://color"
 	    }
 	},
 	{
-	    "dislayName": "IA & MN",
+	    "displayName": "IA & MN",
 	    "name": ["iowa-z", "mn-z"],
 	    "params": {
 		"c0s": "local://color"

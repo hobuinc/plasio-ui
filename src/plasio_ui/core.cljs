@@ -135,6 +135,24 @@
          (string? (:server settings)))
     (str (:resource settings) "@" (strip-http-prefix (:server settings)))
 
+    (and (vector? (:resource settings))
+         (string? (:server settings)))
+    (let [stripped-server (strip-http-prefix (:server settings))
+          normalized-names (map (fn [n]
+                                  (let [[res-name res-server] (split-resouce-name n)]
+                                    {:name res-name
+                                     :server (if (str/blank? res-server) stripped-server res-server)}))
+                                (:resource settings))
+          grouped (group-by :server normalized-names)
+          _ (println "xx" (:name resource-info) normalized-names grouped)]
+      (str/join ", "
+                (map (fn [[server resources]]
+                       (if (= 1 (count resources))
+                         (str (-> resources first :name) "@" server)
+                         (str "(" (str/join "," (map :name resources)) ")@" server)))
+                     grouped)))
+    
+
     :else "--"))
 
 (defcomponentk hud [owner]
