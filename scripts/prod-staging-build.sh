@@ -28,7 +28,8 @@ cp -v $RESOURCES/img/entwine.png $DEST/img/entwine.png
 cp -v $RESOURCES/css/style.css $DEST/css/style.css
 
 echo ":: statging latest resources.json ..."
-curl -o "$DEST/resources.json" http://speck.ly/resources.json
+//curl -o "$DEST/resources.json" http://speck.ly/resources.json
+cp -v $RESOURCES/resources.json $DEST/resources.json
 
 echo ":: done."
 

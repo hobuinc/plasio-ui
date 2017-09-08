@@ -44,8 +44,10 @@
 (defcomponentk slider-guides [[:data left right]]
   (render [_]
     (d/div {:class "slider-guides clearfix"}
-           (d/div {:class "pull-left"} left)
-           (d/div {:class "pull-right"} right))))
+           (d/div {:class "pull-left"}
+                  (if (number? left) (.toFixed left 2) left))
+           (d/div {:class "pull-right"}
+                  (if (number? right) (.toFixed right 2) right)))))
 
 
 (defcomponentk slider [[:data min max start
@@ -87,7 +89,6 @@
               (.setAttribute node "disabled" true)
               (.removeAttribute node "disabled")))))))
 
-
   (render [_]
     (d/div
       (d/div {:class "slider"
@@ -101,8 +102,7 @@
   (render [_]
     (d/div {:class "slider-text"}
            (d/div {:class "text"} (:text data))
-           (om/build slider data)
-           )))
+           (om/build slider data))))
 
 (defcomponentk toolbar-item [[:data id {title ""}
                               {icon nil} {f nil} {widget nil}]]

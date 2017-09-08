@@ -259,7 +259,7 @@
 
             geo-transform (some-> @root :comps :point-cloud-viewer (.getGeoTransform))
 
-            bounds (util/resources-bounds (:resource-info @root))
+            bounds  (util/resources-bounds (:resource-info @root))
             zbounds (or (:zrange @ro) [(bounds 2) (bounds 5)])
 
             inun-override (:inundation-range-override @ui-locals)
@@ -997,7 +997,7 @@
            (d/div
              (d/h5 "Following resources responded to point info query:")
              (for [point @points
-                   :when point]
+                   :when (seq point)]
                (d/div
                  (d/h5 {:class "resource"} (:resource point) "@" (:server point))
                  (om/build w/key-val-table

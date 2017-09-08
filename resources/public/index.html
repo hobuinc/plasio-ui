@@ -96,22 +96,32 @@
                      "name": "cache.greyhound.io"
                  }]
              },
-             "resources": {
-                 "items": [{
-                     "server": "cache.greyhound.io",
-                     "name": "autzen",
-                     "displayName": "Autzen",
-                     "default": true,
-                     "params": {
-                         "c0s": "local://color"
-                     }
-                 }]
-             }
-         },
+	     "resources": {
+		 "items": [
+		     {
+			 "displayName": "AHN & DK",
+			 "server": "cache.greyhound.io",
+			 "name": ["ahn-z", "dk-z"],
+			 "params": {
+			     "c0s": "local://color"
+			 }
+		     },
+		     {
+			 "server": "cache.greyhound.io",
+			 "name": "autzen",
+			 "displayName": "Autzen",
+			 "default": true,
+			 "params": {
+			     "c0s": "local://color"
+			 }
+		     }
+		 ]
+	     }
+	 },
 
-         filters: [{
-             "name": "SuchWow",
-             "spec": {
+	 filters: [{
+	     "name": "SuchWow",
+	     "spec": {
                  "Classification": 2
              }
          }],

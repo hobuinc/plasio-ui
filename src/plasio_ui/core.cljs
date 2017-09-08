@@ -96,6 +96,47 @@
     (when-let [ps (coerce-panes panes)]
       (om/build w/docked-widgets {:children ps}))))
 
+(defn- strip-http-prefix [s]
+  (if-let [m (re-matches #"^https?://(.*)" s)]
+    (m 1)
+    s))
+
+(defn- split-resouce-name [res-name]
+  (let [parts (str/split res-name #"@")]
+    (if (= 2 (count parts))
+      [(parts 0) (strip-http-prefix (parts 1))]
+      [res-name ""])))
+
+(defn- determine-resource-name
+  ;; if the resource is a vector, then it may have a server part
+  [{:keys [:resource-info] :as settings}]
+  (println "xx settings:" settings)
+  (cond
+    (and (some? (seq resource-info))
+         (sequential? (:name resource-info)))
+    (let [normalized-names (map (fn [n]
+                                  (let [[res-name res-server] (split-resouce-name n)]
+                                    {:name res-name
+                                     :server (if (str/blank? res-server) (:server resource-info) res-server)}))
+                                (:name resource-info))
+          grouped (group-by :server normalized-names)
+          _ (println "xx" (:name resource-info) normalized-names grouped)]
+      (str/join ", "
+                (map (fn [[server resources]]
+                       (if (= 1 (count resources))
+                         (str (-> resources first :name) "@" server)
+                         (str "(" (str/join "," (map :name resources)) ")@" server)))
+                     grouped)))
+
+    (some? (seq resource-info))
+    (str (:name resource-info) "@" (:server resource-info))
+
+    (and (string? (:resource settings))
+         (string? (:server settings)))
+    (str (:resource settings) "@" (strip-http-prefix (:server settings)))
+
+    :else "--"))
+
 (defcomponentk hud [owner]
   (render [_]
     (let [root (om/observe owner plasio-state/root)
@@ -131,12 +172,9 @@
 
         ;; build the app bar
         (when (:showApplicationBar settings)
-          (let [resource-info (:resource-info settings)
-                res-name (or (:resourceName settings)
-                             (:id resource-info))]
-            (om/build app-bar {:brand (:brand settings "speck.ly")
-                               :resource-name res-name
-                               :show-search? (:showSearch settings)})))
+          (om/build app-bar {:brand (:brand settings "speck.ly")
+                             :resource-name (determine-resource-name settings)
+                             :show-search? (:showSearch settings)}))
 
         (when (:search-box-visible? @ui-locals)
           (om/build aw/search-widget {}))
@@ -268,7 +306,7 @@
           (swap! plasio-state/app-state merge
                  ;; certain properties should not be merged back
                  (-> (plasio-state/load-local-state state-id)
-                     (update-in [:ui :local-options] dissoc :search-box-visible?)))
+                     (update-in [:ui :local-options] select-keys [:point-density :flicker-fix])))
 
           ;; certain UI properties are saved off in the URL and for now overrides the default
           ;; state that the user may have locally, we override such properties all over again

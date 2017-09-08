@@ -231,26 +231,29 @@
 (defn initialize-for-resource<! [e {:keys [server resource ro render-hints init-params]}]
   (go
     (let [allow-greyhound-creds? (true? (:allowGreyhoundCredentials init-params))
+          init-options-js-obj (js-obj "server" server
+                                      "resource" (if (sequential? resource) (into-array resource) resource)
+                                      "brushes" (sources-array (:channels ro))
+                                      "allowGreyhoundCredentials" allow-greyhound-creds?
+                                      "cameraChangeCallbackFn" (fn [eye target final? applying-state?]
+                                                                 ;; when the state is final and we're not applying a state, make a history
+                                                                 ;; record of this
+                                                                 ;;
+                                                                 (when (and final?
+                                                                            (not applying-state?)
+                                                                            (:useBrowserHistory init-params))
+                                                                   (do-save-current-snapshot)))
+                                      "rendererOptions" (js-obj "clearColor" (array 0 (/ 29 256) (/ 33 256))
+                                                                "circularPoints" 0
+                                                                "pointSize" (:point-size ro)
+                                                                "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
+                                                                "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration])))
+                                      "initialCameraParams" (when (-> init-params :camera seq)
+                                                              (js-camera-props (:camera init-params))))
+
           point-cloud-viewer (js/Plasio.PointCloudViewer.
                                e
-                               (js-obj "server" server "resource" resource
-                                       "brushes" (sources-array (:channels ro))
-                                       "allowGreyhoundCredentials" allow-greyhound-creds?
-                                       "cameraChangeCallbackFn" (fn [eye target final? applying-state?]
-                                                                  ;; when the state is final and we're not applying a state, make a history
-                                                                  ;; record of this
-                                                                  ;;
-                                                                  (when (and final?
-                                                                             (not applying-state?)
-                                                                             (:useBrowserHistory init-params))
-                                                                    (do-save-current-snapshot)))
-                                       "rendererOptions" (js-obj "clearColor" (array 0 (/ 29 256) (/ 33 256))
-                                                                 "circularPoints" 0
-                                                                 "pointSize" (:point-size ro)
-                                                                 "pointSizeAttenuation" (array 1 (:point-size-attenuation ro))
-                                                                 "xyzScale" (array 1 1 (get-in init-params [:pm :z-exaggeration])))
-                                       "initialCameraParams" (when (-> init-params :camera seq)
-                                                               (js-camera-props (:camera init-params)))))
+                               init-options-js-obj)
           ;; wait for the renderer to initialize and start
           info (<! (util/wait-promise< (.start point-cloud-viewer)))
 
@@ -264,6 +267,7 @@
       ;; Only when the point cloud viewer started correctly
       (when info
         ;; store resource info for use later.
+        (println "-- -- info:" info)
         (om/update! resource-info (js->clj info :keywordize-keys true))
 
         ;; list to any synthetic point clicks, on the camera mode
@@ -498,31 +502,30 @@
                      "compress=false")
             res (<! (util/binary-http-get< url {:with-credentials? allowGreyhoundCredentials}))
             point (when res (first (decode-points schema res)))
-            point (assoc (into {} (map-indexed (fn [index [name _ val]]
-                                                 [(keyword (str/lower-case name)) {:displayName name :val val :index index}])
-                                               point))
-                    :server (:server resource-info)
-                    :resource (:resource resource-info))]
+            point (into {} (map-indexed (fn [index [name _ val]]
+                                          [(keyword (str/lower-case name)) {:displayName name :val val :index index}])
+                                        point))]
         ;; when we have a point load up its info
         (when (seq point)
-          (if-let [origin-id (get point :originid)]
-            (let [href (util/join-url-parts (js/Plasio.Util.pickOne (:server resource-info)) "resource"
-                                            (:resource resource-info) "files" (:val origin-id))
-                  res (-> href
-                           (http/get {:with-credentials? allowGreyhoundCredentials})
-                           <!)
-                  json (when (:success res)
-                         (:body res))]
-              ;; if we loaded data and we're still looking at the point that was last loaded transact the
-              ;; metadata in
-              (if (seq json)
-                (assoc point :x-point-metadata {:href      href
-                                             :path      (:path json)
-                                             :bounds    (:bounds json)
-                                             :numPoints (:numPoints json)
-                                             :inserts   (-> json :pointStats :inserts)})
-                point))
-            point)))))
+          (let [ret-point (if-let [origin-id (get point :originid)]
+                            (let [href (util/join-url-parts (js/Plasio.Util.pickOne (:server resource-info)) "resource"
+                                                            (:resource resource-info) "files" (:val origin-id))
+                                  res (-> href
+                                          (http/get {:with-credentials? allowGreyhoundCredentials})
+                                          <!)
+                                  json (when (:success res)
+                                         (:body res))]
+                              ;; if we loaded data and we're still looking at the point that was last loaded transact the
+                              ;; metadata in
+                              (if (seq json)
+                                (assoc point :x-point-metadata {:href      href
+                                                                :path      (:path json)
+                                                                :bounds    (:bounds json)
+                                                                :numPoints (:numPoints json)
+                                                                :inserts   (-> json :pointStats :inserts)})
+                                point))
+                            point)]
+            (merge point (select-keys resource-info [:server :resource])))))))
 
 (defn update-current-point-info! [loc]
   (when-let [point-cloud-viewer (:point-cloud-viewer @comps)]
@@ -540,7 +543,9 @@
 (defn- encode-params [{:keys [:s :r] :as params}]
   ;; encode server and resource params first for usability purposes
   (let [ef #(str (name %1) "=" (js/encodeURIComponent %2))]
-    (str/join "&" (concat [(ef "s" s) (ef "r" r)]
+    (str/join "&" (concat [(ef "s" s) (ef "r" (if (sequential? r)
+                                                (str/join "," r)
+                                                r))]
                           (for [[k v] (dissoc params :s :r)]
                             (ef k v))))))
 

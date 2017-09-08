@@ -1,6 +1,7 @@
 (ns plasio-ui.history
   "URL and history stuff, most of the stuff here is HTML5 but will try not to fail"
   (:require [clojure.walk :as walk]
+            [clojure.string :as str]
             [cljs.reader :refer [read-string]]
             [clojure.string :refer [join split]]))
 
@@ -8,7 +9,7 @@
 ;; decode information back from these URLs
 (def ^:private path-mappers
   [[[:server] "s" :string]
-   [[:resource] "r" :string]
+   [[:resource] "r" :string-or-string-vec]
    [[:camera :azimuth] "ca" :number]
    [[:camera :elevation] "ce" :number]
    [[:camera :target] "ct" :vector3]
@@ -59,6 +60,11 @@
 (defmethod compress-entity :string [[_ val]]
   val)
 
+(defmethod compress-entity :string-or-string-vec [[_ val]]
+  (if (sequential? val)
+    (str/join "," (map str val))
+    (str val)))
+
 (defn unparse-vec [val]
   (clojure.string/join "," (map #(compress-entity [:number %]) val)))
 
@@ -82,6 +88,12 @@
 
 (defmethod decompress-entity :string [[_ val]]
   val)
+
+(defmethod decompress-entity :string-or-string-vec [[_ val]]
+  (let [parts (clojure.string/split val #",")]
+    (if (= 1 (count parts))
+      val
+      parts)))
 
 
 (defn- parse-vec [val]

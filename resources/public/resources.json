@@ -12,6 +12,20 @@
       "server": "cache.greyhound.io"
     },
     "items": [
+	{
+	    "dislayName": "AHN & DK",
+	    "name": ["ahn-z", "dk-z"],
+	    "params": {
+		"c0s": "local://color"
+	    }
+	},
+	{
+	    "dislayName": "IA & MN",
+	    "name": ["iowa-z", "mn-z"],
+	    "params": {
+		"c0s": "local://color"
+	    }
+	},
       {
         "name": "autzen",
         "displayName": "Autzen",
