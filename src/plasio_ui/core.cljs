@@ -36,6 +36,7 @@
    [:information "Information" :info-circle aw/information-pane]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
    [:point-info "Point Information" :eye aw/point-info-pane]
+   [:animation "Animation Control" :video-camera aw/animation-pane]
    [:filter "Filter" :filter aw/filter-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
    [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
@@ -49,6 +50,7 @@
    :inundation-plane
    :local-settings
    :point-manipulation
+   :animation
    :point-info
    :information])
 

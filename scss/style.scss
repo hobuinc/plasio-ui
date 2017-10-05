@@ -1,5 +1,7 @@
 /* some style */
 
+@import "flex";
+
 .plasio-ui {
   position: absolute;
   left:0; right:0; top: 0; bottom: 0;
@@ -1059,6 +1061,71 @@
         text-transform: uppercase;
         font-size: 0.9em;
         color: #999999;
+      }
+    }
+  }
+
+  .animation-container {
+    .animation-frames {
+      &--item {
+        @include flexbox();
+        @include flex-direction(row);
+        @include align-items(center);
+
+        border-left: 5px solid #eee;
+        margin: 2px 0;
+
+        & > .info {
+          margin-left: 5px;
+          @include flexbox();
+          @include flex-direction(column);
+          @include flex(1);
+          .name {
+            font-size: 1.4em;
+            line-height: 1em;
+            font-weight: bold;
+          }
+
+          .details {
+            color: #999;
+          }
+        }
+
+        & > .controls {
+          @include flexbox();
+          @include flex-direction(row);
+          a {
+            margin: 2px;
+            color: #00BAD4;
+            text-transform: uppercase;
+            border: 1px solid #00BAD4;
+            border-radius: 2px;
+            padding: 1px 3px;
+            font-weight: bold;
+            font-size: 10px;
+
+            &.active {
+              color: white;
+              background-color: #00BAD4;
+            }
+
+            &:hover {
+              color: darken(#00BAD4, 10%);
+            }
+
+            &:visited,&:active,&:focus {
+              color: #00BAD4;
+              text-decoration: none;
+            }
+
+            &.active {
+              &:visited, &:active, &:focus {
+                color: white;
+                text-decoration: none;
+              }
+            }
+          }
+        }
       }
     }
   }

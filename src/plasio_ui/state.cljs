@@ -40,7 +40,8 @@
    :comps  {}
    :clicked-point-info {}
    :available-resources {}
-   :available-filters []})
+   :available-filters []
+   :loaded-resources []})
 
 (defonce app-state (atom default-init-state))
 
@@ -64,6 +65,7 @@
 (def compass (om/ref-cursor (:compass root-state)))
 (def available-resources (om/ref-cursor (:available-resources root-state)))
 (def available-filters (om/ref-cursor (:available-filters root-state)))
+(def loaded-resources (om/ref-cursor (:loaded-resources root-state)))
 
 
 (def ^:const default-point-cloud-density-level 4)
@@ -353,6 +355,11 @@
             (fn [segments]
               (reset! app-state-lines segments)))
 
+        ;; get all loaded resources along with their IDs
+        (let [resources (js->clj (.getLoadedResources point-cloud-viewer)
+                                 :keywordize-keys true)]
+          (om/update! loaded-resources resources))
+
         ;; return components we have here
         {:target-element     e
          :renderer           (.getRenderer point-cloud-viewer)
@@ -594,3 +601,13 @@
     (om/transact! ro #(assoc % :filter filter-as-string))
     #_(when viewer
       (.setFilter viewer json))))
+
+
+(defn set-resource-visibility [key show?]
+  (let [viewer (-> @comps :point-cloud-viewer)]
+    (.setResourceVisibility viewer key show?)
+    (om/transact! loaded-resources (fn [rs]
+                                     (mapv #(if (= (:key %) key)
+                                              (assoc % :visible show?)
+                                              %)
+                                           rs)))))

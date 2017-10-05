@@ -8,6 +8,9 @@ die () {
     exit 1
 }
 
+echo ":: installing required NPM packages ..."
+npm install node-sass
+
 echo ":: checking tree ..."
 LATEST_COMMIT=`git rev-parse HEAD 2>/dev/null`
 LATEST_TAG=`git describe --abbrev=0 --tags 2>/dev/null`
@@ -70,7 +73,7 @@ mkdir -p $OUT_DIR/js
 mkdir -p $OUT_DIR/workers
 mkdir -p $OUT_DIR/img
 
-sass --scss -t compressed "$TEMP_DIR/scss/style.scss" "$OUT_DIR/css/style.css"
+./node_modules/.bin/node-sass --output-style compressed "$TEMP_DIR/scss/style.scss" > "$OUT_DIR/css/style.css"
 cp "$TEMP_DIR/resources/public/js/compiled/plasio_ui.js" "$OUT_DIR/plasio-ui.js"
 cp "$TEMP_DIR/resources/public/js/plasio-renderer.cljs.js" "$OUT_DIR/js/plasio-renderer.cljs.js"
 cp "$TEMP_DIR/resources/public/lib/dist/plasio.js" "$OUT_DIR/js/plasio.js"

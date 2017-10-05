@@ -1026,3 +1026,29 @@
                    #_(d/a {:href   (:href metadata)
                            :class  "source-metadata-link"
                            :target "_blank"} "Source Tile Metadata")))))))))))
+(let [id :animation ]
+  (defcomponentk loaded-resource-info [[:data visible key set-visibility-fn config] owner]
+    (render [_]
+      (println key visible)
+      (d/div {:class "animation-frames--item"}
+             (d/div {:class "info"}
+                    (d/div {:class "name"} (:resource config))
+                    (d/div {:class "details"} (:server config)))
+             (d/div {:class "controls"}
+                    (d/a {:href "javascript:void(0)"
+                          :class (when visible "active")
+                          :on-click #(set-visibility-fn key (not visible))} "Visible")))))
+
+
+  (defcomponentk animation-pane [owner]
+    (render [_]
+      (let [root (om/observe owner plasio-state/root)
+            loaded-resources (om/observe owner plasio-state/loaded-resources)]
+        (d/div {:class "animation-container"}
+               (d/h4 "Loaded Resources")
+               (d/div {:class "animation-frames"}
+                      (om/build-all loaded-resource-info
+                                    (->> @loaded-resources
+                                         (map (fn [r]
+                                                (assoc r
+                                                  :set-visibility-fn plasio-state/set-resource-visibility)))))))))))
