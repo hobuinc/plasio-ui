@@ -261,11 +261,20 @@
 
           _ (println "settings:" settings)
 
+          selected-resource (some->> all-resources
+                                     (filter #(and (= (:server settings) (:server-url %))
+                                                   (= (:resource settings) (:name %))))
+                                     first)
+
+          _ (println "selected resource:" selected-resource)
+
+          additional-color-sources (when selected-resource
+                                     (:colorSources selected-resource))
+
           ;; Save the resource info, we would need it to show the resource info and any credits associated with it.
-          settings (assoc settings :resource-info (some->> all-resources
-                                                           (filter #(and (= (:server settings) (:server-url %))
-                                                                         (= (:resource settings) (:name %))))
-                                                           first))]
+          settings (-> settings
+                       (assoc :resource-info selected-resource)
+                       (update :colorSources #(vec (concat additional-color-sources %))))]
 
       ;; merge-with will fail if some of the non-vec settings are available in both
       ;; app-state and settings, we do a simple check to make sure that app-state doesn't
