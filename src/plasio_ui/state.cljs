@@ -41,7 +41,8 @@
    :clicked-point-info {}
    :available-resources {}
    :available-filters []
-   :loaded-resources []})
+   :loaded-resources []
+   :animation-settings {}})
 
 (defonce app-state (atom default-init-state))
 
@@ -66,6 +67,7 @@
 (def available-resources (om/ref-cursor (:available-resources root-state)))
 (def available-filters (om/ref-cursor (:available-filters root-state)))
 (def loaded-resources (om/ref-cursor (:loaded-resources root-state)))
+(def animation-settings (om/ref-cursor (:animation-settings root-state)))
 
 
 (def ^:const default-point-cloud-density-level 4)
@@ -603,11 +605,59 @@
       (.setFilter viewer json))))
 
 
-(defn set-resource-visibility [key show?]
-  (let [viewer (-> @comps :point-cloud-viewer)]
-    (.setResourceVisibility viewer key show?)
-    (om/transact! loaded-resources (fn [rs]
-                                     (mapv #(if (= (:key %) key)
-                                              (assoc % :visible show?)
-                                              %)
-                                           rs)))))
+(defn set-resource-visibility
+  ([key show?]
+    (set-resource-visibility key show? false))
+  ([key show? exclusive?]
+   (let [viewer (-> @comps :point-cloud-viewer)]
+     (om/transact! loaded-resources (fn [rs]
+                                      (mapv #(if (= (:key %) key)
+                                               (assoc % :visible show?)
+                                               (if exclusive?
+                                                 (assoc % :visible (not show?))
+                                                 %))
+                                            rs)))
+     (doseq [r @loaded-resources]
+       (.setResourceVisibility viewer (:key r) (:visible r))))))
+
+(defn- trigger-anim []
+  (js/requestAnimationFrame
+    (fn animation-frame [now]
+      (let [resources @loaded-resources
+            {:keys [:last-frame-time :framerate]} @animation-settings
+            delta (* 1000 (/ 1 (or framerate 5)))]
+        ;; is it time to render this frame?
+        (when (or (not last-frame-time)
+                  (> (- now last-frame-time) delta))
+          ;; time to update frame
+          (om/transact! animation-settings :current-frame
+                        (fn [index]
+                          (let [i (if index
+                                    (inc index)
+                                    0)]
+                            (if (= i (count resources))
+                              0
+                              i))))
+          (om/update! animation-settings :last-frame-time now)
+          (let [key (-> @loaded-resources
+                        (nth (:current-frame @animation-settings))
+                        :key)]
+            (println "aaa key:" key)
+            (set-resource-visibility key true true)))
+
+        ;; while we are still playing, schedule next frame
+        (when (:playing? @animation-settings)
+          (js/requestAnimationFrame animation-frame))))))
+
+(defn anim-set-framerate [frame-rate]
+  (let [rate (min (max frame-rate 1) 30)]
+    (om/update! animation-settings :framerate rate)))
+
+(defn anim-play []
+  (println "playing")
+  (om/update! animation-settings :playing? true)
+  (trigger-anim))
+
+(defn anim-stop []
+  (println "stop")
+  (om/update! animation-settings :playing? false))

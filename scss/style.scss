@@ -1066,14 +1066,46 @@
   }
 
   .animation-container {
+    .animation-controls {
+      @include flexbox();
+      @include flex-direction(row);
+      @include align-items(center);
+      margin: 10px 0;
+
+      & > * {
+        @include flex(2);
+      }
+
+      .slider {
+        margin: 10px 5px;
+      }
+
+      & > .btn {
+        @include flex(0);
+        margin-right: 15px;
+      }
+    }
+
+    .animation-props {
+      margin: 10px 0 20px 0;
+      font-size: 14px;
+      background-color: #eee;
+      padding: 5px 5px 10px 5px;
+      border-radius: 3px;
+    }
+
     .animation-frames {
       &--item {
         @include flexbox();
-        @include flex-direction(row);
-        @include align-items(center);
+        @include flex-direction(column);
+        @include align-items(flex-start);
 
         border-left: 5px solid #eee;
-        margin: 2px 0;
+        margin: 6px 0;
+
+        &.animated-active {
+          border-left: 5px solid #00BAD4;
+        }
 
         & > .info {
           margin-left: 5px;
@@ -1095,7 +1127,7 @@
           @include flexbox();
           @include flex-direction(row);
           a {
-            margin: 2px;
+            margin: 4px;
             color: #00BAD4;
             text-transform: uppercase;
             border: 1px solid #00BAD4;
@@ -1104,13 +1136,26 @@
             font-weight: bold;
             font-size: 10px;
 
+
             &.active {
               color: white;
               background-color: #00BAD4;
             }
 
+            &.playing {
+              color: white;
+              background-color: #999;
+              border-color: #999;
+            }
+
             &:hover {
               color: darken(#00BAD4, 10%);
+            }
+
+            &.playing {
+              &:hover {
+                color: white;
+              }
             }
 
             &:visited,&:active,&:focus {

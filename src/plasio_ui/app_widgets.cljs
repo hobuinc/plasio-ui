@@ -1026,29 +1026,57 @@
                    #_(d/a {:href   (:href metadata)
                            :class  "source-metadata-link"
                            :target "_blank"} "Source Tile Metadata")))))))))))
-(let [id :animation ]
-  (defcomponentk loaded-resource-info [[:data visible key set-visibility-fn config] owner]
+(let [id :animation]
+  (defcomponentk loaded-resource-info [[:data visible key playing? set-visibility-fn config] owner]
     (render [_]
       (println key visible)
-      (d/div {:class "animation-frames--item"}
+      (d/div {:class (str "animation-frames--item"
+                          (when (and playing? visible)
+                            " animated-active"))}
              (d/div {:class "info"}
                     (d/div {:class "name"} (:resource config))
                     (d/div {:class "details"} (:server config)))
              (d/div {:class "controls"}
-                    (d/a {:href "javascript:void(0)"
-                          :class (when visible "active")
-                          :on-click #(set-visibility-fn key (not visible))} "Visible")))))
+                    (d/a {:href     "javascript:void(0)"
+                          :class    (str (when visible "active")
+                                         (when playing? " playing"))
+                          :on-click #(when-not playing?
+                                       (set-visibility-fn key (not visible)))} "Visible")))))
 
 
   (defcomponentk animation-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
+            animation-settings (om/observe owner plasio-state/animation-settings)
             loaded-resources (om/observe owner plasio-state/loaded-resources)]
         (d/div {:class "animation-container"}
                (d/h4 "Loaded Resources")
+               (d/div
+                 {:class "animation-controls"}
+                 (b/button {:bs-size  "small"
+                            :on-click #(if (:playing? @animation-settings)
+                                         (plasio-state/anim-stop)
+                                         (plasio-state/anim-play))}
+                           (w/fa-icon (if (:playing? @animation-settings)
+                                        :stop
+                                        :play)))
+                 (om/build w/slider {:min 1
+                                     :max 30
+                                     :start (get @animation-settings :framerate 5)
+                                     :f (fn [v]
+                                          (plasio-state/anim-set-framerate v))}))
+
+               (d/div
+                 {:class "animation-props"}
+                 (om/build w/key-val-table
+                           {:data
+                            [["Framerate" (str (get @animation-settings :framerate 5)
+                                               "fps")]]}))
+
                (d/div {:class "animation-frames"}
                       (om/build-all loaded-resource-info
                                     (->> @loaded-resources
                                          (map (fn [r]
                                                 (assoc r
+                                                  :playing? (:playing? @animation-settings)
                                                   :set-visibility-fn plasio-state/set-resource-visibility)))))))))))

@@ -701,7 +701,7 @@
       text-transform: uppercase;
       font-size: 0.9em;
       color: #999999; }
-  .plasio-ui .animation-container .animation-frames--item {
+  .plasio-ui .animation-container .animation-controls {
     display: -webkit-box;
     display: -webkit-flex;
     display: -moz-flex;
@@ -718,8 +718,51 @@
     -webkit-align-items: center;
     -moz-align-items: center;
     align-items: center;
+    margin: 10px 0; }
+    .plasio-ui .animation-container .animation-controls > * {
+      -webkit-box-flex: 2;
+      -webkit-flex: 2;
+      -moz-box-flex: 2;
+      -moz-flex: 2;
+      -ms-flex: 2;
+      flex: 2; }
+    .plasio-ui .animation-container .animation-controls .slider {
+      margin: 10px 5px; }
+    .plasio-ui .animation-container .animation-controls > .btn {
+      -webkit-box-flex: 0;
+      -webkit-flex: 0;
+      -moz-box-flex: 0;
+      -moz-flex: 0;
+      -ms-flex: 0;
+      flex: 0;
+      margin-right: 15px; }
+  .plasio-ui .animation-container .animation-props {
+    margin: 10px 0 20px 0;
+    font-size: 14px;
+    background-color: #eee;
+    padding: 5px 5px 10px 5px;
+    border-radius: 3px; }
+  .plasio-ui .animation-container .animation-frames--item {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-direction: normal;
+    -webkit-box-orient: vertical;
+    -webkit-flex-direction: column;
+    -moz-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    -webkit-box-align: start;
+    -ms-flex-align: start;
+    -webkit-align-items: flex-start;
+    -moz-align-items: flex-start;
+    align-items: flex-start;
     border-left: 5px solid #eee;
-    margin: 2px 0; }
+    margin: 6px 0; }
+    .plasio-ui .animation-container .animation-frames--item.animated-active {
+      border-left: 5px solid #00BAD4; }
     .plasio-ui .animation-container .animation-frames--item > .info {
       margin-left: 5px;
       display: -webkit-box;
@@ -758,7 +801,7 @@
       -ms-flex-direction: row;
       flex-direction: row; }
       .plasio-ui .animation-container .animation-frames--item > .controls a {
-        margin: 2px;
+        margin: 4px;
         color: #00BAD4;
         text-transform: uppercase;
         border: 1px solid #00BAD4;
@@ -769,8 +812,14 @@
         .plasio-ui .animation-container .animation-frames--item > .controls a.active {
           color: white;
           background-color: #00BAD4; }
+        .plasio-ui .animation-container .animation-frames--item > .controls a.playing {
+          color: white;
+          background-color: #999;
+          border-color: #999; }
         .plasio-ui .animation-container .animation-frames--item > .controls a:hover {
           color: #008da1; }
+        .plasio-ui .animation-container .animation-frames--item > .controls a.playing:hover {
+          color: white; }
         .plasio-ui .animation-container .animation-frames--item > .controls a:visited, .plasio-ui .animation-container .animation-frames--item > .controls a:active, .plasio-ui .animation-container .animation-frames--item > .controls a:focus {
           color: #00BAD4;
           text-decoration: none; }
