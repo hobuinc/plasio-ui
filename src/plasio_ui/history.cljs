@@ -23,6 +23,9 @@
    ;; Active filter
    [[:ro :filter] "filter" :string]
 
+   ;; whether we have split limiting
+   [[:ro :no-split-limiting] "nsl" :boolean]
+
    ;; per channel values
    [[:ro :channels :channel0 :source] "c0s" :string]
    [[:ro :channels :channel0 :contribution] "c0c" :number]
