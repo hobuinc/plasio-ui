@@ -109,10 +109,31 @@
       [(parts 0) (strip-http-prefix (parts 1))]
       [res-name ""])))
 
+(defn- join-multiple-resources [grouped-resources]
+  (let [total-groups (count grouped-resources)
+        resources (take 2 total-groups)
+        left-resources (- total-groups 2)
+        join-resource-list (fn [resource-names]
+                             (let [total (count resource-names)
+                                   to-show (take 2 resource-names)
+                                   leftover (- total 3)]
+                               (str
+                                 (str/join "," to-show)
+                                 (when (pos? leftover)
+                                   (str " + " leftover " more")))))]
+    (str
+      (str/join ", "
+                (map (fn [[server resources]]
+                       (if (= 1 (count resources))
+                         (str (-> resources first :name) "@" server)
+                         (str "(" (join-resource-list (map :name resources)) ")@" server)))
+                     grouped-resources))
+      (when (pos? left-resources)
+        (str " and " left-resources " more.")))))
+
 (defn- determine-resource-name
   ;; if the resource is a vector, then it may have a server part
   [{:keys [:resource-info] :as settings}]
-  (println "xx settings:" settings)
   (cond
     (and (some? (seq resource-info))
          (sequential? (:name resource-info)))
@@ -121,14 +142,8 @@
                                     {:name res-name
                                      :server (if (str/blank? res-server) (:server resource-info) res-server)}))
                                 (:name resource-info))
-          grouped (group-by :server normalized-names)
-          _ (println "xx" (:name resource-info) normalized-names grouped)]
-      (str/join ", "
-                (map (fn [[server resources]]
-                       (if (= 1 (count resources))
-                         (str (-> resources first :name) "@" server)
-                         (str "(" (str/join "," (map :name resources)) ")@" server)))
-                     grouped)))
+          grouped (group-by :server normalized-names)]
+      (join-multiple-resources grouped))
 
     (some? (seq resource-info))
     (str (:name resource-info) "@" (:server resource-info))
@@ -145,15 +160,9 @@
                                     {:name res-name
                                      :server (if (str/blank? res-server) stripped-server res-server)}))
                                 (:resource settings))
-          grouped (group-by :server normalized-names)
-          _ (println "xx" (:name resource-info) normalized-names grouped)]
-      (str/join ", "
-                (map (fn [[server resources]]
-                       (if (= 1 (count resources))
-                         (str (-> resources first :name) "@" server)
-                         (str "(" (str/join "," (map :name resources)) ")@" server)))
-                     grouped)))
-    
+          grouped (group-by :server normalized-names)]
+      (join-multiple-resources grouped))
+
 
     :else "--"))
 
@@ -624,5 +633,5 @@
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
+  (om/transact! plasio-state/root #(update % :__figwheel_counter (fnil inc 0)))
 )

@@ -604,12 +604,9 @@
     #_(when viewer
       (.setFilter viewer json))))
 
-
-(defn set-resource-visibility
-  ([key show?]
-    (set-resource-visibility key show? false))
-  ([key show? exclusive?]
-   (let [viewer (-> @comps :point-cloud-viewer)]
+(defn- set-resource-visibility-internal
+  [key show? exclusive?]
+  (let [viewer (-> @comps :point-cloud-viewer)]
      (om/transact! loaded-resources (fn [rs]
                                       (mapv #(if (= (:key %) key)
                                                (assoc % :visible show?)
@@ -617,8 +614,16 @@
                                                  (assoc % :visible (not show?))
                                                  %))
                                             rs)))
+     #_(om/transact! animation-settings #(assoc % :scrubbing? false :playing? false))
      (doseq [r @loaded-resources]
-       (.setResourceVisibility viewer (:key r) (:visible r))))))
+       (.setResourceVisibility viewer (:key r) (:visible r)))))
+
+(defn set-resource-visibility
+  ([key show?]
+    (set-resource-visibility key show? false))
+  ([key show? exclusive?]
+   (om/transact! animation-settings #(assoc % :playing? false :scrubbing? false))
+   (set-resource-visibility-internal key show? exclusive?)))
 
 (defn- trigger-anim []
   (js/requestAnimationFrame
@@ -627,8 +632,10 @@
             {:keys [:last-frame-time :framerate]} @animation-settings
             delta (* 1000 (/ 1 (or framerate 5)))]
         ;; is it time to render this frame?
-        (when (or (not last-frame-time)
-                  (> (- now last-frame-time) delta))
+        (when (and (or (not last-frame-time)
+                       (> (- now last-frame-time) delta))
+                   ;; we may want to stop the animation after this frame was scheduled to render
+                   (:playing? @animation-settings))
           ;; time to update frame
           (om/transact! animation-settings :current-frame
                         (fn [index]
@@ -643,7 +650,7 @@
                         (nth (:current-frame @animation-settings))
                         :key)]
             (println "aaa key:" key)
-            (set-resource-visibility key true true)))
+            (set-resource-visibility-internal key true true)))
 
         ;; while we are still playing, schedule next frame
         (when (:playing? @animation-settings)
@@ -655,9 +662,20 @@
 
 (defn anim-play []
   (println "playing")
-  (om/update! animation-settings :playing? true)
+  (om/transact! animation-settings #(assoc % :playing? true :scrubbing? false))
   (trigger-anim))
 
 (defn anim-stop []
   (println "stop")
-  (om/update! animation-settings :playing? false))
+  (om/transact! animation-settings #(assoc % :playing? false :scrubbing? false)))
+
+(defn anim-set-current-frame
+  "We may be asked to specifically set the current the current frame which means me
+   need to stop animating and set the current frame to the specified index"
+  [index]
+  (om/transact! animation-settings
+                #(assoc % :playing? false :scrubbing? true :current-frame index))
+  (let [key (-> @loaded-resources
+                (nth (:current-frame @animation-settings))
+                :key)]
+    (set-resource-visibility-internal key true true)))

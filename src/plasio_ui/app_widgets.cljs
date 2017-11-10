@@ -1027,11 +1027,11 @@
                            :class  "source-metadata-link"
                            :target "_blank"} "Source Tile Metadata")))))))))))
 (let [id :animation]
-  (defcomponentk loaded-resource-info [[:data visible key playing? set-visibility-fn config] owner]
+  (defcomponentk loaded-resource-info [[:data visible key playing? scrubbing? set-visibility-fn config] owner]
     (render [_]
-      (println key visible)
       (d/div {:class (str "animation-frames--item"
-                          (when (and playing? visible)
+                          (when (and (or playing? scrubbing?)
+                                     visible)
                             " animated-active"))}
              (d/div {:class "info"}
                     (d/div {:class "name"} (:resource config))
@@ -1048,7 +1048,8 @@
     (render [_]
       (let [root (om/observe owner plasio-state/root)
             animation-settings (om/observe owner plasio-state/animation-settings)
-            loaded-resources (om/observe owner plasio-state/loaded-resources)]
+            loaded-resources (om/observe owner plasio-state/loaded-resources)
+            frame-count (count @loaded-resources)]
         (d/div {:class "animation-container"}
                (d/h4 "Loaded Resources")
                (d/div
@@ -1060,11 +1061,19 @@
                            (w/fa-icon (if (:playing? @animation-settings)
                                         :stop
                                         :play)))
-                 (om/build w/slider {:min 1
-                                     :max 30
+                 (om/build w/slider {:min   1
+                                     :max   30
                                      :start (get @animation-settings :framerate 5)
-                                     :f (fn [v]
-                                          (plasio-state/anim-set-framerate v))}))
+                                     :f     (fn [v]
+                                              (plasio-state/anim-set-framerate v))}))
+
+               (when (pos? frame-count)
+                 (om/build w/slider {:min   0
+                                     :max   (dec frame-count)
+                                     :start (get @animation-settings :current-frame 0)
+                                     :f     (fn [v]
+                                              (plasio-state/anim-set-current-frame v))}))
+
 
                (d/div
                  {:class "animation-props"}
@@ -1079,4 +1088,5 @@
                                          (map (fn [r]
                                                 (assoc r
                                                   :playing? (:playing? @animation-settings)
+                                                  :scrubbing? (:scrubbing? @animation-settings)
                                                   :set-visibility-fn plasio-state/set-resource-visibility)))))))))))

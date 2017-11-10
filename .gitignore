@@ -3,6 +3,7 @@
 /releases/
 /dist/
 figwheel_server.log
+package-lock.json
 pom.xml
 *jar
 /lib/
