@@ -26,6 +26,9 @@ Plasio.PointCloudViewer.prototype.getModeManager = function() {};
 Plasio.PointCloudViewer.prototype.getGeoTransform = function() {};
 Plasio.PointCloudViewer.prototype.setFilter = function(filter) {};
 Plasio.PointCloudViewer.prototype.setColorChannelBrushes = function(brushes) {};
+Plasio.PointCloudViewer.prototype.setResourceVisibility = function(key, visible) {};
+Plasio.PointCloudViewer.prototype.getLoadedResources = function(key, visible) {};
+
 
 Plasio.Loaders = {};
 Plasio.Loaders.GreyhoundPipelineLoader = {};
