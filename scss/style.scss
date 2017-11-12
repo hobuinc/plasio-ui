@@ -1066,6 +1066,19 @@
   }
 
   .animation-container {
+    @include flexbox();
+    @include flex-direction(column);
+    @include align-items(stretch);
+    @include flex(1 1 auto);
+    height: 100%;
+
+    .step-anim-container {
+      @include flexbox();
+      @include flex-direction(column);
+      @include align-items(stretch);
+
+    }
+
     .animation-controls {
       @include flexbox();
       @include flex-direction(row);
@@ -1095,6 +1108,8 @@
     }
 
     .animation-frames {
+      @include flex(1 1 auto);
+      overflow: auto;
       &--item {
         @include flexbox();
         @include flex-direction(column);

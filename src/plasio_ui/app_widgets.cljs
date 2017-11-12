@@ -5,6 +5,7 @@
             [om-bootstrap.input :as i]
             [om-bootstrap.button :as b]
             [om-bootstrap.random :as r]
+            [om-bootstrap.nav :as n]
             [plasio-ui.config :as config]
             [plasio-ui.state :as plasio-state]
             [plasio-ui.widgets :as w]
@@ -1043,50 +1044,70 @@
                           :on-click #(when-not playing?
                                        (set-visibility-fn key (not visible)))} "Visible")))))
 
+  (defcomponentk step-animator [[:data animation-settings loaded-resources]]
+    (render [_]
+      (let [frame-count (count loaded-resources)]
+        (d/div
+          {:class "step-anim-container"}
+          (d/div
+            {:class "animation-controls"}
+            (b/button {:bs-size  "small"
+                       :on-click #(if (:playing? animation-settings)
+                                    (plasio-state/anim-stop)
+                                    (plasio-state/anim-play))}
+                      (w/fa-icon (if (:playing? animation-settings)
+                                   :stop
+                                   :play)))
+            (om/build w/slider {:min   1
+                                :max   30
+                                :start (get animation-settings :framerate 5)
+                                :f     (fn [v]
+                                         (plasio-state/anim-set-framerate v))})
+
+            (when (pos? frame-count)
+              (om/build w/slider {:min   0
+                                  :max   (dec frame-count)
+                                  :start (get animation-settings :current-frame 0)
+                                  :f     (fn [v]
+                                           (plasio-state/anim-set-current-frame v))})))
+
+
+          (d/div
+            {:class "animation-props"}
+            (om/build w/key-val-table
+                      {:data
+                       [["Framerate" (str (get animation-settings :framerate 5)
+                                          "fps")]]}))
+
+          (d/div {:class "animation-frames"}
+                 (om/build-all loaded-resource-info
+                               (->> loaded-resources
+                                    (map (fn [r]
+                                           (assoc r
+                                             :playing? (:playing? animation-settings)
+                                             :scrubbing? (:scrubbing? animation-settings)
+                                             :set-visibility-fn plasio-state/set-resource-visibility))))))))))
+
 
   (defcomponentk animation-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
             animation-settings (om/observe owner plasio-state/animation-settings)
             loaded-resources (om/observe owner plasio-state/loaded-resources)
-            frame-count (count @loaded-resources)]
+
+            current-resource-init-info (-> @root :init-params :resource-info)]
         (d/div {:class "animation-container"}
-               (d/h4 "Loaded Resources")
-               (d/div
-                 {:class "animation-controls"}
-                 (b/button {:bs-size  "small"
-                            :on-click #(if (:playing? @animation-settings)
-                                         (plasio-state/anim-stop)
-                                         (plasio-state/anim-play))}
-                           (w/fa-icon (if (:playing? @animation-settings)
-                                        :stop
-                                        :play)))
-                 (om/build w/slider {:min   1
-                                     :max   30
-                                     :start (get @animation-settings :framerate 5)
-                                     :f     (fn [v]
-                                              (plasio-state/anim-set-framerate v))}))
+               (d/h4 "Animation")
+               (n/nav
+                 {:bs-style "tabs"
+                  :active-key :step
+                  :on-select #()}
+                 (n/nav-item {:key :step :href "javascript:void(0)"}
+                             "Step Animator")
+                 (n/nav-item {:key :timeline :href "javascript:void(0)"}
+                             "Timeline Animator")
+                 )
 
-               (when (pos? frame-count)
-                 (om/build w/slider {:min   0
-                                     :max   (dec frame-count)
-                                     :start (get @animation-settings :current-frame 0)
-                                     :f     (fn [v]
-                                              (plasio-state/anim-set-current-frame v))}))
-
-
-               (d/div
-                 {:class "animation-props"}
-                 (om/build w/key-val-table
-                           {:data
-                            [["Framerate" (str (get @animation-settings :framerate 5)
-                                               "fps")]]}))
-
-               (d/div {:class "animation-frames"}
-                      (om/build-all loaded-resource-info
-                                    (->> @loaded-resources
-                                         (map (fn [r]
-                                                (assoc r
-                                                  :playing? (:playing? @animation-settings)
-                                                  :scrubbing? (:scrubbing? @animation-settings)
-                                                  :set-visibility-fn plasio-state/set-resource-visibility)))))))))))
+               (om/build step-animator
+                         {:animation-settings @animation-settings
+                          :loaded-resources @loaded-resources}))))))
