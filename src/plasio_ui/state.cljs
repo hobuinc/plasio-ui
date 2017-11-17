@@ -42,7 +42,8 @@
    :available-resources {}
    :available-filters []
    :loaded-resources []
-   :animation-settings {}})
+   :animation-settings {}
+   :animation-runtime {}})
 
 (defonce app-state (atom default-init-state))
 
@@ -67,7 +68,9 @@
 (def available-resources (om/ref-cursor (:available-resources root-state)))
 (def available-filters (om/ref-cursor (:available-filters root-state)))
 (def loaded-resources (om/ref-cursor (:loaded-resources root-state)))
+
 (def animation-settings (om/ref-cursor (:animation-settings root-state)))
+(def animation-runtime (om/ref-cursor (:animation-runtime root-state)))
 
 
 (def ^:const default-point-cloud-density-level 4)
@@ -119,6 +122,12 @@
 (defn toggle-docker! []
   (om/transact! ui-local-options :docker-collapsed? not))
 
+
+(defn toggle-timeline-widget! []
+  (om/transact! ui-local-options :timeline-widget-collapsed? not))
+
+(defn set-timeline-widget-visibility! [show?]
+  (om/update! ui-local-options :timeline-widget-visible? show?))
 
 (let [ls js/localStorage]
   (defn save-val! [key val]
@@ -272,7 +281,6 @@
       ;; Only when the point cloud viewer started correctly
       (when info
         ;; store resource info for use later.
-        (println "-- -- info:" info)
         (om/update! resource-info (js->clj info :keywordize-keys true))
 
         ;; list to any synthetic point clicks, on the camera mode
@@ -397,7 +405,6 @@
                              js/JSON.parse
                              (js->clj :keywordize-keys true)
                              (get-in [:features 0]))]
-        (println res)
         {:coordinates (:center res)
          :address (:place_name res)}))))
 
@@ -409,8 +416,6 @@
 
 (defn- fix-easting [bounds x]
   (let [[minx maxx midx] (world-x-range bounds)]
-    (println minx maxx)
-    (println midx)
     (- (* midx 2) x)))
 
 (defn data-range [bounds]
@@ -427,8 +432,6 @@
         y' (util/mapr y (bounds 1) (bounds 4)
                       (- (/ ry 2)) (/ rx 2))
         camera (.-activeCamera (:mode-manager @comps))]
-    (println "-- -- incoming: " x y)
-    (println "-- -- computed: " x' y')
     ;; may need to do something about easting
     (.transitionTo camera x' nil y')))
 
@@ -626,57 +629,139 @@
    (om/transact! animation-settings #(assoc % :playing? false :scrubbing? false))
    (set-resource-visibility-internal key show? exclusive?)))
 
+
+(defprotocol IAnimator
+  ;; An animator is responsible for animating through a series of frames
+  ;; update the animator with current time, time-delta is in milliseconds increasing chronologically
+  ;; calling update on an animator will reset its state to playing
+  (-update! [_ time])
+
+  ;; get the current  frame that should be shown based on this animator
+  (-current-frame [_])
+
+  ;; scrub offset for current state
+  (-scrub-offset [_])
+
+  ;; set the current scrub factor from 0 -> 1, sets the state to scrubbing
+  (-set-scrub! [_ f])
+
+  ;; set a param for the animator
+  (-set-param! [_ key value]))
+
+
+(defrecord StepAnimator [ref-cursor]
+  IAnimator
+  (-update! [_ now]
+    (let [delta (* 1000 (/ 1 (or (-> @ref-cursor :params :frame-rate) 5)))
+          frame-count (-> @ref-cursor :params :frame-count)
+          last-frame-time (-> @ref-cursor :runtime :last-frame-time)]
+      (when (and (or (not last-frame-time)
+                     (> (- now last-frame-time) delta)))
+          ;; time to update frame
+          (om/transact!
+            ref-cursor #(update % :runtime
+                                (fn [runtime]
+                                  (-> runtime
+                                      (update :current-frame (fn [index]
+                                                               (let [i (if index
+                                                                         (inc index)
+                                                                         0)]
+                                                                 (if (= i frame-count)
+                                                                   0
+                                                                   i))))
+                                      (assoc :last-frame-time now))))))))
+
+  (-current-frame [_]
+    (-> @ref-cursor :runtime :current-frame))
+
+  (-scrub-offset [_]
+    (/ (-> @ref-cursor :runtime :current-frame)
+       (dec (-> @ref-cursor :params :frame-count))))
+
+  (-set-scrub! [_ value]
+    ;; determine frame based on the scrub value
+    (let [frame-index (js/Math.floor (* value (dec (-> @ref-cursor :params :frame-count))))]
+      (om/transact! ref-cursor
+                    #(update % :runtime
+                             (fn [runtime]
+                               (-> runtime
+                                   (assoc :current-frame frame-index)))))))
+
+  (-set-param! [_ key value]
+    (om/transact! ref-cursor #(update % :params
+                                      (fn [params] (assoc params key value))))))
+
+(defn setup-animator! [controller-type startup-params]
+  (om/update! animation-runtime {:params startup-params
+                                 :runtime {}})
+  (let [animator ((case controller-type
+                    :step map->StepAnimator)
+                   {:ref-cursor animation-runtime})]
+    (om/transact! animation-settings
+                  (fn [settngs]
+                    {:controller controller-type
+                     :controller-instance animator}))))
+
+;; The animation controller relies on the animator to switch frames, doesn't
+;; really do anything other than managing play/scrub state
+;;
+
 (defn- trigger-anim []
   (js/requestAnimationFrame
     (fn animation-frame [now]
       (let [resources @loaded-resources
-            {:keys [:last-frame-time :framerate]} @animation-settings
-            delta (* 1000 (/ 1 (or framerate 5)))]
+            controller (:controller-instance @animation-settings)]
         ;; is it time to render this frame?
-        (when (and (or (not last-frame-time)
-                       (> (- now last-frame-time) delta))
-                   ;; we may want to stop the animation after this frame was scheduled to render
-                   (:playing? @animation-settings))
+        (when (and (:playing? @animation-settings)
+                   controller)
           ;; time to update frame
-          (om/transact! animation-settings :current-frame
-                        (fn [index]
-                          (let [i (if index
-                                    (inc index)
-                                    0)]
-                            (if (= i (count resources))
-                              0
-                              i))))
-          (om/update! animation-settings :last-frame-time now)
+          (-update! controller now)
+
+          ;; update the frame and scrub offset caused by this animation frame
+          (om/update! animation-settings :current-frame (-current-frame controller) )
+          (om/update! animation-settings :scrub-offset (-scrub-offset controller) )
+
+          ;; use the newly computed animation frame to set visibility
           (let [key (-> @loaded-resources
                         (nth (:current-frame @animation-settings))
                         :key)]
-            (println "aaa key:" key)
             (set-resource-visibility-internal key true true)))
 
         ;; while we are still playing, schedule next frame
         (when (:playing? @animation-settings)
           (js/requestAnimationFrame animation-frame))))))
 
-(defn anim-set-framerate [frame-rate]
-  (let [rate (min (max frame-rate 1) 30)]
-    (om/update! animation-settings :framerate rate)))
-
 (defn anim-play []
-  (println "playing")
   (om/transact! animation-settings #(assoc % :playing? true :scrubbing? false))
   (trigger-anim))
 
 (defn anim-stop []
-  (println "stop")
   (om/transact! animation-settings #(assoc % :playing? false :scrubbing? false)))
 
-(defn anim-set-current-frame
+
+(defn anim-set-param! [key value]
+  (om/transact! animation-settings :params #(assoc % key value))
+  (when-let [c (:controller-instance @animation-settings)]
+    (-set-param! c key value)))
+
+(defn anim-set-current-scrub-offset!
   "We may be asked to specifically set the current the current frame which means me
    need to stop animating and set the current frame to the specified index"
-  [index]
-  (om/transact! animation-settings
-                #(assoc % :playing? false :scrubbing? true :current-frame index))
-  (let [key (-> @loaded-resources
-                (nth (:current-frame @animation-settings))
-                :key)]
-    (set-resource-visibility-internal key true true)))
+  [offset]
+  (when-let [ci (:controller-instance @animation-settings)]
+    (-set-scrub! ci offset)
+    (om/transact! animation-settings
+                  #(assoc % :playing? false :scrubbing? true
+                            :current-frame (-current-frame ci)
+                            :scrub-offset offset))
+    (let [key (-> @loaded-resources
+                  (nth (:current-frame @animation-settings))
+                  :key)]
+      (set-resource-visibility-internal key true true))))
+
+(defn anim-set-controller! [controller]
+  (setup-animator! controller {:frame-count (count @loaded-resources)}))
+
+(defn anim-set-default-controller! []
+  (when-not (:controller @animation-settings)
+    (anim-set-controller! :step)))

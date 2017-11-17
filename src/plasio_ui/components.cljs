@@ -113,7 +113,6 @@
           maxs [(aget profile "maxs" 0)
                 (aget profile "maxs" 1)
                 (aget profile "maxs" 2)]]
-      (println "-- -- " points floats-per-point)
       (loop [n 0
              offset 0]
         (when (< n points)
@@ -131,7 +130,6 @@
 
   (defn push-profile-to-dom! [profiles]
     (let [[ons mem] (get-canvases)]
-      (println "-- -- canvases:" ons mem)
       ;; draw profiles to the the render area
       (let [ctx (.getContext mem "2d")]
         (set! (.-fillStyle ctx) "black")
@@ -146,9 +144,7 @@
 
       ;; finally blit it onscreen
       (let [ctx (.getContext ons "2d")]
-        (.drawImage ctx mem 0 0))
-
-      (println "done drawing!"))))
+        (.drawImage ctx mem 0 0)))))
 
 
 (let [active-tool (atom nil)

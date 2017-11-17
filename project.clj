@@ -32,12 +32,17 @@
                          :asset-path "js/compiled/out"
                          :output-to "resources/public/js/compiled/plasio_ui.js"
                          :output-dir "resources/public/js/compiled/out"
-                         :source-map-timestamp true }}
+                         :source-map-timestamp true
+                         :foreign-libs [{:file "vendor/js/vis.js"
+                                         :provides ["org.visjs"]}]}}
              {:id "min"
               :source-paths ["src" "vendor/src"]
               :compiler {:output-to "resources/public/js/compiled/plasio_ui.js"
                          :main plasio-ui.core
                          :optimizations :advanced
+                         :foreign-libs [{:file "vendor/js/vis.js"
+                                         :file-min "vendor/js/vis.min.js"
+                                         :provides ["org.visjs"]}]
                          :externs ["vendor/externs/nouislider.js"
                                    "vendor/externs/plasiolib.js"
                                    "vendor/externs/extras.js"

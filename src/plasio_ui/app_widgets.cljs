@@ -14,9 +14,11 @@
             [goog.string.format]
             [clojure.string :as s]
             [plasio-ui.math :as math]
-            [cljs.core.async :refer [<!]]
+            [cljs.core.async :as async :refer [<!]]
             [plasio-ui.util :as util]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            org.visjs
+            [clojure.set :as set])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (let [id :rendering-options]
@@ -176,11 +178,9 @@
   (defcomponentk information-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)]
-        (println "-- -- res:" (:resource-info @root) (-> @root :resource-info first :server))
         (d/div
           (for [resource-info (:resource-info @root)]
-            (let [_ (println "showing:" resource-info)
-                  schema (:schema resource-info)
+            (let [schema (:schema resource-info)
                   init-params (:init-params @root)
                   [points size] (index-size resource-info)
                   col-info (util/schema->color-info schema)]
@@ -481,7 +481,6 @@
 
 
 (defn- sources-changed? [old-chans new-chans]
-  (println old-chans new-chans)
   (some (fn [i]
           (let [c (keyword (str "channel" i))
                 old-source (get-in old-chans [c :source])
@@ -566,8 +565,6 @@
           bounds (:bounds root)
           zbounds (or (:zrange ro) [(bounds 2) (bounds 5)])
 
-          _ (println "-- -- channels:" (:channels ro))
-
           adjusted-chans (util/adjust-channels (get-in ro [:channels]))
 
           ;; get channels
@@ -613,7 +610,6 @@
       ;; apply any screen rejection values
       (let [density (get lo :point-density plasio-state/default-point-cloud-density-level)
             ratio (get plasio-state/point-cloud-density-levels density)]
-        (println "density:" density ratio)
         (js/Plasio.Device.overrideProperty "nodeRejectionRatio" ratio))
 
       ;; do we need a flicker fix?
@@ -708,8 +704,9 @@
           :target "_blank"
           :href "https://entwine.io"
           :style {:position "absolute"
-                  :bottom "10px"
-                  :left "60px"}})))
+                  :bottom "50px"
+                  :left "-25px"
+                  :transform "rotateZ(-90deg)"}})))
 
 
 (def ^:private menu-item-mapping
@@ -740,7 +737,6 @@
   "Does the element which have parent in its heirarchy?"
   [parent which]
   (loop [w which]
-    (println "-- -- CHECK:" parent w)
     (when w
       (if (= w parent)
         true
@@ -805,7 +801,6 @@
                       posx (+ (center 0) (* multiplier radius (js/Math.cos angle)))
                       posy (+ (center 1) (* multiplier radius (js/Math.sin angle)))]]
             (do
-              (println "-- -- ID:" id)
               (d/a {:class    "item"
                     :style    {:left posx :top posy :opacity opacity}
                     :href     "javascript:"
@@ -1027,6 +1022,15 @@
                    #_(d/a {:href   (:href metadata)
                            :class  "source-metadata-link"
                            :target "_blank"} "Source Tile Metadata")))))))))))
+
+
+(defn have-frames-for-timeline? [loaded-resources frames]
+  (let [loaded-resources-set (->> (map #(-> % :config :resource str/lower-case) loaded-resources) set)
+        ts-available-for-resources-set (->> (map #(-> % :resource str/lower-case) frames) set)
+        missing-ts (set/difference loaded-resources-set ts-available-for-resources-set)]
+    (and (seq frames)
+         (not (seq missing-ts)))))
+
 (let [id :animation]
   (defcomponentk loaded-resource-info [[:data visible key playing? scrubbing? set-visibility-fn config] owner]
     (render [_]
@@ -1044,9 +1048,21 @@
                           :on-click #(when-not playing?
                                        (set-visibility-fn key (not visible)))} "Visible")))))
 
+  (defcomponentk animation-frames [[:data animation-settings loaded-resources]]
+    (render [_]
+      (d/div {:class "animation-frames"}
+             (om/build-all loaded-resource-info
+                           (->> loaded-resources
+                                (map (fn [r]
+                                       (assoc r
+                                         :playing? (:playing? animation-settings)
+                                         :scrubbing? (:scrubbing? animation-settings)
+                                         :set-visibility-fn plasio-state/set-resource-visibility))))))))
+
   (defcomponentk step-animator [[:data animation-settings loaded-resources]]
     (render [_]
-      (let [frame-count (count loaded-resources)]
+      (let [frame-count (count loaded-resources)
+            frame-rate (get-in animation-settings [:params :frame-rate] 5)]
         (d/div
           {:class "step-anim-container"}
           (d/div
@@ -1060,54 +1076,165 @@
                                    :play)))
             (om/build w/slider {:min   1
                                 :max   30
-                                :start (get animation-settings :framerate 5)
+                                :start frame-rate
                                 :f     (fn [v]
-                                         (plasio-state/anim-set-framerate v))})
+                                         (plasio-state/anim-set-param! :frame-rate v))})
 
             (when (pos? frame-count)
-              (om/build w/slider {:min   0
-                                  :max   (dec frame-count)
-                                  :start (get animation-settings :current-frame 0)
-                                  :f     (fn [v]
-                                           (plasio-state/anim-set-current-frame v))})))
+              (let [min-val 0
+                    max-val (dec frame-count)]
+                (om/build w/slider {:min   min-val
+                                    :max   max-val
+                                    :step  1
+                                    :start (* (get animation-settings :scrub-offset 0) max-val)
+                                    :f     (fn [v]
+                                             (plasio-state/anim-set-current-scrub-offset! (/ (- v min-val)
+                                                                                             (- max-val min-val))))}))))
 
 
           (d/div
             {:class "animation-props"}
             (om/build w/key-val-table
                       {:data
-                       [["Framerate" (str (get animation-settings :framerate 5)
-                                          "fps")]]}))
+                       [["Framerate" (str frame-rate "fps")]]}))))))
 
-          (d/div {:class "animation-frames"}
-                 (om/build-all loaded-resource-info
-                               (->> loaded-resources
-                                    (map (fn [r]
-                                           (assoc r
-                                             :playing? (:playing? animation-settings)
-                                             :scrubbing? (:scrubbing? animation-settings)
-                                             :set-visibility-fn plasio-state/set-resource-visibility))))))))))
+  (defcomponentk timeline-animator [[:data animation-settings loaded-resources current-resource-init-info]]
+    (render [_]
+      (let [frames (-> current-resource-init-info :frames)
+            loaded-resources-set (->> (map #(-> % :config :resource str/lower-case) loaded-resources) set)
+            ts-available-for-resources-set (->> (map #(-> % :resource str/lower-case) frames) set)
+            missing-ts (set/difference loaded-resources-set ts-available-for-resources-set)
+            have-ts-for-all? (not (seq missing-ts))]
+        (d/div
+          {:class "timeline-anim-container"}
+          (if have-ts-for-all?
+            (d/div
+              {:class "text-success timestamps-msg"}
+              "All resources have timestamps.  Timeline controls have been enabled.")
+
+            ;; We don't have timestamps for all resources
+            (d/div
+              {:class "text-danger timestamps-msg"}
+              "Some resources are missing frame timestamps, timeline controls will therefore not be available:"
+              (d/ul
+                (for [r missing-ts]
+                  (d/li {:key r} r)))))))))
 
 
-  (defcomponentk animation-pane [owner]
+  (defcomponentk animation-pane [owner state]
+    (did-mount [_]
+      (plasio-state/anim-set-default-controller!))
+
     (render [_]
       (let [root (om/observe owner plasio-state/root)
             animation-settings (om/observe owner plasio-state/animation-settings)
             loaded-resources (om/observe owner plasio-state/loaded-resources)
 
-            current-resource-init-info (-> @root :init-params :resource-info)]
+            current-resource-init-info (-> @root :init-params :resource-info)
+
+            current-pane (or (:controller @animation-settings) :step)]
         (d/div {:class "animation-container"}
-               (d/h4 "Animation")
                (n/nav
-                 {:bs-style "tabs"
-                  :active-key :step
-                  :on-select #()}
+                 {:bs-style   "tabs"
+                  :active-key current-pane
+                  :on-select  (fn [pane]
+                                (plasio-state/anim-set-controller! pane)
+                                (if (= pane :timeline)
+                                  (when (have-frames-for-timeline? loaded-resources
+                                                                   (-> current-resource-init-info
+                                                                       :frames))
+                                    (plasio-state/set-timeline-widget-visibility! true))
+                                  (plasio-state/set-timeline-widget-visibility! false)))}
                  (n/nav-item {:key :step :href "javascript:void(0)"}
                              "Step Animator")
                  (n/nav-item {:key :timeline :href "javascript:void(0)"}
-                             "Timeline Animator")
-                 )
+                             "Timeline Animator"))
 
-               (om/build step-animator
+               (if (= current-pane :step)
+                 (om/build step-animator
+                           {:animation-settings @animation-settings
+                            :loaded-resources   @loaded-resources})
+                 (om/build timeline-animator
+                           {:animation-settings @animation-settings
+                            :loaded-resources @loaded-resources
+                            :current-resource-init-info current-resource-init-info}))
+
+               (d/h4 "Loaded Frames")
+               (om/build animation-frames
                          {:animation-settings @animation-settings
                           :loaded-resources @loaded-resources}))))))
+
+(defcomponentk timeline-widget [[:data frames] owner state]
+  (did-mount [_]
+    (let [data-set (js/vis.DataSet.
+                     (clj->js frames))
+          options (js-obj
+                    "stack" false
+                    "min" (-> frames first :start)
+                    "max" (-> frames last :end))
+          timeline (doto (js/vis.Timeline. (om/get-node owner) data-set
+                                           options)
+                     (.addCustomTime (-> frames first :start)
+                                     "scrubber")
+                     (.on "timechange" (fn [id time event]
+                                         (js/console.log "scrub:" id time event))))]
+      (swap! state assoc ::timeline timeline)))
+  (render [_]
+    (d/div {:style {:width "100%"
+                    :height "100%"}})))
+
+
+(defn frames->timeline [frames]
+  (let [frames-with-dates (map (fn [frame]
+                                 (update frame :ts #(js/Date. (js/Date.parse %))))
+                               frames)
+        sorted-frames (sort-by #(.getTime (:ts %)) frames-with-dates)
+
+        add-a-day (fn [d]
+                    (let [dt (.getTime d)]
+                      (js/Date. (+ dt (* 24 60 60 1000)))))
+        dec-second (fn [d]
+                     (let [dt (.getTime d)]
+                       (js/Date. (- dt 60000))))]
+    (vec
+          ;; arrange frames right next to each other so that we can arrange them
+          ;; abutting each other
+          (for [[a b] (partition-all 2 1 sorted-frames)]
+            {:content (:resource a)
+             :start   (:ts a)
+             :end     (if b (:ts b) (add-a-day (:ts a)))
+             :type    "range"
+             :style   "background-color: #0FBCD4; border-color: #85CAD4; color: white; border-radius: 0; z-index: 0;"
+             }))))
+
+(defcomponentk timeline-animator-widget [owner state]
+  (did-mount [_]
+    (swap! state assoc :left "-1000px")
+    (go (<! (async/timeout 200))
+        (swap! state dissoc :left)))
+  (render [_]
+    (let [root (om/observe owner plasio-state/root)
+
+          ui-options (om/observe owner plasio-state/ui-local-options)
+          docker-collapsed? (:docker-collapsed? @ui-options)
+          self-collapsed? (:timeline-widget-collapsed? @ui-options)
+
+          current-resource-frames (-> @root :init-params :resource-info :frames)]
+      (d/div
+        (merge
+          {:class (str "timeline-animator-widget"
+                       (when-not docker-collapsed?
+                         " docker-expanded")
+                       (if self-collapsed?
+                         " collapsed"
+                         " uncollapsed"))}
+          (when-let [left (:left @state)]
+            {:style {:left left}}))
+
+        (d/a {:class "timeline-widget-toggle"
+              :href "javascript:void(0)"
+              :on-click #(plasio-state/toggle-timeline-widget!)}
+             (w/fa-icon
+               (if self-collapsed? :angle-double-right :angle-double-left)))
+
+        (om/build timeline-widget {:frames (frames->timeline current-resource-frames) })))))

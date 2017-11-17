@@ -138,7 +138,6 @@
                     :let [val (get-in obj ks)]
                     :when val]
                 [token val t])]
-    (println "hs:" pairs)
     (join "&"
           (map (fn [[token val t]]
                  (str token "=" (-> (compress-entity [t val])

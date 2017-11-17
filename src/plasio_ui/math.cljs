@@ -71,7 +71,6 @@
     [eye target scale]
     (let [eye' (project-point xz-plane (apply array eye))
           target' (project-point xz-plane (apply array target))
-          _ (println "-- -- projected:" target' eye')
 
           ;; compute the direction vector going from our eye to the target
           _ (js/vec3.subtract dir target' eye')

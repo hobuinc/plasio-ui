@@ -192,9 +192,11 @@
         ;; render all open panes
         #_(om/build floating-panes {:panes (vec op)})
 
+        (when (:timeline-widget-visible? @ui-locals)
+          (om/build aw/timeline-animator-widget {}))
+
         ;; render all docked panes
         (when (:showPanels settings)
-          (println "panes-to-hide:" panes-to-hide)
           (om/build docked-panes {:panes (vec (remove panes-to-hide all-docked-panes))}))
 
         (om/build aw/logo {})
@@ -231,7 +233,6 @@
                            (when (schema-attrs (str/lower-case name))
                              index))
                          rules))]
-    (println "-- ii" schema-attrs selection)
     selection))
 
 
@@ -307,11 +308,9 @@
                                                (or
                                                  ;; do we have any channel selection rules?
                                                  (when-let [rules (:colorChannelRules options)]
-                                                   (println "xx" rules)
                                                    (determine-default-color-channel (:schema settings) rules))
                                                  ;; do we have any default color channels specified
                                                  (:defaultColorChannelIndex options 0))))]
-          (println "xx" chosen-color-channel)
           (swap! plasio-state/app-state assoc-in [:ro :channels :channel0 :source] chosen-color-channel)))
 
       (println "Startup state: " @plasio-state/app-state)
@@ -501,7 +500,6 @@
         (<! (load-css head s)))
 
       ;; add all scripts
-      (println "scripts!" scripts)
       (doseq [s (flatten scripts)]
         (<! (load-script head s))))))
 

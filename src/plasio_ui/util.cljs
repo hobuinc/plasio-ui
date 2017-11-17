@@ -20,7 +20,6 @@
 
 (defn- zero-histogram [lower higher step]
   (let [how-many (inc (quot (- higher lower) step))]
-    (println how-many)
     (zipmap
       (iterate #(+ % step) lower)
       (repeat how-many 0))))
