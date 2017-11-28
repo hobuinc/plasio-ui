@@ -1168,16 +1168,20 @@
   (did-mount [_]
     (let [data-set (js/vis.DataSet.
                      (clj->js frames))
+          start (-> frames first :start)
+          end (-> frames last :end)
+
           options (js-obj
-                    "stack" false
-                    "min" (-> frames first :start)
-                    "max" (-> frames last :end))
+                    "stack" false "min" start "max" end)
           timeline (doto (js/vis.Timeline. (om/get-node owner) data-set
                                            options)
                      (.addCustomTime (-> frames first :start)
                                      "scrubber")
-                     (.on "timechange" (fn [id time event]
-                                         (js/console.log "scrub:" id time event))))]
+                     (.on "timechange" (fn [event]
+                                         (let [time (aget event "time")
+                                               offset (/ (- (.getTime time) (.getTime start))
+                                                         (- (.getTime end) (.getTime start)))]
+                                           (plasio-state/anim-set-current-scrub-offset! offset)))))]
       (swap! state assoc ::timeline timeline)))
   (render [_]
     (d/div {:style {:width "100%"

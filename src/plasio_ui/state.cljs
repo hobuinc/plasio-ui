@@ -691,11 +691,64 @@
     (om/transact! ref-cursor #(update % :params
                                       (fn [params] (assoc params key value))))))
 
+
+(defn- offset->frame-index [frames offset]
+  (let [start (-> frames first :start)]
+    (->> frames
+         (filter #(<= (:start %)
+                      (+ offset start)
+                      (:end %)))
+         first
+         :index)))
+
+(defn- frames->range [frames]
+  [(-> frames first :start)
+   (-> frames last :end)])
+
+(defrecord TimelineAnimator [ref-cursor]
+  IAnimator
+  (-update! [_ now]
+    ;; timeline works by determining what the current frame should be on the timeline
+    (let [frames (-> @ref-cursor :params :frames)
+          [start end] (frames->range frames)
+
+          offset (- now start)]
+      (om/transact! ref-cursor
+                    :runtime
+                    #(->> %
+                          (assoc :offset offset)
+                          (assoc :scrub-offset (/ offset (- end start)))
+                          (assoc :current-frame (offset->frame-index frames offset))))))
+
+  (-current-frame [_]
+    (-> @ref-cursor :runtime :current-frame))
+
+  (-scrub-offset [_]
+    (-> @ref-cursor :runtime :scrub-offset))
+
+  (-set-scrub! [_ value]
+    (let [frames (-> @ref-cursor :params :frames)
+          [start end] (frames->range frames)
+
+          offset (* value (- end start))]
+      (println start end offset (offset->frame-index frames offset))
+      (om/transact! ref-cursor
+                    :runtime
+                    #(-> %
+                         (assoc :offset offset)
+                         (assoc :scrub-offset value)
+                         (assoc :current-frame (offset->frame-index frames offset))))))
+
+  (-set-param! [_ key value]
+    (om/transact! ref-cursor #(update % :params
+                                      (fn [params] (assoc params key value))))))
+
 (defn setup-animator! [controller-type startup-params]
   (om/update! animation-runtime {:params startup-params
                                  :runtime {}})
   (let [animator ((case controller-type
-                    :step map->StepAnimator)
+                    :step map->StepAnimator
+                    :timeline map->TimelineAnimator)
                    {:ref-cursor animation-runtime})]
     (om/transact! animation-settings
                   (fn [settngs]
@@ -748,19 +801,30 @@
   "We may be asked to specifically set the current the current frame which means me
    need to stop animating and set the current frame to the specified index"
   [offset]
-  (when-let [ci (:controller-instance @animation-settings)]
-    (-set-scrub! ci offset)
-    (om/transact! animation-settings
-                  #(assoc % :playing? false :scrubbing? true
-                            :current-frame (-current-frame ci)
-                            :scrub-offset offset))
-    (let [key (-> @loaded-resources
-                  (nth (:current-frame @animation-settings))
-                  :key)]
-      (set-resource-visibility-internal key true true))))
+  (let [offset (max 0 (min 1 offset))]
+    (when-let [ci (:controller-instance @animation-settings)]
+      (-set-scrub! ci offset)
+      (om/transact! animation-settings
+                    #(assoc % :playing? false :scrubbing? true
+                              :current-frame (-current-frame ci)
+                              :scrub-offset offset))
+      (let [key (-> @loaded-resources
+                    (nth (:current-frame @animation-settings))
+                    :key)]
+        (set-resource-visibility-internal key true true)))))
 
 (defn anim-set-controller! [controller]
-  (setup-animator! controller {:frame-count (count @loaded-resources)}))
+  (let [frames (->> (-> @root :init-params :resource-info :frames)
+                    (map (fn [f] (update f :ts js/Date.parse))) ;; parse time stamps
+                    (sort-by :ts)                           ;; make sure frames are in order
+                    (partition-all 2 1)                     ;; pair them up, so that we can set start and end
+                    (map-indexed (fn [index [a b]]                        ;; set each frame's start and end period
+                                   (assoc a :index index
+                                            :start (:ts a)
+                                            :end (if b (dec (:ts b))
+                                                       (+ (:ts a) (* 24 60 60 1000)))))))]
+    (setup-animator! controller {:frame-count (count @loaded-resources)
+                                 :frames      (vec frames)})))
 
 (defn anim-set-default-controller! []
   (when-not (:controller @animation-settings)
