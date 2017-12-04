@@ -1171,18 +1171,37 @@
           start (-> frames first :start)
           end (-> frames last :end)
 
+          time->offset (fn [time]
+                         (/ (- time (.getTime start))
+                            (- (.getTime end) (.getTime start))))
+
           options (js-obj
                     "stack" false "min" start "max" end)
           timeline (doto (js/vis.Timeline. (om/get-node owner) data-set
                                            options)
-                     (.addCustomTime (-> frames first :start)
-                                     "scrubber")
+                     (.addCustomTime start "scrub")
                      (.on "timechange" (fn [event]
                                          (let [time (aget event "time")
-                                               offset (/ (- (.getTime time) (.getTime start))
-                                                         (- (.getTime end) (.getTime start)))]
-                                           (plasio-state/anim-set-current-scrub-offset! offset)))))]
+                                               limited-time (min (.getTime end) (max (.getTime start) (.getTime time)))
+                                               offset (time->offset (.getTime time))]
+                                           (plasio-state/anim-set-current-scrub-offset! offset))))
+                     (.on "click" (fn [event]
+                                    (plasio-state/anim-set-current-scrub-offset! (time->offset (aget event "snappedTime"))))))]
       (swap! state assoc ::timeline timeline)))
+  (did-update [_ old-props old-state]
+    (let [old-offset (-> old-props :animation-settings :scrub-offset)
+          new-props (om/get-props owner)
+          new-offset (-> new-props :animation-settings :scrub-offset)]
+      (when (> (js/Math.abs (- old-offset new-offset))
+               0.0001)
+        (let [start (-> new-props :frames first :start)
+              end (-> new-props :frames last :end)
+              ts (+ (.getTime start)
+                    (* new-offset (- (.getTime end) (.getTime start))))]
+          (when-let [t (::timeline @state)]
+            (println "-- -- custom time:" new-offset ts)
+            (.setCustomTime t ts "scrub"))))))
+
   (render [_]
     (d/div {:style {:width "100%"
                     :height "100%"}})))
@@ -1208,16 +1227,16 @@
              :start   (:ts a)
              :end     (if b (:ts b) (add-a-day (:ts a)))
              :type    "range"
-             :style   "background-color: #0FBCD4; border-color: #85CAD4; color: white; border-radius: 0; z-index: 0;"
-             }))))
+             :style   "background-color: #0FBCD4; border-color: #85CAD4; color: white; border-radius: 0; z-index: 0;"}))))
 
 (defcomponentk timeline-animator-widget [owner state]
-  (did-mount [_]
+  (will-mount [_]
     (swap! state assoc :left "-1000px")
     (go (<! (async/timeout 200))
         (swap! state dissoc :left)))
   (render [_]
     (let [root (om/observe owner plasio-state/root)
+          animation-settings (om/observe owner plasio-state/animation-settings)
 
           ui-options (om/observe owner plasio-state/ui-local-options)
           docker-collapsed? (:docker-collapsed? @ui-options)
@@ -1241,4 +1260,5 @@
              (w/fa-icon
                (if self-collapsed? :angle-double-right :angle-double-left)))
 
-        (om/build timeline-widget {:frames (frames->timeline current-resource-frames) })))))
+        (om/build timeline-widget {:frames (frames->timeline current-resource-frames)
+                                   :animation-settings @animation-settings})))))
