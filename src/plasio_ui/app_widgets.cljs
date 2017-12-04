@@ -1199,12 +1199,11 @@
               ts (+ (.getTime start)
                     (* new-offset (- (.getTime end) (.getTime start))))]
           (when-let [t (::timeline @state)]
-            (println "-- -- custom time:" new-offset ts)
             (.setCustomTime t ts "scrub"))))))
 
   (render [_]
     (d/div {:style {:width "100%"
-                    :height "100%"}})))
+                    :height "110px"}})))
 
 
 (defn frames->timeline [frames]
@@ -1228,6 +1227,13 @@
              :end     (if b (:ts b) (add-a-day (:ts a)))
              :type    "range"
              :style   "background-color: #0FBCD4; border-color: #85CAD4; color: white; border-radius: 0; z-index: 0;"}))))
+
+
+
+
+(defn multiplier->text [m]
+  (let [f (plasio-state/multiplier-factor m)]
+    (str f "x")))
 
 (defcomponentk timeline-animator-widget [owner state]
   (will-mount [_]
@@ -1261,4 +1267,27 @@
                (if self-collapsed? :angle-double-right :angle-double-left)))
 
         (om/build timeline-widget {:frames (frames->timeline current-resource-frames)
-                                   :animation-settings @animation-settings})))))
+                                   :animation-settings @animation-settings})
+
+        (let [multiplier (get-in @animation-settings [:params :multiplier] 0)
+              steps (count plasio-state/increments)]
+          (d/div
+            {:class "speed-multiplier"}
+            (b/button {:bs-size  "small"
+                       :on-click #(if (:playing? @animation-settings)
+                                    (plasio-state/anim-stop)
+                                    (plasio-state/anim-play))}
+                      (w/fa-icon (if (:playing? @animation-settings)
+                                   :stop
+                                   :play)))
+
+            (d/span {:style {:margin "0 20px 0 5px"}} "Speed Multiplier:")
+            (d/div
+              {:class "multiplier"}
+              (om/build w/slider {:min   (- steps)
+                                  :max   steps
+                                  :step  1
+                                  :start multiplier
+                                  :f     (fn [v]
+                                           (plasio-state/anim-set-param! :multiplier v))}))
+            (d/span {:class "multiplier-text"} (multiplier->text multiplier))))))))

@@ -705,20 +705,41 @@
   [(-> frames first :start)
    (-> frames last :end)])
 
+(def increments [2 5 10 25 50 100 500 1000 10000 50000 100000])
+(defn multiplier-factor [m]
+  (if (zero? m)
+    1
+    (let [mm (dec (js/Math.abs m))
+          f (nth increments mm)]
+      (if (neg? m)
+        (/ 1 f)
+        f))))
+
 (defrecord TimelineAnimator [ref-cursor]
   IAnimator
   (-update! [_ now]
     ;; timeline works by determining what the current frame should be on the timeline
-    (let [frames (-> @ref-cursor :params :frames)
+    (let [params (-> @ref-cursor :params)
+          {:keys [:frames :multiplier]} params
+          {:keys [:last-frame-time :anim-time]} (-> @ref-cursor :runtime)
           [start end] (frames->range frames)
+          multiplier (or multiplier 0)
+          last-frame-time (or last-frame-time now)
+          anim-time (or anim-time 0)
 
-          offset (- now start)]
+          time-delta (* (multiplier-factor multiplier) (- now last-frame-time))
+          new-anim-time (+ anim-time time-delta)
+          new-anim-time (if (> new-anim-time (- end start))
+                          0 new-anim-time)
+          offset new-anim-time]
       (om/transact! ref-cursor
                     :runtime
-                    #(->> %
-                          (assoc :offset offset)
-                          (assoc :scrub-offset (/ offset (- end start)))
-                          (assoc :current-frame (offset->frame-index frames offset))))))
+                    #(-> %
+                         (assoc :offset offset
+                                :scrub-offset (/ offset (- end start))
+                                :current-frame (offset->frame-index frames offset)
+                                :anim-time new-anim-time
+                                :last-frame-time now)))))
 
   (-current-frame [_]
     (-> @ref-cursor :runtime :current-frame))
@@ -789,7 +810,8 @@
   (trigger-anim))
 
 (defn anim-stop []
-  (om/transact! animation-settings #(assoc % :playing? false :scrubbing? false)))
+  (om/transact! animation-settings #(assoc % :playing? false :scrubbing? false))
+  (om/transact! animation-runtime #(assoc % :runtime {})))
 
 
 (defn anim-set-param! [key value]
