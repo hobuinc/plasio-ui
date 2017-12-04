@@ -1,5 +1,5 @@
 
-Renderer = {};
+var Renderer = {};
 Renderer.prototype.addLoader = function() {};
 Renderer.prototype.setRenderViewSize = function() {};
 Renderer.prototype.updateCamera = function() {};
@@ -17,7 +17,7 @@ Renderer.prototype.setEyeTargetPosition = function() {};
 Renderer.prototype.addHighlightSegment = function() {};
 Renderer.prototype.removeHighlightSegment = function() {};
 
-Plasio = {};
+var Plasio = {};
 
 Plasio.PointCloudViewer = {};
 Plasio.PointCloudViewer.prototype.start = function() {};

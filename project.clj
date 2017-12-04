@@ -41,7 +41,6 @@
                          :main plasio-ui.core
                          :optimizations :advanced
                          :foreign-libs [{:file "vendor/js/vis.js"
-                                         :file-min "vendor/js/vis.min.js"
                                          :provides ["org.visjs"]}]
                          :externs ["vendor/externs/nouislider.js"
                                    "vendor/externs/plasiolib.js"
