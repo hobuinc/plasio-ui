@@ -283,13 +283,15 @@
         ;; store resource info for use later.
         (om/update! resource-info (js->clj info :keywordize-keys true))
 
-        ;; list to any synthetic point clicks, on the camera mode
-        (.registerHandler camera
-                          "synthetic-click-on-point"
-                          (util/throttle
-                            200
-                            (fn [obj]
-                              (update-current-point-info! (js->clj (aget obj "pointPos"))))))
+        ;; listen to any synthetic point clicks, on the camera mode to show point information
+        ;; only enabled for single resource viewing, multiple resources cause too much greyhound overhead.
+        (when (= 1 (.-length info))
+          (.registerHandler camera
+                            "synthetic-click-on-point"
+                            (util/throttle
+                              200
+                              (fn [obj]
+                                (update-current-point-info! (js->clj (aget obj "pointPos")))))))
 
         ;; mode manager will let us know about any context menu actions we
         ;; need to handle
@@ -705,12 +707,12 @@
   [(-> frames first :start)
    (-> frames last :end)])
 
-(def increments [2 5 10 25 50 100 500 1000 10000 50000 100000])
+(def increments [2 3 4 5 6 7])
 (defn multiplier-factor [m]
   (if (zero? m)
     1
     (let [mm (dec (js/Math.abs m))
-          f (nth increments mm)]
+          f (js/Math.pow 10 (nth increments mm))]
       (if (neg? m)
         (/ 1 f)
         f))))

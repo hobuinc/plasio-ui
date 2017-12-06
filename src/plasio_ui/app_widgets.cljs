@@ -177,9 +177,10 @@
 (let [id :information]
   (defcomponentk information-pane [owner]
     (render [_]
-      (let [root (om/observe owner plasio-state/root)]
+      (let [root (om/observe owner plasio-state/root)
+            resources (:resource-info @root)]
         (d/div
-          (for [resource-info (:resource-info @root)]
+          (for [resource-info resources]
             (let [schema (:schema resource-info)
                   init-params (:init-params @root)
                   [points size] (index-size resource-info)
@@ -982,46 +983,50 @@
   (defcomponentk point-info-pane [owner]
     (render [_]
       (let [root (om/observe owner plasio-state/root)
+            resources (:resource-info @root)
             points (om/observe owner plasio-state/clicked-point-info)]
         (d/div
          {:class "point-info-container"}
          (d/h4 "Point Information")
-         (when (:clicked-point-load-in-progress? @root)
-           (d/i {:class "fa fa-spinner fa-pulse"}))
-         (if-not (seq @points)
-           (d/div {:class "no-items"} "Click on a point to see its information here.")
+         (if (> (count resources) 1)
+           (d/p {:class "text-danger"} "Point information is not available when multiple resources are loaded.")
            (d/div
-             (d/h5 "Following resources responded to point info query:")
-             (for [point @points
-                   :when (seq point)]
+             (when (:clicked-point-load-in-progress? @root)
+               (d/i {:class "fa fa-spinner fa-pulse"}))
+             (if-not (seq @points)
+               (d/div {:class "no-items"} "Click on a point to see its information here.")
                (d/div
-                 (d/h5 {:class "resource"} (:resource point) "@" (:server point))
-                 (om/build w/key-val-table
-                           {:data (->> point
-                                       (sort-by (comp :index second))
-                                       (keep (fn [[_ {:keys [:displayName :val]}]]
-                                               (when-not (str/blank? displayName)
-                                                 [displayName val])))
-                                       (util/v "xx")
-                                       vec)}
-                           {:key point})
-
-                 ;; Link to origin id
-                 (when-let [{:keys [:path :numPoints :inserts :href]} (get point :x-point-metadata)]
+                 (d/h5 "Following resources responded to point info query:")
+                 (for [point @points
+                       :when (seq point)]
                    (d/div
-                     {:class "metadata"}
-                     (d/h5 "Source Tile Metadata")
+                     (d/h5 {:class "resource"} (:resource point) "@" (:server point))
                      (om/build w/key-val-table
-                               {:data [["Path" path]
-                                       ["Total Points" numPoints]
-                                       ["Points Inserted" (str inserts " (" (.toFixed (* 100 (/ inserts numPoints)) 1) "%)")]]})
-                     (d/a {:href   href
-                           :class  "source-metadata-link"
-                           :target "_blank"} "Additional Metadata Details"))
+                               {:data (->> point
+                                           (sort-by (comp :index second))
+                                           (keep (fn [[_ {:keys [:displayName :val]}]]
+                                                   (when-not (str/blank? displayName)
+                                                     [displayName val])))
+                                           (util/v "xx")
+                                           vec)}
+                               {:key point})
 
-                   #_(d/a {:href   (:href metadata)
-                           :class  "source-metadata-link"
-                           :target "_blank"} "Source Tile Metadata")))))))))))
+                     ;; Link to origin id
+                     (when-let [{:keys [:path :numPoints :inserts :href]} (get point :x-point-metadata)]
+                       (d/div
+                         {:class "metadata"}
+                         (d/h5 "Source Tile Metadata")
+                         (om/build w/key-val-table
+                                   {:data [["Path" path]
+                                           ["Total Points" numPoints]
+                                           ["Points Inserted" (str inserts " (" (.toFixed (* 100 (/ inserts numPoints)) 1) "%)")]]})
+                         (d/a {:href   href
+                               :class  "source-metadata-link"
+                               :target "_blank"} "Additional Metadata Details"))
+
+                       #_(d/a {:href   (:href metadata)
+                               :class  "source-metadata-link"
+                               :target "_blank"} "Source Tile Metadata")))))))))))))
 
 
 (defn have-frames-for-timeline? [loaded-resources frames]
