@@ -1167,6 +1167,8 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
     margin-top: 0px; }
   .plasio-ui .noUi-connect {
     background-color: RGB(0, 187, 215); }
+  .plasio-ui .noUi-target:disabled .noUi-connect {
+    background-color: red; }
   .plasio-ui .app-bar-container {
     position: absolute;
     top: 0;

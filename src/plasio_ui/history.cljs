@@ -23,6 +23,11 @@
    ;; Active filter
    [[:ro :filter] "filter" :string]
 
+   ;; EDL
+   [[:ro :edl?] "edl" :boolean]
+   [[:ro :edl-strength] "edls" :number]
+   [[:ro :edl-radius] "edlr" :number]
+
    ;; whether we have split limiting
    [[:ro :no-split-limiting] "nsl" :boolean]
 

@@ -57,6 +57,12 @@
     background-color: RGB(0, 187, 215);
   }
 
+  .noUi-target:disabled {
+    .noUi-connect {
+      background-color: red;
+    }
+  }
+
   .app-bar-container {
     position: absolute;
     top: 0;

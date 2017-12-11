@@ -53,6 +53,37 @@
                      :f       (fn [val]
                                 (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))})
 
+          ;; EDL configuration
+          ;;
+          (d/form
+            (i/input {:type      "checkbox"
+                      :label     "Eye Dome Lighting"
+                      :checked   (:edl? @ro)
+                      :on-change (fn []
+                                   (om/transact! plasio-state/ro #(update % :edl? not)))}))
+
+          (when (:edl? @ro)
+            (d/div
+              (om/build w/labeled-slider
+                        {:text      "EDL Strength"
+                         :disabled? (not (:edl? @ro))
+                         :min       0.1
+                         :max       2
+                         :start     (get @ro :edl-strength 1) :step 0.1
+                         :connect   "lower"
+                         :f         (fn [val]
+                                      (om/transact! plasio-state/ro #(assoc % :edl-strength val)))})
+
+              (om/build w/labeled-slider
+                        {:text      "EDL Radius"
+                         :disabled? (not (:edl? @ro))
+                         :min       1
+                         :max       5
+                         :start     (get @ro :edl-radius 1) :step 0.01
+                         :connect   "lower"
+                         :f         (fn [val]
+                                      (om/transact! plasio-state/ro #(assoc % :edl-radius val)))})))
+
           ;; point density loading
           
 
@@ -599,8 +630,12 @@
 
       ;; standard render options
       ;;
+      (println "-- -- ro:" ro)
       (.setRenderOptions r (js-obj
                              "circularPoints" (if (true? (:circular? ro)) 1 0)
+                             "edl" (true? (:edl? ro))
+                             "edlStrength" (if (:edl? ro) (:edl-strength ro 1.0) 1.0)
+                             "edlRadius" (if (:edl? ro) (:edl-radius ro 1.0) 1.0)
                              "colorBlendWeights" blending-contributions
                              "clampsLow" ramp-lows
                              "clampsHigh" ramp-highs
