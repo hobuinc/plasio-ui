@@ -13,7 +13,8 @@
             [plasio-ui.util :as util]
             cljsjs.gl-matrix
             [clojure.string :as s]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [goog.object :as gobject])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
@@ -419,6 +420,9 @@
   ["js/plasio-renderer.cljs.js"
    "js/plasio.js"])
 
+(def ^:private prod-mode-defines
+  {"PLASIO_WEB_WORKER_PATH" "js/plasio.webworker.js"})
+
 (def ^:private css-includes
   ["css/style.css"])
 
@@ -492,7 +496,15 @@
                 (if dev-mode?
                   css-includes
                   (map make-production-absolute css-includes)))
+        defines (into {}
+                      (for [[k v] prod-mode-defines]
+                        [k (make-production-absolute v)]))
+
         head (.-head js/document)]
+
+    ;; add all defines
+    (doseq [[k v] defines]
+      (gobject/set js/window k v))
 
     ;; add all styles
     (go
