@@ -421,7 +421,8 @@
    "js/plasio.js"])
 
 (def ^:private prod-mode-defines
-  {"PLASIO_WEB_WORKER_PATH" "js/plasio.webworker.js"})
+  {"PLASIO_WEB_WORKER_PATH" "js/plasio.webworker.js"
+   "PLASIO_COLOR_WORKER_PATH" "js/plasio.color.webworker.js"})
 
 (def ^:private css-includes
   ["css/style.css"])
@@ -496,9 +497,10 @@
                 (if dev-mode?
                   css-includes
                   (map make-production-absolute css-includes)))
-        defines (into {}
-                      (for [[k v] prod-mode-defines]
-                        [k (make-production-absolute v)]))
+        defines (when-not dev-mode?
+                  (into {}
+                        (for [[k v] prod-mode-defines]
+                          [k (make-production-absolute v)])))
 
         head (.-head js/document)]
 

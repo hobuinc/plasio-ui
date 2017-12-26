@@ -11,6 +11,7 @@ fi
 
 cp ../plasio.js/dist/plasio.js "$TARGET_DIR/lib/dist/"
 cp ../plasio.js/dist/plasio.webworker.js "$TARGET_DIR/lib/dist/"
+cp ../plasio.js/dist/plasio.color.webworker.js "$TARGET_DIR/lib/dist/"
 cp ../plasio.js/dist/laz-perf.asm.js "$TARGET_DIR/lib/dist/"
 cp ../plasio.js/dist/laz-perf.asm.js.mem "$TARGET_DIR/lib/dist/"
 cp ../plasio.js/dist/laz-perf.js "$TARGET_DIR/lib/dist/"

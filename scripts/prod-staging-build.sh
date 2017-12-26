@@ -24,6 +24,7 @@ cp -v $RESOURCES/filters.json $DEST/filters.json
 cp -v $RESOURCES/js/compiled/plasio_ui.js $DEST/plasio-ui.js
 cp -v $RESOURCES/lib/dist/plasio.js $DEST/js/plasio.js
 cp -v $RESOURCES/lib/dist/plasio.webworker.js $DEST/js/
+cp -v $RESOURCES/lib/dist/plasio.color.webworker.js $DEST/js/
 cp -v $RESOURCES/lib/dist/laz-perf.asm.js $DEST/js/
 cp -v $RESOURCES/lib/dist/laz-perf.asm.js.mem $DEST/js/
 cp -v $RESOURCES/lib/dist/laz-perf.js $DEST/js/
