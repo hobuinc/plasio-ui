@@ -248,7 +248,7 @@
                                       "resource" (if (sequential? resource) (into-array resource) resource)
                                       "brushes" (sources-array (:channels ro))
                                       "allowGreyhoundCredentials" allow-greyhound-creds?
-                                      "disableSplitLimiting" (:no-split-limiting ro)
+                                      "disableSplitLimiting" true #_(:no-split-limiting ro)
                                       "cameraChangeCallbackFn" (fn [eye target final? applying-state?]
                                                                  ;; when the state is final and we're not applying a state, make a history
                                                                  ;; record of this

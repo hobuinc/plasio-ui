@@ -158,13 +158,13 @@
   (defn render-histogram! [canvas histogram n x left right]
     (let [w (.-width canvas)
           h (.-height canvas)
-          items (->> histogram
-                     seq
-                     (sort-by (comp js/parseInt first)))
-          width-per-item (/ 200 (count items))
-          max-val (js/Math.log (apply max (vals histogram)))
+          keys (doto (js/Array.from (.keys histogram))
+                 (.sort (fn [a b] (- a b))))
+          width-per-item (/ 200 (.-size histogram))
+          max-val (js/Math.log (apply js/Math.max (js/Array.from (.values histogram))))
           l left
           r right]
+
       (set! (.-width in-mem) w)
       (set! (.-height in-mem) h)
 
@@ -182,19 +182,20 @@
 
 
           ;; draw all bars
-          (doall
-            (map-indexed
-              (fn [index [k v]]
-                (let [k (js/parseInt k)
-                      x (* index width-per-item)
-                      h (* 40 (/ (js/Math.log v) max-val))
+          (let [len (alength keys)]
+            (loop [index 0]
+              (when (< index len)
+                (let [k (aget keys index)
+                      x (js/Math.floor (* index width-per-item))
+                      h (* 40 (/ (js/Math.log (.get histogram k)) max-val))
                       y (- 50 h)]
+                  (js/console.log k x)
                   (if (and (>= k l) (<= k r))
                     (set! (.-fillStyle ctx) "#00BBD7")
                     (set! (.-fillStyle ctx) "#ccc"))
                   (.fillRect ctx
-                             x y width-per-item h)))
-              items))
+                             x y width-per-item h))
+                (recur (unchecked-inc-int index)))))
 
           ;; fancy lines closing in
           (let [y h]
@@ -220,11 +221,13 @@
         (.drawImage ctx in-mem 0 0)))))
 
 (defn- render-histogram-for-owner! [owner]
-  (let [histogram (om/get-props owner :histogram)
+  (let [hist (om/get-props owner :histogram)
+        histogram (:data hist)
         left (om/get-props owner :left)
         right (om/get-props owner :right)
         [n x] (om/get-props owner :range)]
-    (render-histogram! (om/get-node owner) histogram n x left right)))
+    (when histogram
+      (render-histogram! (om/get-node owner) histogram n x left right))))
 
 (defn base-histogram [{:keys [width height]} owner]
   (reify

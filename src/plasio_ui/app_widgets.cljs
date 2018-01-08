@@ -12,6 +12,7 @@
             [plasio-ui.history :as history]
             [goog.string :as gs]
             [goog.string.format]
+            [goog.object :as gobject]
             [clojure.string :as s]
             [plasio-ui.math :as math]
             [cljs.core.async :as async :refer [<!]]
@@ -545,31 +546,27 @@
         ;;
         (when-let [r (:renderer comps)]
           (.addStatsListener r "z" "z-collector"
-                             (fn [_ n]
-                               (let [hist (js->clj n)]
-                                 (when-not (empty? hist)
-                                   (let [hist (into {} (for [[k v] hist]
-                                                         [(js/parseInt k) v]))
-                                         nn (apply min (keys hist))
-                                         xx (apply max (keys hist))
-                                         hist (merge (util/zero-histogram nn xx 10)
-                                                     hist)]
-                                     ;; update the state of our renderer based on what we get from the histogram
-                                     (om/update! plasio-state/ro :zrange [nn xx])
-                                     (om/update! plasio-state/histogram hist))))))
+                             (fn [hist minmax]
+                               (let [n (gobject/get minmax "min")
+                                     x (gobject/get minmax "max")]
+                                 (when (< n x)
+                                   ;; update the state of our renderer based on what we get from the histogram
+                                   (om/update! plasio-state/ro :zrange [n x])
+                                   (om/transact! plasio-state/histogram
+                                                 #(-> %
+                                                      (assoc :data hist)
+                                                      (update :c (fnil inc 0))))))))
           (.addStatsListener r "intensity" "intensity-collector"
-                             (fn [_ n]
-                               (let [hist (js->clj n)]
-                                 (when-not (empty? hist)
-                                   (let [hist (into {} (for [[k v] hist]
-                                                         [(js/parseInt k) v]))
-                                         nn (apply min (keys hist))
-                                         xx (apply max (keys hist))
-                                         hist (merge (util/zero-histogram nn xx 10)
-                                                     hist)]
-                                     ;; update the state of our renderer based on what we get from the histogram
-                                     (om/update! plasio-state/ro :irange [nn xx])
-                                     (om/update! plasio-state/intensity-histogram hist))))))
+                             (fn [hist minmax]
+                               (let [n (gobject/get minmax "min")
+                                     x (gobject/get minmax "max")]
+                                 (when (< n x)
+                                   ;; update the state of our renderer based on what we get from the histogram
+                                   (om/update! plasio-state/ro :irange [n x])
+                                   (om/transact! plasio-state/intensity-histogram
+                                                 #(-> %
+                                                      (assoc :data hist)
+                                                      (update :c (fnil inc 0))))))))
           (swap! state assoc :cleanup-fn
                  (fn []
                    (.removeStatsListener r "z" "z-collector")
@@ -630,7 +627,6 @@
 
       ;; standard render options
       ;;
-      (println "-- -- ro:" ro)
       (.setRenderOptions r (js-obj
                              "circularPoints" (if (true? (:circular? ro)) 1 0)
                              "edl" (true? (:edl? ro))
