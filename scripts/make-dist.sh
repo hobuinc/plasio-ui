@@ -76,7 +76,16 @@ mkdir -p $OUT_DIR/img
 ./node_modules/.bin/node-sass --output-style compressed "$TEMP_DIR/scss/style.scss" > "$OUT_DIR/css/style.css"
 cp "$TEMP_DIR/resources/public/js/compiled/plasio_ui.js" "$OUT_DIR/plasio-ui.js"
 cp "$TEMP_DIR/resources/public/js/plasio-renderer.cljs.js" "$OUT_DIR/js/plasio-renderer.cljs.js"
+
 cp "$TEMP_DIR/resources/public/lib/dist/plasio.js" "$OUT_DIR/js/plasio.js"
+cp "$TEMP_DIR/resources/public/lib/dist/plasio.webworker.js" "$OUT_DIR/js/plasio.webworker.js"
+cp "$TEMP_DIR/resources/public/lib/dist/plasio.color.webworker.js" "$OUT_DIR/js/plasio.color.webworker.js"
+
+cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.wasm" "$OUT_DIR/js/laz-perf.wasm"
+cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.js" "$OUT_DIR/js/laz-perf.js"
+cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.asm.js" "$OUT_DIR/js/laz-perf.asm.js"
+cp "$TEMP_DIR/resources/public/lib/dist/laz-perf.asm.js.mem" "$OUT_DIR/js/laz-perf.asm.js.mem"
+
 cp "$TEMP_DIR/resources/public/img/entwine.png" "$OUT_DIR/img/entwine.png"
 
 
