@@ -9,7 +9,8 @@
             [cljs.core.async :refer [<!]]
             [cljs.pprint :as pp]
             [clojure.string :as str]
-            [plasio-ui.math :as math])
+            [plasio-ui.math :as math]
+            [clojure.set :as set])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 
@@ -239,6 +240,18 @@
 
 (declare update-current-point-info!)
 
+(defn derive-color-channels
+  "Given a collection of loaded resources, determines which additional color channels
+  should be shown"
+  [resources]
+  (let [addon-field-sets (mapv (fn [{:keys [:schema]}]
+                                 (set (filter :addon schema)))
+                               resources)]
+
+    (vec (for [{n :name} (apply set/union addon-field-sets)]
+           [(str "local://field-color?field=" n)
+            (str "Field " n)]))))
+
 (def ^:private z-vec (array 0 0 -1))
 
 (defn initialize-for-resource<! [e {:keys [server resource ro render-hints init-params]}]
@@ -372,6 +385,11 @@
         (let [resources (js->clj (.getLoadedResources point-cloud-viewer)
                                  :keywordize-keys true)]
           (om/update! loaded-resources resources))
+
+        ;; if we've been asked to derive fields from color channels, then create a channels array based on
+        ;; additional fields
+        (when (:deriveColorChannelsFromAddonFields init-params)
+          (om/transact! root #(assoc-in % [:init-params :derived-color-channels] (derive-color-channels @loaded-resources))))
 
         ;; return components we have here
         {:target-element     e

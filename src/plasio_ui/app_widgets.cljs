@@ -992,8 +992,10 @@
             ibounds (or (:irange @ro) [0 255])
 
             schema-info (util/schema->color-info (:schema @as))
-            color-sources (get-in @as [:init-params :colorSources])]
+            color-sources (get-in @as [:init-params :colorSources])
+            derived-color-sources (get-in @as [:init-params :derived-color-channels])
 
+            all-color-sources (vec (concat color-sources derived-color-sources))]
         (d/div
          {:class "channels"}
          (let [ac (util/adjust-channels (get @ro :channels))]
@@ -1008,7 +1010,7 @@
                                         :histogram @histogram
                                         :intensity-histogram @intensity-histogram
 
-                                        :all-sources color-sources}))))))))
+                                        :all-sources all-color-sources}))))))))
 
 (let [id :point-info]
   (defcomponentk point-info-pane [owner]

@@ -566,6 +566,10 @@
     flex-direction: row;
     box-shadow: rgba(0,0,0,0.5) 2px 0 2px;
 
+    &.full-height {
+      top: 0 !important;
+    }
+
     .toolbar {
       margin-top: 0;
       //background-color: RGBA(0, 187, 215, 1);

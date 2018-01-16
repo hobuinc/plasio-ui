@@ -94,10 +94,11 @@
       (d/div {:class "open-panes"}
              (om/build-all w/floating-panel ps {:key :id})))))
 
-(defcomponentk docked-panes [[:data panes] owner]
+(defcomponentk docked-panes [[:data panes full-height?] owner]
   (render [_]
     (when-let [ps (coerce-panes panes)]
-      (om/build w/docked-widgets {:children ps}))))
+      (om/build w/docked-widgets {:children ps
+                                  :full-height? full-height?}))))
 
 (defn- strip-http-prefix [s]
   (if-let [m (re-matches #"^https?://(.*)" s)]
@@ -178,6 +179,7 @@
           dp (-> @ui :docked-panes set)
 
           panes-to-hide (set (map keyword (:hiddenPanes settings)))]
+      (println "settings:" settings)
       (d/div
         {:class     "plasio-ui"}
         ;; setup render target
@@ -198,7 +200,8 @@
 
         ;; render all docked panes
         (when (:showPanels settings)
-          (om/build docked-panes {:panes (vec (remove panes-to-hide all-docked-panes))}))
+          (om/build docked-panes {:panes (vec (remove panes-to-hide all-docked-panes))
+                                  :full-height? (not (:showApplicationBar settings))}))
 
         (om/build aw/logo {})
 

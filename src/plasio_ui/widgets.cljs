@@ -298,7 +298,7 @@
                            items) {:key :id}))))
 
 
-(defcomponentk docked-widgets [[:data children] owner state]
+(defcomponentk docked-widgets [[:data children full-height?] owner state]
   (render [_]
     (let [ui-options (om/observe owner plasio-state/ui-local-options)
           collapsed? (:docker-collapsed? @ui-options)
@@ -306,6 +306,7 @@
                            :channels)]
       (d/div
         {:class (str "docker-widget"
+                     (when full-height? " full-height")
                      (if collapsed? " off" " on"))}
         (d/a {:class    "toggle-docker"
               :href     "javascript:"
