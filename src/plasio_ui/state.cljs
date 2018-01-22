@@ -250,7 +250,7 @@
 
     (vec (for [{n :name} (apply set/union addon-field-sets)]
            [(str "local://field-color?field=" n)
-            (str "Field " n)]))))
+            n]))))
 
 (def ^:private z-vec (array 0 0 -1))
 
@@ -500,10 +500,10 @@
          point []
          s schema]
     (if (seq s)
-      (let [{:keys [name size type]} (first s)]
+      (let [{:keys [name size type addon]} (first s)]
         (recur
          (+ offset size)
-         (conj point [name size (decode-val type size dv offset)])
+         (conj point [name size (decode-val type size dv offset) addon])
          (rest s)))
       point)))
 
@@ -524,7 +524,8 @@
 
             ;; we only query non-addon fields
             ;;
-            schema (vec (remove :addon (:schema resource-info)))
+            schema (:schema resource-info)
+
             delta 0.1                                     ; this probably needs to be something based on the data range
             bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
                     (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
@@ -537,8 +538,8 @@
                      "compress=false")
             res (<! (util/binary-http-get< url {:with-credentials? allowGreyhoundCredentials}))
             point (when res (first (decode-points schema res)))
-            point (into {} (map-indexed (fn [index [name _ val]]
-                                          [(keyword (str/lower-case name)) {:displayName name :val val :index index}])
+            point (into {} (map-indexed (fn [index [name _ val addon?]]
+                                          [(keyword (str/lower-case name)) {:displayName name :val val :index index :addon? addon?}])
                                         point))]
         ;; when we have a point load up its info
         (when (seq point)

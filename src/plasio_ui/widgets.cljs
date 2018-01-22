@@ -319,8 +319,7 @@
               activate-fn #(plasio-state/set-active-panel! %)]
           (om/build docked-widget-toolbar {:items       actions
                                            :active      active-panel
-                                           :activate-fn activate-fn
-                                           }))
+                                           :activate-fn activate-fn}))
 
         ;; now draw the active panel
         (d/div {:class "active-pane"}

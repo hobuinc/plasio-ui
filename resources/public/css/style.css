@@ -1612,6 +1612,10 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
       border-radius: 3px;
       padding: 10px;
       margin-bottom: 3px; }
+      .plasio-ui .channels .channel .source .dropdown-menu li {
+        border-bottom: 1px dashed #dedede; }
+        .plasio-ui .channels .channel .source .dropdown-menu li:last-child {
+          border-bottom: none; }
       .plasio-ui .channels .channel .controls {
         text-transform: uppercase;
         margin-top: 5px; }
@@ -1635,6 +1639,15 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
         font-weight: 700;
         color: #666;
         padding: 5px; }
+      .plasio-ui .channels .channel .addon:after {
+        display: inline-block;
+        content: 'addon';
+        color: #0FBBD5;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        margin-left: 5px;
+        position: relative;
+        top: -1px; }
   .plasio-ui .local-settings .form-group {
     margin: 0px; }
   .plasio-ui .local-settings .checkbox {
@@ -1852,6 +1865,15 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
       text-transform: uppercase;
       font-size: 0.9em;
       color: #999999; }
+    .plasio-ui .point-info-container .addon:after {
+      display: inline-block;
+      content: 'addon';
+      color: #0FBBD5;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      margin-left: 5px;
+      position: relative;
+      top: -1px; }
   .plasio-ui .animation-container {
     display: -webkit-box;
     display: -webkit-flex;

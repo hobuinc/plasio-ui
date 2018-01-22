@@ -848,17 +848,25 @@
     (let [all-options (->> all
                            seq
                            (cons [nil "None"]))
-          all-as-map (into {} (for [[k v] all]
-                                [(js/decodeURIComponent k) v]))]
+          all-as-map (into {} (for [[k v addon?] all]
+                                [(js/decodeURIComponent k) {:name v
+                                                            :addon? addon?}]))]
 
       (apply b/dropdown {:bs-size "small"
                          ;; the selected may come down as an un-encoded url
-                         :title   (if (nil? selected) "None" (or (get all-as-map (js/decodeURIComponent selected))))}
-             (for [[id name] all-options]
+                         :title   (if (nil? selected)
+                                    "None"
+                                    (if-let [info (get all-as-map (js/decodeURIComponent selected))]
+                                      (d/span {:class (when (:addon? info) "addon")}
+                                              (:name info))
+                                      "Unknown"))}
+             (for [[id name addon?] all-options]
                (b/menu-item {:key       id
                              :on-select (fn []
                                           (f-changed id))}
-                            name))))))
+                            (d/span
+                              {:class (when addon? "addon")}
+                              name)))))))
 
 
 (defn- source->needed-tools [source]
@@ -995,7 +1003,10 @@
             color-sources (get-in @as [:init-params :colorSources])
             derived-color-sources (get-in @as [:init-params :derived-color-channels])
 
-            all-color-sources (vec (concat color-sources derived-color-sources))]
+            all-color-sources (vec (concat color-sources
+                                           (map (fn [[a b]]
+                                                  [a b true])
+                                                derived-color-sources)))]
         (d/div
          {:class "channels"}
          (let [ac (util/adjust-channels (get @ro :channels))]
@@ -1037,10 +1048,9 @@
                      (om/build w/key-val-table
                                {:data (->> point
                                            (sort-by (comp :index second))
-                                           (keep (fn [[_ {:keys [:displayName :val]}]]
+                                           (keep (fn [[_ {:keys [:displayName :val :addon?]}]]
                                                    (when-not (str/blank? displayName)
-                                                     [displayName val])))
-                                           (util/v "xx")
+                                                     [(d/span {:class (when addon? "addon")} displayName) val])))
                                            vec)}
                                {:key point})
 
