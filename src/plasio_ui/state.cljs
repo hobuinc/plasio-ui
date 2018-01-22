@@ -522,7 +522,9 @@
       (let [geotransform (.getGeoTransform point-cloud-viewer)
             geo-space-loc (.transform geotransform (apply array loc) "render" "geo")
 
-            schema (:schema resource-info)
+            ;; we only query non-addon fields
+            ;;
+            schema (vec (remove :addon (:schema resource-info)))
             delta 0.1                                     ; this probably needs to be something based on the data range
             bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
                     (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
