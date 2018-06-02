@@ -519,6 +519,9 @@
 
 (defn point-info-for-resource< [point-cloud-viewer resource-info allowGreyhoundCredentials loc]
   (go
+    (if (:eptRootUrl resource-info)
+      (merge (select-keys resource-info [:eptRootUrl])
+             {:error ::ept-not-supported})
       (let [geotransform (.getGeoTransform point-cloud-viewer)
             geo-space-loc (.transform geotransform (apply array loc) "render" "geo")
 
@@ -526,7 +529,7 @@
             ;;
             schema (:schema resource-info)
 
-            delta 0.1                                     ; this probably needs to be something based on the data range
+            delta 0.1                                       ; this probably needs to be something based on the data range
             bounds [(- (aget geo-space-loc 0) delta) (- (aget geo-space-loc 1) delta) (- (aget geo-space-loc 2) delta)
                     (+ (aget geo-space-loc 0) delta) (+ (aget geo-space-loc 1) delta) (+ (aget geo-space-loc 2) delta)]
 
@@ -561,7 +564,7 @@
                                                                 :inserts   (-> json :pointStats :inserts)})
                                 point))
                             point)]
-            (merge point (select-keys resource-info [:server :resource])))))))
+            (merge point (select-keys resource-info [:server :resource]))))))))
 
 (defn update-current-point-info! [loc]
   (when-let [point-cloud-viewer (:point-cloud-viewer @comps)]
@@ -594,9 +597,11 @@
 
 (defn load-available-resources<! [specified-resources]
   (go
-    (let [data (if (seq specified-resources)
+    (let [_ (println "Fetching resources from resources.json, pre-specified resources:" specified-resources)
+          data (if (seq specified-resources)
                  specified-resources
                  (-> "resources.json" http/get <! :body))
+          _ (println "Resources payload is:" data)
           {:keys [:servers :resources]} data
           server-map (into {} (for [{:keys [:name :url]} (:items servers)
                                     :when (not (str/blank? name))]

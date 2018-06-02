@@ -127,7 +127,9 @@
       (str/join ", "
                 (map (fn [[server resources]]
                        (if (= 1 (count resources))
-                         (str (-> resources first :name) "@" server)
+                         (if server
+                           (str (-> resources first :name) "@" server)
+                           (-> resources first :name))
                          (str "(" (join-resource-list (map :name resources)) ")@" server)))
                      grouped-resources))
       (when (pos? left-resources)
@@ -140,15 +142,19 @@
     (and (some? (seq resource-info))
          (sequential? (:name resource-info)))
     (let [normalized-names (map (fn [n]
-                                  (let [[res-name res-server] (split-resouce-name n)]
-                                    {:name res-name
-                                     :server (if (str/blank? res-server) (:server resource-info) res-server)}))
+                                  (if (util/ept-resource? n)
+                                    {:name (str (util/ept-url->name n) "[EPT]")}
+                                    (let [[res-name res-server] (split-resouce-name n)]
+                                      {:name   res-name
+                                       :server (if (str/blank? res-server) (:server resource-info) res-server)})))
                                 (:name resource-info))
           grouped (group-by :server normalized-names)]
       (join-multiple-resources grouped))
 
     (some? (seq resource-info))
-    (str (:name resource-info) "@" (:server resource-info))
+    (if (util/ept-resource? (:name resource-info))
+      (str (util/ept-url->name (:name resource-info)) " [EPT]")
+      (str (:name resource-info) "@" (:server resource-info)))
 
     (and (string? (:resource settings))
          (string? (:server settings)))
@@ -164,7 +170,6 @@
                                 (:resource settings))
           grouped (group-by :server normalized-names)]
       (join-multiple-resources grouped))
-
 
     :else "--"))
 
@@ -244,6 +249,7 @@
   (go
     (let [;; figure out what all resources we know of
           all-resources (<! (plasio-state/load-available-resources<! (:resources options)))
+          _ (println "Available resources:" all-resources)
 
           ;; while we are at it load other async resources as well.
           _ (<! (plasio-state/load-available-filters<! (:filters options)))

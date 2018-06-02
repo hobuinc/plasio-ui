@@ -53,8 +53,21 @@
 (defn info-url [server resource]
   (str server "resource/" resource "/info"))
 
+(defn- type->size
+  "Given a type of schema field, e.g. int16, return its size"
+  [t]
+  (case (str/lower-case (or t ""))
+    ("int16" "uint16") 2
+    ("int8" "uint8") 1
+    ("int32" "uint32") 4
+    "float" 4
+    "double" 8
+    0))
+
 (defn schema->point-size [schema]
-  (apply + (map :size schema)))
+  (if (-> schema first (contains? :size))
+    (apply + (map :size schema))
+    (apply + (map #(type->size (:type %)) schema))))
 
 (defn schema->color-info [schema]
   (let [dims (set (map :name schema))]
@@ -212,3 +225,13 @@
              (max mx (bounds 3)) (max my (bounds 4)) (max mz (bounds 5))])
           (-> resources first :bounds)
           (rest resources)))
+
+(defn ept-resource?
+  "Given a resource string, determine if its an EPT resource"
+  [r]
+  (some? (re-matches #"^epts?://.*" r)))
+
+(defn ept-url->name
+  "Takes a URL and returns its last part"
+  [url]
+  (-> (str/split url #"/") last))

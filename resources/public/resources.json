@@ -90,6 +90,13 @@
         }
       },
       {
+        "name": "epts://s3.amazonaws.com/ept-data/autzen-wbm",
+        "displayName": "Autzen [EPT]",
+        "params": {
+          "c0s": "local://color"
+        }
+      },
+      {
         "name": "dublin",
         "displayName": "City of Dublin",
         "params": {
@@ -147,16 +154,23 @@
         }
       },
       {
-        "name": "nc-z",
-        "displayName": "State of North Carolina",
+        "name": "nyc-z",
+        "displayName": "New York City",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "nyc-z",
-        "displayName": "New York City",
+        "name": "epts://s3.amazonaws.com/ept-data/nyc-wbm",
+        "displayName": "New York City [EPT]",
         "default": true,
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
+      },
+      {
+        "name": "nc-z",
+        "displayName": "State of North Carolina",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
@@ -171,6 +185,13 @@
       {
         "name": "red-rocks",
         "displayName": "Red Rocks Amphitheatre",
+        "params": {
+          "c0s": "local://color"
+        }
+      },
+      {
+        "name": "epts://s3.amazonaws.com/ept-data/red-rocks-wbm",
+        "displayName": "Red Rocks Amphitheatre [EPT]",
         "params": {
           "c0s": "local://color"
         }

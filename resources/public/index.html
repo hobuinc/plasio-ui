@@ -88,7 +88,7 @@
 
          defaultColorChannelIndex: 2,
          deriveColorChannelsFromAddonFields: true,
-         showApplicationBar: false,
+         showApplicationBar: true,
          additionalInformation: "<p>What <a href='http://google.com'>Google</a></p>",
 
          resources: {
@@ -113,6 +113,11 @@
                      }
                  },
                  {
+                     "name": "epts://s3.amazonaws.com/ept-data/autzen-wbm",
+                     "displayName": "New York City",
+                     "default": true
+                 },
+                 {
                      "displayName": "AHN & DK",
                      "server": "data.greyhound.io",
                      "name": ["ahn-z", "dk-z"],
@@ -123,9 +128,8 @@
                  },
                  {
                      "server": "data.greyhound.io",
-                     "name": "autzen",
+                     "name": ["autzen", "epts://s3.amazonaws.com/ept-data/autzen-wbm"],
                      "displayName": "Autzen",
-                     "default": true,
                      "params": {
                          "c0s": "local://color"
                      }

@@ -205,7 +205,6 @@
                                      (/ size-bytes (get scales mem-type))
                                      mem-type)]))
 
-
 (let [id :information]
   (defcomponentk information-pane [owner]
     (render [_]
@@ -216,16 +215,31 @@
             (let [schema (:schema resource-info)
                   init-params (:init-params @root)
                   [points size] (index-size resource-info)
-                  col-info (util/schema->color-info schema)]
+                  col-info (util/schema->color-info schema)
+                  ept? (some? (:eptRootUrl resource-info))]
               (d/div
                 {:key (str (:resource resource-info) "@" (:server resource-info))}
                 (d/h4 (:resource resource-info))
+                (println resource-info)
                 (om/build w/key-val-table
-                          {:data (->> [["Server" (:server resource-info)]
-                                       ["Resource" (:resource resource-info)]
+                          {:data (->> [(when-not ept? ["Server" (:server resource-info)])
+                                       ["Resource" (if ept?
+                                                     (util/ept-url->name (:eptRootUrl resource-info))
+                                                     (:resource resource-info))]
+                                       ["Resource Type" (if ept? "EPT" "GREYHOUND")]
+                                       (when ept?
+                                         ["Data Type [EPT]" (:dataType resource-info)])
+                                       (when ept?
+                                         ["Hierarchy Type [EPT]" (:hierarchyType resource-info)])
+                                       (when ept?
+                                         ["Ticks [EPT]" (:ticks resource-info)])
+
                                        ["Point Cloud Info"
-                                        (d/a {:href   (util/join-url-parts
-                                                        (js/Plasio.Util.pickOne (:server resource-info)) "resource" (:resource resource-info) "info")
+                                        (d/a {:href   (if ept?
+                                                        (util/join-url-parts (:eptRootUrl resource-info)
+                                                                             "entwine.json")
+                                                        (util/join-url-parts
+                                                          (js/Plasio.Util.pickOne (:server resource-info)) "resource" (:resource resource-info) "info"))
                                               :target "_blank"}
                                              "Click here")]
 
@@ -1044,15 +1058,20 @@
                  (for [point @points
                        :when (seq point)]
                    (d/div
-                     (d/h5 {:class "resource"} (:resource point) "@" (:server point))
-                     (om/build w/key-val-table
-                               {:data (->> point
-                                           (sort-by (comp :index second))
-                                           (keep (fn [[_ {:keys [:displayName :val :addon?]}]]
-                                                   (when-not (str/blank? displayName)
-                                                     [(d/span {:class (when addon? "addon")} displayName) val])))
-                                           vec)}
-                               {:key point})
+                     (d/h5 {:class "resource"}
+                           (if (contains? point :eptRootUrl)
+                             (str (util/ept-url->name (:eptRootUrl point)) " [EPT]")
+                             (str (:resource point) "@" (:server point))))
+                     (if (contains? point :eptRootUrl)
+                       (d/p {:class "text-danger"} "Point information is not supported for EPT resources.")
+                       (om/build w/key-val-table
+                                 {:data (->> point
+                                             (sort-by (comp :index second))
+                                             (keep (fn [[_ {:keys [:displayName :val :addon?]}]]
+                                                     (when-not (str/blank? displayName)
+                                                       [(d/span {:class (when addon? "addon")} displayName) val])))
+                                             vec)}
+                                 {:key point}))
 
                      ;; Link to origin id
                      (when-let [{:keys [:path :numPoints :inserts :href]} (get point :x-point-metadata)]
