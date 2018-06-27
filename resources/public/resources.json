@@ -13,141 +13,21 @@
     },
     "items": [
       {
-        "displayName": "AHN & DK",
-        "name": ["ahn-z", "dk-z"],
-        "params": {
-          "c0s": "local://color"
-        }
-      },
-      {
-        "displayName": "IA & MN",
-        "name": ["iowa-z", "mn-z"],
-        "params": {
-          "c0s": "local://color"
-        }
-      },
-      {
-        "server": "cache.greyhound.io",
-        "name": [
-          "helheim/2016/0504_000253",
-          "helheim/2016/0527_180709",
-          "helheim/2016/0528_001113",
-          "helheim/2016/0528_180509",
-          "helheim/2016/0604_180222",
-          "helheim/2016/0605_000216",
-          "helheim/2016/0607_000522",
-          "helheim/2016/0607_120218",
-          "helheim/2016/0608_000217"
-        ],
-        "displayName": "Helheim",
-        "params": {
-          "c0s": "local://color"
-        },
-        "frames": [
-          {
-            "resource": "helheim/2016/0504_000253",
-            "ts": "2017-05-27T00:02:53Z"
-          },
-          {
-            "resource": "helheim/2016/0527_180709",
-            "ts": "2017-05-27T18:07:09Z"
-          },
-          {
-            "resource": "helheim/2016/0528_001113",
-            "ts": "2017-05-28T00:11:13Z"
-          },
-          {
-            "resource": "helheim/2016/0528_180509",
-            "ts": "2017-05-28T18:05:09Z"
-          },
-          {
-            "resource": "helheim/2016/0604_180222",
-            "ts": "2017-06-04T18:02:22Z"
-          },
-          {
-            "resource": "helheim/2016/0605_000216",
-            "ts": "2017-06-05T00:02:16Z"
-          },
-          {
-            "resource": "helheim/2016/0607_000522",
-            "ts": "2017-05-27T00:05:22Z"
-          },
-          {
-            "resource": "helheim/2016/0607_120218",
-            "ts": "2017-06-07T12:02:18Z"
-          },
-          {
-            "resource": "helheim/2016/0608_000217",
-            "ts": "2017-06-08T00:02:17Z"
-          }
-        ]
-      },
-      {
-        "name": "autzen",
-        "displayName": "Autzen",
-        "params": {
-          "c0s": "local://color"
-        }
-      },
-      {
-        "name": "epts://s3.amazonaws.com/ept-data/autzen-wbm",
-        "displayName": "Autzen [EPT]",
-        "params": {
-          "c0s": "local://color"
-        }
-      },
-      {
-        "name": "dublin",
-        "displayName": "City of Dublin",
-        "params": {
-          "c0s": "local://ramp?field=Z&start=#169B62&end=#FFFFFF",
-          "c0r": "-130,-80"
-        }
-      },
-      {
-        "name": "half-dome",
+        "name": "ept://na.entwine.io/half-dome",
         "displayName": "Half Dome",
         "params": {
           "c0s": "local://color"
         }
       },
       {
-        "name": "iowa-z",
-        "displayName": "State of Iowa",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "iowa-bridge",
-        "displayName": "University Avenue in Cedar Falls",
-        "params": {
-          "c0s": "local://ramp?field=Intensity"
-        }
-      },
-      {
-        "name": "iowa-city-z",
-        "displayName": "City of Iowa City",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "lake-isabella-z",
+        "name": "ept://na.entwine.io/isabella",
         "displayName": "Lake Isabella",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "lone-star",
-        "displayName": "Lone Star Geyser",
-        "params": {
-          "c0s": "local://ramp?field=Intensity"
-        }
-      },
-      {
-        "name": "vanuatu-village",
+        "name": "ept://na.entwine.io/nepal",
         "displayName": "Vanuatu Village, Nepal",
         "params": {
           "c0s": "local://color"
@@ -161,50 +41,22 @@
         }
       },
       {
-        "name": "nyc-z",
+        "name": "ept://na.entwine.io/nyc",
         "displayName": "New York City",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "epts://s3.amazonaws.com/ept-data/nyc-wbm",
-        "displayName": "New York City [EPT]",
         "default": true,
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
         }
       },
       {
-        "name": "nc-z",
-        "displayName": "State of North Carolina",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "nz-z",
-        "displayName": "New Zealand",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "red-rocks",
+        "name": "ept://na.entwine.io/red-rocks",
         "displayName": "Red Rocks Amphitheatre",
         "params": {
           "c0s": "local://color"
         }
       },
       {
-        "name": "epts://s3.amazonaws.com/ept-data/red-rocks-wbm",
-        "displayName": "Red Rocks Amphitheatre [EPT]",
-        "params": {
-          "c0s": "local://color"
-        }
-      },
-      {
-        "name": "sncf-z",
+        "name": "ept://na.entwine.io/sncf",
         "displayName": "SNCF Railway",
         "params": {
           "c0s": "local://color"
@@ -212,57 +64,48 @@
         "credits": "https://ressources.data.sncf.com/explore/dataset/nuage-points-3d/"
       },
       {
-        "name": "space-shuttle",
-        "displayName": "Space Shuttle Discovery",
-        "params": {
-          "c0s": "local://ramp?field=Intensity"
-        }
-      },
-      {
-        "name": "st-helens",
+        "name": "ept://na.entwine.io/st-helens",
         "displayName": "St. Helens",
         "params": {
           "c0s": "local://color"
         }
       },
       {
-        "name": "ahn-z",
-        "displayName": "Netherlands",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "mn-z",
-        "displayName": "State of Minnesota",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "st-paul-z",
-        "displayName": "City of St. Paul",
-        "params": {
-          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
-        }
-      },
-      {
-        "name": "dk-z",
+        "name": "ept://na.entwine.io/dk",
         "displayName": "Denmark",
         "params": {
           "c0s": "local://color"
         }
       },
       {
-        "name": "dc",
+        "name": "ept://na.entwine.io/dc",
         "displayName": "Washington, D.C.",
         "params": {
           "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg",
           "nsl": "1"
         }
+      },
+      {
+        "name": "ept://na.entwine.io/ahn",
+        "displayName": "Netherlands",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
+      },
+      {
+        "name": "ept://na.entwine.io/mn",
+        "displayName": "Minnesota",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
+      },
+      {
+        "name": "ept://na.entwine.io/nz",
+        "displayName": "New Zealand",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
       }
     ]
   }
 }
-
-
