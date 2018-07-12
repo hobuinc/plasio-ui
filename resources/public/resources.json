@@ -63,6 +63,13 @@
         }
       },
       {
+        "name": "ept://na.entwine.io/ky",
+        "displayName": "Kentucky",
+        "params": {
+          "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+        }
+      },
+      {
         "name": [
           "ept://na.entwine.io/kilauea/06-2018",
           "ept://na.entwine.io/kilauea/07-11-2018-helipod",
