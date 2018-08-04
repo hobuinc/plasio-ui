@@ -609,11 +609,7 @@
       height: 32px;
       text-align: center;
       line-height: 32px;
-    }
-
-    .toolbar-item .tooltip {
-      display: none;
-      font-family: 'Lato', sans-serif;
+      transition: background-color 0.1s;
     }
 
     .toolbar .current-toolbar-item {
@@ -629,10 +625,6 @@
     .toolbar-item:hover {
       background-color: RGBA(0, 187, 215, 1);
       color: white;
-    }
-
-    .toolbar-item:hover .tooltip {
-      display: inherit;
     }
 
     &.off {
@@ -652,6 +644,18 @@
 
       table {
         font-size: 1em;
+      }
+
+      .form-check {
+        @include flexbox();
+        @include flex-direction(row);
+        @include align-items(center);
+
+        padding: 0;
+
+        label {
+          @include flex();
+        }
       }
     }
   }

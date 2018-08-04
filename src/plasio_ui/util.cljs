@@ -235,3 +235,23 @@
   "Takes a URL and returns its last part"
   [url]
   (-> (str/split url #"/") last))
+
+(defn class-list [& classes]
+  (str/join " "
+            (->> classes
+                 (filter string?)
+                 (remove str/blank?))))
+
+(defn js-map-min-max-keys
+  "Given a JS Map object, return the minmax of key values"
+  [m]
+  (let [all-keys (.keys m)]
+    (loop [nn js/Number.MAX_VALUE
+           xx js/Number.MIN_VALUE
+           it (.next all-keys)]
+      (if (.-done it)
+        [nn xx]
+        (recur
+          (min nn (.-value it))
+          (max xx (.-value it))
+          (.next all-keys))))))

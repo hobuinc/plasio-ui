@@ -2,10 +2,6 @@
   (:require [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
             [om-tools.dom :as d]
-            [om-bootstrap.input :as i]
-            [om-bootstrap.button :as b]
-            [om-bootstrap.random :as r]
-            [om-bootstrap.nav :as n]
             [plasio-ui.config :as config]
             [plasio-ui.state :as plasio-state]
             [plasio-ui.widgets :as w]
@@ -28,62 +24,67 @@
       (let [ro (om/observe owner plasio-state/ro)]
         (d/div
           ;; checkbox for circular points
-          (d/form
-            (i/input {:type      "checkbox"
-                      :label     "Circular Points?"
-                      :checked   (:circular? @ro)
-                      :on-change (fn [] (om/transact! plasio-state/ro #(update % :circular? not)))}))
+          (d/div
+            {:class "mb-4"}
+            (d/form
+              {:class "mb-2"}
+              (w/input {:type      "checkbox"
+                        :label     "Circular Points?"
+                        :checked   (:circular? @ro)
+                        :on-change (fn [] (om/transact! plasio-state/ro #(update % :circular? not)))}))
 
-          ;; slider for point size
-          (om/build w/labeled-slider
-                    {:text    "Point Size"
-                     :min     1
-                     :max 10
-                     :start (get @ro :point-size 2) :step 1
-                     :connect "lower"
-                     :f       (fn [val]
-                                (om/transact! plasio-state/ro #(assoc % :point-size val)))})
+            ;; slider for point size
+            (om/build w/labeled-slider
+                      {:text    "Point Size"
+                       :min     1
+                       :max     10
+                       :start   (get @ro :point-size 2) :step 1
+                       :connect "lower"
+                       :f       (fn [val]
+                                  (om/transact! plasio-state/ro #(assoc % :point-size val)))})
 
-          ;; slider for point size attentuation
-          (om/build w/labeled-slider
-                    {:text    "Point Size Attenuation.  Points closer to you are bloated up."
-                     :min     0.0
-                     :max 0.5
-                     :start (get @ro :point-size-attenuation 0.1) :step 0.01
-                     :connect "lower"
-                     :f       (fn [val]
-                                (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))})
+            ;; slider for point size attentuation
+            (om/build w/labeled-slider
+                      {:text    "Point Size Attenuation.  Points closer to you are bloated up."
+                       :min     0.0
+                       :max     0.5
+                       :start   (get @ro :point-size-attenuation 0.1) :step 0.01
+                       :connect "lower"
+                       :f       (fn [val]
+                                  (om/transact! plasio-state/ro #(assoc % :point-size-attenuation val)))}))
 
           ;; EDL configuration
           ;;
-          (d/form
-            (i/input {:type      "checkbox"
-                      :label     "Eye Dome Lighting"
-                      :checked   (:edl? @ro)
-                      :on-change (fn []
-                                   (om/transact! plasio-state/ro #(update % :edl? not)))}))
+          (d/div
+            (d/form
+              {:class "mb-2"}
+              (w/input {:type      "checkbox"
+                        :label     "Eye Dome Lighting"
+                        :checked   (:edl? @ro)
+                        :on-change (fn []
+                                     (om/transact! plasio-state/ro #(update % :edl? not)))}))
 
-          (when (:edl? @ro)
-            (d/div
-              (om/build w/labeled-slider
-                        {:text      "EDL Strength"
-                         :disabled? (not (:edl? @ro))
-                         :min       0.1
-                         :max       2
-                         :start     (get @ro :edl-strength 1) :step 0.1
-                         :connect   "lower"
-                         :f         (fn [val]
-                                      (om/transact! plasio-state/ro #(assoc % :edl-strength val)))})
+            (when (:edl? @ro)
+              (d/div
+                (om/build w/labeled-slider
+                          {:text      "EDL Strength"
+                           :disabled? (not (:edl? @ro))
+                           :min       0.1
+                           :max       2
+                           :start     (get @ro :edl-strength 1) :step 0.1
+                           :connect   "lower"
+                           :f         (fn [val]
+                                        (om/transact! plasio-state/ro #(assoc % :edl-strength val)))})
 
-              (om/build w/labeled-slider
-                        {:text      "EDL Radius"
-                         :disabled? (not (:edl? @ro))
-                         :min       1
-                         :max       5
-                         :start     (get @ro :edl-radius 1) :step 0.01
-                         :connect   "lower"
-                         :f         (fn [val]
-                                      (om/transact! plasio-state/ro #(assoc % :edl-radius val)))})))
+                (om/build w/labeled-slider
+                          {:text      "EDL Radius"
+                           :disabled? (not (:edl? @ro))
+                           :min       1
+                           :max       5
+                           :start     (get @ro :edl-radius 1) :step 0.01
+                           :connect   "lower"
+                           :f         (fn [val]
+                                        (om/transact! plasio-state/ro #(assoc % :edl-radius val)))}))))
 
           ;; point density loading
           
@@ -146,7 +147,7 @@
 
 (defcomponentk ramp-button [[:data id s e f] owner]
   (render [_]
-    (b/button
+    (w/button
       {:bs-size "small"
        :on-click f}
       (grad-svg s e))))
@@ -263,7 +264,7 @@
         (d/div
           {:class "local-settings"}
           (d/form
-            (i/input {:type      "checkbox"
+            (w/input {:type      "checkbox"
                       :label     "Enable Flicker Fix"
                       :checked   (:flicker-fix @local-options)
                       :on-change (fn []
@@ -321,7 +322,7 @@
         (d/div
           {:class "inundation-plane"}
           (d/form
-            (i/input {:type      "checkbox"
+            (w/input {:type      "checkbox"
                       :label     "Show Inundation Plane?"
                       :checked   (:inundation? @ui-locals)
                       :on-change (fn [] (om/transact!
@@ -379,11 +380,12 @@
                              seq
                              (cons {:name "None"
                                     :spec nil}))]
-        (apply b/dropdown {:bs-size "small"
+        (apply w/dropdown {:bs-size "small"
+                           :class "mb-2"
                            ;; the selected may come down as an un-encoded url
                            :title   "Load a pre-defined filter"}
                (for [{:keys [:name :spec]} all-options]
-                 (b/menu-item {:key       name
+                 (w/menu-item {:key       name
                                :on-select (fn []
                                             (f-changed spec))}
                               name))))))
@@ -428,7 +430,7 @@
           (when-not (str/blank? (:syntax-error @state))
             (d/p {:class "text-danger"} "Could not apply filter: " (:syntax-error @state)))
 
-          (b/button
+          (w/button
             {:bs-style "default"
              :bs-size  "medium"
              :title    "Apply Filter"
@@ -560,27 +562,27 @@
         ;;
         (when-let [r (:renderer comps)]
           (.addStatsListener r "z" "z-collector"
-                             (fn [hist minmax]
-                               (let [n (gobject/get minmax "min")
-                                     x (gobject/get minmax "max")]
-                                 (when (< n x)
-                                   ;; update the state of our renderer based on what we get from the histogram
-                                   (om/update! plasio-state/ro :zrange [n x])
-                                   (om/transact! plasio-state/histogram
-                                                 #(-> %
-                                                      (assoc :data hist)
-                                                      (update :c (fnil inc 0))))))))
+                             (fn [_ hist]
+                               (when hist
+                                 (let [[n x] (util/js-map-min-max-keys hist)]
+                                   (when (< n x)
+                                     ;; update the state of our renderer based on what we get from the histogram
+                                     (om/update! plasio-state/ro :zrange [n x])
+                                     (om/transact! plasio-state/histogram
+                                                   #(-> %
+                                                        (assoc :data hist)
+                                                        (update :c (fnil inc 0)))))))))
           (.addStatsListener r "intensity" "intensity-collector"
-                             (fn [hist minmax]
-                               (let [n (gobject/get minmax "min")
-                                     x (gobject/get minmax "max")]
-                                 (when (< n x)
-                                   ;; update the state of our renderer based on what we get from the histogram
-                                   (om/update! plasio-state/ro :irange [n x])
-                                   (om/transact! plasio-state/intensity-histogram
-                                                 #(-> %
-                                                      (assoc :data hist)
-                                                      (update :c (fnil inc 0))))))))
+                             (fn [_ hist]
+                               (when hist
+                                 (let [[n x] (util/js-map-min-max-keys hist)]
+                                   (when (< n x)
+                                     ;; update the state of our renderer based on what we get from the histogram
+                                     (om/update! plasio-state/ro :irange [n x])
+                                     (om/transact! plasio-state/intensity-histogram
+                                                   #(-> %
+                                                        (assoc :data hist)
+                                                        (update :c (fnil inc 0)))))))))
           (swap! state assoc :cleanup-fn
                  (fn []
                    (.removeStatsListener r "z" "z-collector")
@@ -866,7 +868,7 @@
                                 [(js/decodeURIComponent k) {:name v
                                                             :addon? addon?}]))]
 
-      (apply b/dropdown {:bs-size "small"
+      (apply w/dropdown {:bs-size "small"
                          ;; the selected may come down as an un-encoded url
                          :title   (if (nil? selected)
                                     "None"
@@ -875,7 +877,7 @@
                                               (:name info))
                                       "Unknown"))}
              (for [[id name addon?] all-options]
-               (b/menu-item {:key       id
+               (w/menu-item {:key       id
                              :on-select (fn []
                                           (f-changed id))}
                             (d/span
@@ -917,14 +919,20 @@
       [(or (parse-color start) [0 0 0])
        (or (parse-color end) [0 0 0])])))
 
-(defcomponentk ramp-view [[:data data range value]]
-  (render [_]
+(defcomponentk ramp-view [[:data data range value] state owner]
+  (did-mount [_]
+    (when-let [node (om/get-node owner)]
+      (let [r (.getBoundingClientRect node)
+            width (.-width r)]
+        (swap! state assoc :width width))))
+
+  (render-state [_ {:keys [:width]}]
     (when-let [[start end] (parse-colors-for-ramp (:source data))]
       (let [[m n] range
             [s e] value]
         (d/div
          (grad-svg start end
-                   200 15
+                   (or width 0) 15
                    (util/mapr s m n)
                    (util/mapr e m n)))))))
 
@@ -944,7 +952,7 @@
                   :on-click #(plasio-state/mute-channel! channel (not (:mute? data)))} "Mute")
             (d/a {:class (str "solo" (when (:solo? data) " enabled"))
                   :href "javascript:"
-                  on-click #(plasio-state/solo-channel! channel (not (:solo? data)))} "Solo"))
+                  :on-click #(plasio-state/solo-channel! channel (not (:solo? data)))} "Solo"))
      (d/div {:class "source"}
             (om/build sources-dropdown {:selected (:source data)
                                         :f-changed #(plasio-state/set-channel-source! channel %)
@@ -1134,7 +1142,7 @@
           {:class "step-anim-container"}
           (d/div
             {:class "animation-controls"}
-            (b/button {:bs-size  "small"
+            (w/button {:bs-size  "small"
                        :on-click #(if (:playing? animation-settings)
                                     (plasio-state/anim-stop)
                                     (plasio-state/anim-play))}
@@ -1201,7 +1209,7 @@
 
             current-pane (or (:controller @animation-settings) :step)]
         (d/div {:class "animation-container"}
-               (n/nav
+               (w/nav
                  {:bs-style   "tabs"
                   :active-key current-pane
                   :on-select  (fn [pane]
@@ -1212,9 +1220,9 @@
                                                                        :frames))
                                     (plasio-state/set-timeline-widget-visibility! true))
                                   (plasio-state/set-timeline-widget-visibility! false)))}
-                 (n/nav-item {:key :step :href "javascript:void(0)"}
+                 (w/nav-item {:key :step :href "javascript:void(0)"}
                              "Step Animator")
-                 (n/nav-item {:key :timeline :href "javascript:void(0)"}
+                 (w/nav-item {:key :timeline :href "javascript:void(0)"}
                              "Timeline Animator"))
 
                (if (= current-pane :step)
@@ -1340,7 +1348,7 @@
               steps (count plasio-state/increments)]
           (d/div
             {:class "speed-multiplier"}
-            (b/button {:bs-size  "small"
+            (w/button {:bs-size  "small"
                        :on-click #(if (:playing? @animation-settings)
                                     (plasio-state/anim-stop)
                                     (plasio-state/anim-play))}

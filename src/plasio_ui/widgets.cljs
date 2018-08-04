@@ -3,8 +3,8 @@
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
             [om-tools.dom :as d]
-            [om-bootstrap.random :as r]
-            [plasio-ui.state :as plasio-state]))
+            [plasio-ui.state :as plasio-state]
+            [clojure.string :as str]))
 
 (defn fa-icon [& parts]
   (d/i {:class (apply str
@@ -40,6 +40,92 @@
                       "max" max)))
   (doto (.-noUiSlider node)
     (.on "slide" f)))
+
+
+;; some common UI widgets
+;;
+
+(defn input
+  "Creates an input control"
+  [props]
+  (assert (= (:type props) "checkbox")
+          "Only input types of type checkbox are supported at this time")
+  (let [id (gensym "inputid")]
+    (d/div
+      {:class "form-check"}
+      (d/input
+        (merge
+          (dissoc props :type :class :label)
+          {:type  "checkbox"
+           :id id
+           :class (util/class-list "form-check-input"
+                                   (:class props))}))
+      (d/label {:for id
+                :class "form-check-label"} (:label props)))))
+
+(defn bs-size->btn-size-class
+  "Given an old style bootstrap size, convert to new style class"
+  [s]
+  (get {"xsmall" "btn-sm"
+        "small" "btn-sm"
+        "large" "btn-lg"}
+       s ""))
+
+(defn bs-style->btn-style
+  "Given a button style, return the correct bootstrap4 class"
+  [s]
+  (if-not (str/blank? s)
+    (str "btn-" (str/lower-case s))
+    "btn-light"))
+
+(defn button
+  "Creates a button"
+  [props title]
+  (d/button
+    (merge
+      (dissoc props :bs-size :title :class)
+      {:type  "button"
+       :class (util/class-list
+                "btn"
+                (bs-size->btn-size-class (:bs-size props))
+                (bs-style->btn-style (:bs-style props))
+                (:class props))
+       :aria-haspopup "true"
+       :aria-expanded "false"})
+    title))
+
+(defn dropdown
+  "Creates a dropdown"
+  [props & items]
+  (d/div
+    {:class "button-group"}
+    (d/button
+      {:type          "button"
+       :class         (util/class-list "btn" "dropdown-toggle"
+                                       (bs-style->btn-style (:bs-style props))
+                                       (bs-size->btn-size-class (:bs-size props))
+                                       (:class props))
+       :data-toggle   "dropdown"
+       :aria-haspopup "true"
+       :aria-expanded "false"}
+      (:title props))
+    (apply
+      d/div
+      {:class "dropdown-menu"}
+      items)))
+
+(defn menu-item
+  "Creates a menu item"
+  [props title]
+  (d/a
+    (merge (dissoc props :on-select)
+           {:class "dropdown-item"}
+           (when-let [f (:on-select props)]
+             {:on-click #(f)}))
+    title))
+
+(defn nav [props & items])
+(defn nav-item [props title])
 
 (defcomponentk slider-guides [[:data left right]]
   (render [_]
@@ -151,83 +237,84 @@
 (defn- px [v]
   (str v "px"))
 
-(def ^:private histogram-width 200)
 (def ^:private histogram-height 50)
 
 (let [in-mem (.createElement js/document "canvas")]
-  (defn render-histogram! [canvas histogram n x left right]
-    (let [w (.-width canvas)
-          h (.-height canvas)
-          keys (doto (js/Array.from (.keys histogram))
-                 (.sort (fn [a b] (- a b))))
-          width-per-item (/ 200 (.-size histogram))
-          max-val (js/Math.log (apply js/Math.max (js/Array.from (.values histogram))))
-          l left
-          r right]
+  (defn render-histogram! [canvas histogram n x left right width]
+    (when (and (pos? (.-width canvas))
+               (pos? (.-height canvas)))
+      (let [w (.-width canvas)
+            h (.-height canvas)
+            keys (doto (js/Array.from (.keys histogram))
+                   (.sort (fn [a b] (- a b))))
+            width-per-item (/ width (.-size histogram))
+            max-val (js/Math.log (apply js/Math.max (js/Array.from (.values histogram))))
+            l left
+            r right]
 
-      (set! (.-width in-mem) w)
-      (set! (.-height in-mem) h)
+        (set! (.-width in-mem) w)
+        (set! (.-height in-mem) h)
 
-      (let [ctx (.getContext in-mem "2d")]
-        ;; clear base
-        (.clearRect ctx 0 0 w h)
+        (let [ctx (.getContext in-mem "2d")]
+          ;; clear base
+          (.clearRect ctx 0 0 w h)
 
-        ;; draw bars indicating how much we've scrolled
-        (let [offset1 (util/mapr l n x 0 w)
-              offset2 (util/mapr r n x 0 w)]
-          (set! (.-fillStyle ctx) "#eee")
-          ;; fancy bars closing in
-          (.fillRect ctx 0 0 offset1 h)
-          (.fillRect ctx offset2 0 (- w offset2) h)
+          ;; draw bars indicating how much we've scrolled
+          (let [offset1 (util/mapr l n x 0 w)
+                offset2 (util/mapr r n x 0 w)]
+            (set! (.-fillStyle ctx) "#eee")
+            ;; fancy bars closing in
+            (.fillRect ctx 0 0 offset1 h)
+            (.fillRect ctx offset2 0 (- w offset2) h)
 
 
-          ;; draw all bars
-          (let [len (alength keys)]
-            (loop [index 0]
-              (when (< index len)
-                (let [k (aget keys index)
-                      x (js/Math.floor (* index width-per-item))
-                      h (* 40 (/ (js/Math.log (.get histogram k)) max-val))
-                      y (- 50 h)]
-                  (js/console.log k x)
-                  (if (and (>= k l) (<= k r))
-                    (set! (.-fillStyle ctx) "#00BBD7")
-                    (set! (.-fillStyle ctx) "#ccc"))
-                  (.fillRect ctx
-                             x y width-per-item h))
-                (recur (unchecked-inc-int index)))))
+            ;; draw all bars
+            (let [len (alength keys)]
+              (loop [index 0]
+                (when (< index len)
+                  (let [k (aget keys index)
+                        x (js/Math.floor (* index width-per-item))
+                        h (* 40 (/ (js/Math.log (.get histogram k)) max-val))
+                        y (- 50 h)]
+                    (if (and (>= k l) (<= k r))
+                      (set! (.-fillStyle ctx) "#00BBD7")
+                      (set! (.-fillStyle ctx) "#ccc"))
+                    (.fillRect ctx
+                               x y (js/Math.ceil width-per-item) h))
+                  (recur (unchecked-inc-int index)))))
 
-          ;; fancy lines closing in
-          (let [y h]
-            (set! (.-strokeStyle ctx) "#ccc")
-            (doto ctx
-              (.beginPath)
-              (.moveTo 0 y)
-              (.lineTo offset1 y)
-              (.moveTo offset2 y)
-              (.lineTo w y)
-              (.stroke))
+            ;; fancy lines closing in
+            (let [y h]
+              (set! (.-strokeStyle ctx) "#ccc")
+              (doto ctx
+                (.beginPath)
+                (.moveTo 0 y)
+                (.lineTo offset1 y)
+                (.moveTo offset2 y)
+                (.lineTo w y)
+                (.stroke))
 
-            (set! (.-strokeStyle ctx) "#00BBD7")
-            (doto ctx
-              (.beginPath)
-              (.moveTo offset1 y)
-              (.lineTo offset2 y)
-              (.stroke)))))
+              (set! (.-strokeStyle ctx) "#00BBD7")
+              (doto ctx
+                (.beginPath)
+                (.moveTo offset1 y)
+                (.lineTo offset2 y)
+                (.stroke)))))
 
-      ;; once we're done rendering blit it
-      (let [ctx (.getContext canvas "2d")]
-        (.clearRect ctx 0 0 w h)
-        (.drawImage ctx in-mem 0 0)))))
+        ;; once we're done rendering blit it
+        (let [ctx (.getContext canvas "2d")]
+          (.clearRect ctx 0 0 w h)
+          (.drawImage ctx in-mem 0 0))))))
 
 (defn- render-histogram-for-owner! [owner]
   (let [hist (om/get-props owner :histogram)
         histogram (:data hist)
         left (om/get-props owner :left)
         right (om/get-props owner :right)
+        width (om/get-props owner :width)
         [n x] (om/get-props owner :range)]
     (when histogram
-      (render-histogram! (om/get-node owner) histogram n x left right))))
+      (render-histogram! (om/get-node owner) histogram n x left right width))))
 
 (defn base-histogram [{:keys [width height]} owner]
   (reify
@@ -254,7 +341,13 @@
                                     min {min-display nil}
                                     max {max-display nil}
                                     start histogram {f nil}] state owner]
-  (render [_]
+  (did-mount [_]
+    (let [node (om/get-node owner)
+          r (.getBoundingClientRect node)
+          width (.-width r)]
+      (swap! state assoc :width width)))
+
+  (render-state [_ {:keys [:width]}]
     (d/div
       {:class "z-histogram"}
       (d/div {:class "text"} text)
@@ -262,7 +355,7 @@
                                 :left (first start)
                                 :right (second start)
                                 :range [min max]
-                                :width histogram-width
+                                :width (or width 0)
                                 :height histogram-height})
       (om/build slider {:min     min
                         :max     max
@@ -273,19 +366,27 @@
                         :f       f}))))
 
 
-(defcomponentk docked-widget-toolbar-item [[:data id icon title active? activate-fn]]
+(defn- tooltipize [node]
+  (.tooltip (js/$ node)
+            (js-obj "trigger" "hover")))
+
+(defcomponentk docked-widget-toolbar-item [[:data id icon title active? activate-fn] owner]
+  (did-mount [_]
+    (tooltipize (om/get-node owner)))
+
+  (did-update [_ _ _]
+    (tooltipize (om/get-node owner)))
+
   (render [_]
     (d/a {:class    (str "toolbar-item"
                          (when active?
                            " active"))
           :on-click activate-fn
           :href     "javascript:"
-          :alt      title}
-         (fa-icon icon)
-         (r/tooltip {:placement         "right"
-                     :position-left     35
-                     :position-top      -5}
-                    title))))
+          :data-toggle "tooltip"
+          :data-placement "right"
+          :title title}
+         (fa-icon icon))))
 
 (defcomponentk docked-widget-toolbar [[:data items active activate-fn]]
   (render [_]

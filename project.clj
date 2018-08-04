@@ -9,7 +9,6 @@
                  [org.clojure/core.async "0.2.395"]
                  [prismatic/om-tools "0.3.12"]
                  [cljsjs/gl-matrix "2.3.0-jenanwise-0"]
-                 [racehub/om-bootstrap "0.5.3"]
                  [cljs-http "0.1.31"]]
 
   :plugins [[lein-cljsbuild "1.1.2"]

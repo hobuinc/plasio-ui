@@ -437,15 +437,15 @@
   ["css/style.css"])
 
 (def ^:private third-party-scripts
-  [[:jquery "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"]
+  [[:jquery "https://code.jquery.com/jquery-3.2.1.slim.min.js"]
    [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.0.2/nouislider.min.js"]
-   [:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"]
+   [:bootstrap "https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js"]
    [:react ["https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.min.js"
             "https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.min.js"]]])
 
 
 (def ^:private third-party-styles
-  [[:bootstrap "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"]
+  [[:bootstrap "https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"]
    [:font-awesome "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"]
    [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.0.2/nouislider.min.css"]])
 
