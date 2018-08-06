@@ -46,6 +46,7 @@
                                    "vendor/externs/extras.js"
                                    "vendor/externs/react-dom.ext.js"
                                    "vendor/externs/react.ext.js"
+                                   "vendor/externs/bootstrap.ext.js"
                                    "vendor/externs/google_maps_api_v3_11.js"]
                          :pretty-print false}}]}
 

@@ -29,12 +29,19 @@
             margin-top: 6em;
             font-weight: bold;
             color: #888;
+            position: relative;
+            left: -3rem;
         }
 
         .bootup .speckly-startup-logo {
             color: #0097a7;
-            border-bottom: 1px solid #00BCD6;
-            margin: 5rem 10rem;
+            margin: 5rem 10rem 0 10rem;
+        }
+
+        .bootup .speckly-border-image {
+            position: relative;
+            top: -2rem;
+            left: 2rem;
         }
 
         .bootup .entwine-startup-logo {
@@ -66,6 +73,8 @@
 <div id="app">
     <div class="bootup">
         <div class="speckly-startup-logo">speck.ly</div>
+        <img class="speckly-border-image" src="img/speckly_bottom_border.svg">
+
         <div>
             <div class="powered-by">Powered by </div>
             <div class="entwine-startup-logo"></div>
@@ -121,7 +130,10 @@
                  {
                      "name": "ept://na.entwine.io/nyc",
                      "displayName": "New York City",
-                     "default": true
+                     "default": true,
+                     "params": {
+                         "c0s": "remote://imagery?url=http%3A%2F%2Fserver.arcgisonline.com%2FArcGIS%2Frest%2Fservices%2FWorld_Imagery%2FMapServer%2Ftile%2F%7B%7Bz%7D%7D%2F%7B%7By%7D%7D%2F%7B%7Bx%7D%7D.jpg"
+                     }
                  },
                  {
                      "displayName": "AHN & DK",

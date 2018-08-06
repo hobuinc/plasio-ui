@@ -184,7 +184,6 @@
           dp (-> @ui :docked-panes set)
 
           panes-to-hide (set (map keyword (:hiddenPanes settings)))]
-      (println "settings:" settings)
       (d/div
         {:class     "plasio-ui"}
         ;; setup render target

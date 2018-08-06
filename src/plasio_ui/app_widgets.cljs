@@ -1053,7 +1053,7 @@
             points (om/observe owner plasio-state/clicked-point-info)]
         (d/div
          {:class "point-info-container"}
-         (d/h4 "Point Information")
+         (d/h5 "Point Information")
          (if (> (count resources) 1)
            (d/p {:class "text-danger"} "Point information is not available when multiple resources are loaded.")
            (d/div
@@ -1062,11 +1062,11 @@
              (if-not (seq @points)
                (d/div {:class "no-items"} "Click on a point to see its information here.")
                (d/div
-                 (d/h5 "Following resources responded to point info query:")
+                 (d/p "Following resources responded to point info query:")
                  (for [point @points
                        :when (seq point)]
                    (d/div
-                     (d/h5 {:class "resource"}
+                     (d/p {:class "resource"}
                            (if (contains? point :eptRootUrl)
                              (str (util/ept-url->name (:eptRootUrl point)) " [EPT]")
                              (str (:resource point) "@" (:server point))))

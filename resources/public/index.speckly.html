@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link href='https://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <style>
         body {
-            font-family: 'Lato', 'Lucida Grande', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             font-size: 14px;
-            margin: 0px;
-            padding: 0px;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
-            line-height: 1.42857143;
+            line-height: 1.5;
             color: #666;
         }
 
@@ -19,23 +17,39 @@
             left: 0; right: 0; top: 0; bottom: 0;
             text-align: center;
             padding-top: 30px;
-            font-family: sans-serif;
             color: #444;
-            font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif
+            font-size: 60px;
+            letter-spacing: -5px;
+            margin: 0;
         }
 
-        .bootup h3 {
-            font-family: Impact, Charcoal, sans-serif;
-            font-size: 80px;
-            margin: 0px;
+        .bootup .powered-by {
+            font-size: 14px;
+            letter-spacing: 0;
+            margin-top: 6em;
+            font-weight: bold;
+            color: #888;
+            position: relative;
+            left: -3rem;
+        }
+
+        .bootup .speckly-startup-logo {
+            color: #0097a7;
+            margin: 5rem 10rem 0 10rem;
+        }
+
+        .bootup .speckly-border-image {
+            position: relative;
+            top: -2rem;
+            left: 2rem;
         }
 
         .bootup .entwine-startup-logo {
             background: url(img/entwine.png);
-            height: 50px;
-            margin: 0px;
-            padding: 0px;
+            height: 40px;
             width: auto;
+            margin: 0;
+            padding: 0;
             background-size: contain;
             background-position: center center;
             background-repeat: no-repeat no-repeat;
@@ -58,7 +72,9 @@
 <body class="noselect">
 <div id="app">
     <div class="bootup">
-        <h3>speck.ly</h3>
+        <div class="speckly-startup-logo">speck.ly</div>
+        <img class="speckly-border-image" src="img/speckly_bottom_border.svg">
+
         <div>
             <div class="powered-by">Powered by </div>
             <div class="entwine-startup-logo"></div>
@@ -71,13 +87,24 @@
  var createUI = function() {
      plasioUI = plasio_ui.core.createUI(document.getElementById("app"), {
          includeExternalDependencies: true,
-         ignoreDependencies: ["bootstrap"],
          googleMapsAPIKey: "AIzaSyCdLqz1ZxiO2woQ4B4wbYtcR2EtYEYnHxg",
-
          useBrowserHistory: true,
          rememberUIState: true,
          allowGreyhoundCredentials: false,
-
+         // in case the browser is empty, use the following resource
+         availableResources: [
+             ["Autzen", "autzen-h", "http://cache.greyhound.io/"],
+             ["Half Dome", "half-dome-h", "http://cache.greyhound.io/"],
+             ["Iowa", "iowa-h", "http://cache.greyhound.io/"],
+             ["Iowa Bridge", "iowa-bridge-h", "http://cache.greyhound.io/"],
+             ["Lake Isabella", "isa-h", "http://cache.greyhound.io/"],
+             ["Lone Star Geyser", "lone-star-h", "http://cache.greyhound.io/"],
+             ["Minnesota", "mn-h", "http://cache.greyhound.io/"],
+             ["Nepal", "nepal-h", "http://cache.greyhound.io/"],
+             ["New York City", "nyc-h", "http://cache.greyhound.io/"],
+             ["Red Rock Amphitheatre", "redrock-h", "http://cache.greyhound.io/"],
+             ["Space Shuttle", "shuttle-h", "http://cache.greyhound.io/"]
+         ],
          additionalInformation:
          'Powered by: <a href="https://github.com/connormanning/entwine" target="_blank">entwine</a>' +
          ', 3D Point Cloud viewer: <a href="https://github.com/verma/plasio-ui" target="_blank">plasio</a>' +
@@ -87,15 +114,14 @@
              ["Red", 5]
          ],
 
-         defaultColorChannelIndex: 2,
-         deriveColorChannelsFromAddonFields: true,
+         defaultColorChannelIndex: 0,
 
          colorSources: [
              ["remote://imagery?url=" + encodeURIComponent("http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"), "Mapbox Satellite Imagery"],
              ["remote://imagery?url=" + encodeURIComponent("http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}.jpg"), "ArcGIS Satellite Imagery"],
-             ["local://ramp?field=Z", "Elevation"],
              ["local://ramp?field=Z&start=#FF0000&end=#00FF00", "Elevation RED -> GREEN"],
              ["local://ramp?field=Z&start=#FFFFFF&end=#0000FF", "Elevation WHITE -> BLUE"],
+             ["local://ramp?field=Z", "Elevation"],
              ["local://color", "Color"],
              ["local://field-color?field=Classification", "Classification"],
              ["local://ramp?field=Intensity", "Intensity"],
