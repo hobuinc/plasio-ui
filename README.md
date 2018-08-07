@@ -259,3 +259,12 @@ the UI and empty out the `div` element it was hosted inside.
     let ui = plasio_ui.core.createUI(divElement);
     ui.destroy() // destroy the User Interface
 
+
+# Building
+
+If you'd like to build your own version of speck.ly, run the following command (docker required):
+
+    bash scripts/docker-prod-staging-build.sh
+
+This will use docker to build a version of speck.ly and place it in a directory named `speck.ly` under project root (location where you run this script from).
+
