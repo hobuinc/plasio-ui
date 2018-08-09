@@ -720,6 +720,22 @@
 
         margin-bottom: 3px;
 
+        .channel-controls {
+          @include flexbox();
+          @include flex-direction(row);
+
+          .name {
+            @include flex(1 1 auto);
+            min-width: 0;
+
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #666;
+          }
+
+          margin-bottom: 1em;
+        }
+
         .source {
           .dropdown-menu {
               li {
@@ -733,8 +749,7 @@
 
         .controls {
           text-transform: uppercase;
-          margin-top: 5px;
-
+          white-space: nowrap;
           a {
             color: #999;
             margin-right: 5px;
@@ -764,10 +779,6 @@
         }
 
         .name {
-          text-transform: uppercase;
-          font-weight: 700;
-          color: #666;
-          padding: 5px;
         }
 
         .addon {
@@ -905,16 +916,20 @@
 
   .value-present {
     border-bottom: 1px dashed #ccc;
+    margin-top: 10px;
     margin-bottom: 10px;
 
-    .key {
-      margin-top: 6px;
+    @include flexbox();
+    @include flex-direction(row);
+    @include align-items(baseline);
 
+    .key {
+      @include flex(1 1 auto);
+      min-width: 0;
     }
 
     .value {
       font-size: 1.4em;
-
     }
   }
 
@@ -949,6 +964,14 @@
     text-transform: uppercase;
     color: #ccc;
     margin-bottom: 10px;
+
+    @include flexbox();
+    @include flex-direction(direction);
+
+    .center {
+      @include flex (1 1 auto);
+      min-width: 0;
+    }
   }
 
 

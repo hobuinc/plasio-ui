@@ -1633,13 +1633,37 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
       border-radius: 3px;
       padding: 10px;
       margin-bottom: 3px; }
+      .plasio-ui .channels .channel .channel-controls {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: -moz-flex;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-direction: normal;
+        -webkit-box-orient: horizontal;
+        -webkit-flex-direction: row;
+        -moz-flex-direction: row;
+        -ms-flex-direction: row;
+        flex-direction: row;
+        margin-bottom: 1em; }
+        .plasio-ui .channels .channel .channel-controls .name {
+          -webkit-box-flex: 1;
+          -webkit-flex: 1 1 auto;
+          -moz-box-flex: 1;
+          -moz-flex: 1 1 auto;
+          -ms-flex: 1 1 auto;
+          flex: 1 1 auto;
+          min-width: 0;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: #666; }
       .plasio-ui .channels .channel .source .dropdown-menu li {
         border-bottom: 1px dashed #dedede; }
         .plasio-ui .channels .channel .source .dropdown-menu li:last-child {
           border-bottom: none; }
       .plasio-ui .channels .channel .controls {
         text-transform: uppercase;
-        margin-top: 5px; }
+        white-space: nowrap; }
         .plasio-ui .channels .channel .controls a {
           color: #999;
           margin-right: 5px;
@@ -1655,11 +1679,6 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
         width: 100%; }
       .plasio-ui .channels .channel .btn-group {
         width: 100%; }
-      .plasio-ui .channels .channel .name {
-        text-transform: uppercase;
-        font-weight: 700;
-        color: #666;
-        padding: 5px; }
       .plasio-ui .channels .channel .addon:after {
         display: inline-block;
         content: 'addon';
@@ -1748,9 +1767,32 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
       border-right: none; }
   .plasio-ui .value-present {
     border-bottom: 1px dashed #ccc;
-    margin-bottom: 10px; }
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-direction: normal;
+    -webkit-box-orient: horizontal;
+    -webkit-flex-direction: row;
+    -moz-flex-direction: row;
+    -ms-flex-direction: row;
+    flex-direction: row;
+    -webkit-box-align: baseline;
+    -ms-flex-align: baseline;
+    -webkit-align-items: baseline;
+    -moz-align-items: baseline;
+    align-items: baseline; }
     .plasio-ui .value-present .key {
-      margin-top: 6px; }
+      -webkit-box-flex: 1;
+      -webkit-flex: 1 1 auto;
+      -moz-box-flex: 1;
+      -moz-flex: 1 1 auto;
+      -ms-flex: 1 1 auto;
+      flex: 1 1 auto;
+      min-width: 0; }
     .plasio-ui .value-present .value {
       font-size: 1.4em; }
   .plasio-ui .tip {
@@ -1775,7 +1817,26 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
     margin-top: -15px;
     text-transform: uppercase;
     color: #ccc;
-    margin-bottom: 10px; }
+    margin-bottom: 10px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-direction: normal;
+    -webkit-box-orient: horizontal;
+    -webkit-flex-direction: direction;
+    -moz-flex-direction: direction;
+    -ms-flex-direction: direction;
+    flex-direction: direction; }
+    .plasio-ui .slider-guides .center {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1 1 auto;
+      -moz-box-flex: 1;
+      -moz-flex: 1 1 auto;
+      -ms-flex: 1 1 auto;
+      flex: 1 1 auto;
+      min-width: 0; }
   .plasio-ui .switch-resource a {
     display: block;
     color: #00BBD9;

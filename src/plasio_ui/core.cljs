@@ -31,13 +31,13 @@
 (def ^:private panes
   [[:switch-resource "Switch Resource" :database aw/switch-resource-pane]
    [:rendering-options "Rendering Options" :cogs aw/rendering-options-pane]
-   [:channels "Color Channels" :picture-o aw/channels-pane]
+   [:channels "Color Channels" :image aw/channels-pane]
    [:point-manipulation "Point Manipulation" :magic aw/point-manipulation-pane]
    [:inundation-plane "Inundation Plane" :street-view aw/inundation-plane-pane]
    [:information "Information" :info-circle aw/information-pane]
    [:local-settings "Local Settings" :wrench aw/local-settings-pane]
    [:point-info "Point Information" :eye aw/point-info-pane]
-   [:animation "Animation Control" :video-camera aw/animation-pane]
+   [:animation "Animation Control" :video aw/animation-pane]
    [:filter "Filter" :filter aw/filter-pane]
    [:reorder-panes "Reorder Panes" :clone :fn plasio-state/rearrange-panels]
    [:search-location "Search for an Address" :search :fn plasio-state/toggle-search-box!]])
@@ -445,7 +445,8 @@
 
 (def ^:private third-party-styles
   [[:bootstrap "https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"]
-   [:font-awesome "https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"]
+   [:font-awesome ["https://use.fontawesome.com/releases/v5.2.0/css/solid.css"
+                   "https://use.fontawesome.com/releases/v5.2.0/css/fontawesome.css"]]
    [:nouislider "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.0.2/nouislider.min.css"]])
 
 (def ^:private google-maps-base-url

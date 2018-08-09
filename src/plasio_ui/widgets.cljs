@@ -8,7 +8,7 @@
 
 (defn fa-icon [& parts]
   (d/i {:class (apply str
-                      "fa "
+                      "fas "
                       (map #(str "fa-" (name %)) parts))}))
 
 
@@ -129,10 +129,11 @@
 
 (defcomponentk slider-guides [[:data left right]]
   (render [_]
-    (d/div {:class "slider-guides clearfix"}
-           (d/div {:class "pull-left"}
+    (d/div {:class "slider-guides"}
+           (d/div {:class "left"}
                   (if (number? left) (.toFixed left 2) left))
-           (d/div {:class "pull-right"}
+           (d/div {:class "center"})
+           (d/div {:class "right"}
                   (if (number? right) (.toFixed right 2) right)))))
 
 
@@ -332,9 +333,9 @@
 
 (defcomponentk value-present [[:data key value]]
   (render [_]
-    (d/div {:class "value-present clearfix"}
-           (d/div {:class "key pull-left"} key)
-           (d/div {:class "value pull-right"} value))))
+    (d/div {:class "value-present"}
+           (d/div {:class "key"} key)
+           (d/div {:class "value"} value))))
 
 
 (defcomponentk z-histogram-slider [[:data text

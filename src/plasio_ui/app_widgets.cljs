@@ -944,15 +944,15 @@
     (d/div
      {:class "channel"}
      (d/div
-      {:class "clearfix"})
-     (d/div {:class "name pull-left"} name)
-     (d/div {:class "controls pull-right"}
-            (d/a {:class (str "mute" (when (:mute? data) " enabled"))
-                  :href "javascript:"
-                  :on-click #(plasio-state/mute-channel! channel (not (:mute? data)))} "Mute")
-            (d/a {:class (str "solo" (when (:solo? data) " enabled"))
-                  :href "javascript:"
-                  :on-click #(plasio-state/solo-channel! channel (not (:solo? data)))} "Solo"))
+       {:class "channel-controls"}
+       (d/div {:class "name"} name)
+       (d/div {:class "controls"}
+              (d/a {:class    (str "mute" (when (:mute? data) " enabled"))
+                    :href     "javascript:"
+                    :on-click #(plasio-state/mute-channel! channel (not (:mute? data)))} "Mute")
+              (d/a {:class    (str "solo" (when (:solo? data) " enabled"))
+                    :href     "javascript:"
+                    :on-click #(plasio-state/solo-channel! channel (not (:solo? data)))} "Solo")))
      (d/div {:class "source"}
             (om/build sources-dropdown {:selected (:source data)
                                         :f-changed #(plasio-state/set-channel-source! channel %)
@@ -1234,7 +1234,7 @@
                             :loaded-resources @loaded-resources
                             :current-resource-init-info current-resource-init-info}))
 
-               (d/h4 "Loaded Frames")
+               (d/h5 "Loaded Frames")
                (om/build animation-frames
                          {:animation-settings @animation-settings
                           :loaded-resources @loaded-resources}))))))
