@@ -124,8 +124,23 @@
              {:on-click #(f)}))
     title))
 
-(defn nav [props & items])
-(defn nav-item [props title])
+(defn nav [props & items]
+  (apply d/ul {:class "nav nav-tabs"}
+         (for [i items
+               :let [active? (and (some? (:active-key props))
+                                  (= (:active-key props) (:key i)))]]
+           (d/li
+             {:class (str "nav-item"
+                          (when active? " active"))}
+             (d/a (-> i
+                      (assoc :class "nav-link"
+                             :href "javascript:void(0)"
+                             :on-click ((:on-select props) (:key i)))
+                      (dissoc ::title))
+                  (::title i))))))
+
+(defn nav-item [props title]
+  (assoc props ::title title))
 
 (defcomponentk slider-guides [[:data left right]]
   (render [_]

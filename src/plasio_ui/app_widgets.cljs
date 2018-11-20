@@ -187,7 +187,7 @@
                     (.replace (.toFixed n 0) regex ",")))
 
 (defn- index-size [info]
-  (let [num-points (:numPoints info)
+  (let [num-points (:points info)
         schema (:schema info)
         size-bytes (* (util/schema->point-size schema) num-points)
         pow js/Math.pow
@@ -238,7 +238,7 @@
                                        ["Point Cloud Info"
                                         (d/a {:href   (if ept?
                                                         (util/join-url-parts (:eptRootUrl resource-info)
-                                                                             "entwine.json")
+                                                                             "ept.json")
                                                         (util/join-url-parts
                                                           (js/Plasio.Util.pickOne (:server resource-info)) "resource" (:resource resource-info) "info"))
                                               :target "_blank"}
@@ -1099,9 +1099,17 @@
                                :target "_blank"} "Source Tile Metadata")))))))))))))
 
 
+(defn- config->canonical-resource-name
+  "Given config, determine what the resource name should be, depending one whether its
+  EPT or not."
+  [config]
+  (if-let [url (:eptRootUrl config)]
+    (str/lower-case (util/ept-url->name url))
+    (-> config :resource (or "") str/lower-case)))
+
 (defn have-frames-for-timeline? [loaded-resources frames]
-  (let [loaded-resources-set (->> (map #(-> % :config :resource str/lower-case) loaded-resources) set)
-        ts-available-for-resources-set (->> (map #(-> % :resource str/lower-case) frames) set)
+  (let [loaded-resources-set (->> (map #(config->canonical-resource-name (:config %)) loaded-resources) set)
+        ts-available-for-resources-set (->> (map #(-> % :name str/lower-case) frames) set)
         missing-ts (set/difference loaded-resources-set ts-available-for-resources-set)]
     (and (seq frames)
          (not (seq missing-ts)))))
@@ -1109,19 +1117,22 @@
 (let [id :animation]
   (defcomponentk loaded-resource-info [[:data visible key playing? scrubbing? set-visibility-fn config] owner]
     (render [_]
-      (d/div {:class (str "animation-frames--item"
-                          (when (and (or playing? scrubbing?)
-                                     visible)
-                            " animated-active"))}
-             (d/div {:class "info"}
-                    (d/div {:class "name"} (:resource config))
-                    (d/div {:class "details"} (:server config)))
-             (d/div {:class "controls"}
-                    (d/a {:href     "javascript:void(0)"
-                          :class    (str (when visible "active")
-                                         (when playing? " playing"))
-                          :on-click #(when-not playing?
-                                       (set-visibility-fn key (not visible)))} "Visible")))))
+      (let [ept? (some? (:eptRootUrl config))]
+        (d/div {:class (str "animation-frames--item"
+                            (when (and (or playing? scrubbing?)
+                                       visible)
+                              " animated-active"))}
+               (d/div {:class "info"}
+                      (d/div {:class "name"}
+                             (if ept? (util/ept-url->name (:eptRootUrl config)) (:resource config)))
+                      (d/div {:class "details"}
+                             (if ept? (:eptRootUrl config) (:server config))))
+               (d/div {:class "controls"}
+                      (d/a {:href     "javascript:void(0)"
+                            :class    (str (when visible "active")
+                                           (when playing? " playing"))
+                            :on-click #(when-not playing?
+                                         (set-visibility-fn key (not visible)))} "Visible"))))))
 
   (defcomponentk animation-frames [[:data animation-settings loaded-resources]]
     (render [_]
@@ -1173,13 +1184,19 @@
                       {:data
                        [["Framerate" (str frame-rate "fps")]]}))))))
 
+
+
   (defcomponentk timeline-animator [[:data animation-settings loaded-resources current-resource-init-info]]
     (render [_]
       (let [frames (-> current-resource-init-info :frames)
-            loaded-resources-set (->> (map #(-> % :config :resource str/lower-case) loaded-resources) set)
-            ts-available-for-resources-set (->> (map #(-> % :resource str/lower-case) frames) set)
+            loaded-resources-set (->> (map #(config->canonical-resource-name
+                                              (:config %))
+                                           loaded-resources) set)
+            ts-available-for-resources-set (->> (map #(-> % :name str/lower-case) frames) set)
             missing-ts (set/difference loaded-resources-set ts-available-for-resources-set)
-            have-ts-for-all? (not (seq missing-ts))]
+
+            have-ts-for-all? (have-frames-for-timeline? loaded-resources
+                                                        (:frames current-resource-init-info))]
         (d/div
           {:class "timeline-anim-container"}
           (if have-ts-for-all?
@@ -1209,9 +1226,8 @@
 
             current-pane (or (:controller @animation-settings) :step)]
         (d/div {:class "animation-container"}
-               (w/nav
-                 {:bs-style   "tabs"
-                  :active-key current-pane
+               #_(w/nav
+                 {:active-key current-pane
                   :on-select  (fn [pane]
                                 (plasio-state/anim-set-controller! pane)
                                 (if (= pane :timeline)

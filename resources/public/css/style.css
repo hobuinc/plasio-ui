@@ -1982,6 +1982,12 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
     height: 100%; }
     .plasio-ui .animation-container .step-anim-container {
       margin: 10px 0;
+      -webkit-box-flex: 0;
+      -webkit-flex: 0 0 auto;
+      -moz-box-flex: 0;
+      -moz-flex: 0 0 auto;
+      -ms-flex: 0 0 auto;
+      flex: 0 0 auto;
       display: -webkit-box;
       display: -webkit-flex;
       display: -moz-flex;
@@ -2044,13 +2050,35 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
       padding: 5px 5px 10px 5px;
       border-radius: 3px; }
     .plasio-ui .animation-container .animation-frames {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -moz-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-direction: normal;
+      -webkit-box-orient: vertical;
+      -webkit-flex-direction: column;
+      -moz-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      -webkit-box-align: stretch;
+      -ms-flex-align: stretch;
+      -webkit-align-items: stretch;
+      -moz-align-items: stretch;
+      align-items: stretch;
+      -webkit-box-pack: start;
+      -ms-flex-pack: start;
+      -webkit-justify-content: flex-start;
+      -moz-justify-content: flex-start;
+      justify-content: flex-start;
       -webkit-box-flex: 1;
       -webkit-flex: 1 1 auto;
       -moz-box-flex: 1;
       -moz-flex: 1 1 auto;
       -ms-flex: 1 1 auto;
       flex: 1 1 auto;
-      overflow: auto; }
+      overflow-y: auto;
+      overflow-x: hidden; }
       .plasio-ui .animation-container .animation-frames--item {
         display: -webkit-box;
         display: -webkit-flex;
@@ -2068,6 +2096,13 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
         -webkit-align-items: flex-start;
         -moz-align-items: flex-start;
         align-items: flex-start;
+        -webkit-box-flex: 0;
+        -webkit-flex: 0 0 auto;
+        -moz-box-flex: 0;
+        -moz-flex: 0 0 auto;
+        -ms-flex: 0 0 auto;
+        flex: 0 0 auto;
+        overflow: hidden;
         border-left: 5px solid #eee;
         margin: 6px 0; }
         .plasio-ui .animation-container .animation-frames--item.animated-active {
@@ -2085,18 +2120,35 @@ div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
           -moz-flex-direction: column;
           -ms-flex-direction: column;
           flex-direction: column;
+          -webkit-box-align: stretch;
+          -ms-flex-align: stretch;
+          -webkit-align-items: stretch;
+          -moz-align-items: stretch;
+          align-items: stretch;
+          -webkit-box-pack: stretch;
+          -ms-flex-pack: stretch;
+          -webkit-justify-content: stretch;
+          -moz-justify-content: stretch;
+          justify-content: stretch;
           -webkit-box-flex: 1;
-          -webkit-flex: 1;
+          -webkit-flex: 1 1 auto;
           -moz-box-flex: 1;
-          -moz-flex: 1;
-          -ms-flex: 1;
-          flex: 1; }
+          -moz-flex: 1 1 auto;
+          -ms-flex: 1 1 auto;
+          flex: 1 1 auto;
+          min-width: 0;
+          width: 100%;
+          overflow: hidden; }
           .plasio-ui .animation-container .animation-frames--item > .info .name {
             font-size: 1.4em;
             line-height: 1em;
-            font-weight: bold; }
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis; }
           .plasio-ui .animation-container .animation-frames--item > .info .details {
-            color: #999; }
+            color: #999;
+            overflow: hidden;
+            text-overflow: ellipsis; }
         .plasio-ui .animation-container .animation-frames--item > .controls {
           display: -webkit-box;
           display: -webkit-flex;

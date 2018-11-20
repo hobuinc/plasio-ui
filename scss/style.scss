@@ -1150,6 +1150,7 @@
 
     .step-anim-container {
       margin: 10px 0;
+      @include flex(0 0 auto);
       @include flexbox();
       @include flex-direction(column);
       @include align-items(stretch);
@@ -1194,12 +1195,21 @@
     }
 
     .animation-frames {
+      @include flexbox();
+      @include flex-direction(column);
+      @include align-items(stretch);
+      @include justify-content(flex-start);
+
       @include flex(1 1 auto);
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       &--item {
         @include flexbox();
         @include flex-direction(column);
         @include align-items(flex-start);
+        @include flex(0 0 auto);
+
+        overflow: hidden;
 
         border-left: 5px solid #eee;
         margin: 6px 0;
@@ -1212,15 +1222,27 @@
           margin-left: 5px;
           @include flexbox();
           @include flex-direction(column);
-          @include flex(1);
+          @include align-items(stretch);
+          @include justify-content(stretch);
+
+          @include flex(1 1 auto);
+          min-width: 0;
+
+          width: 100%;
+          overflow: hidden;
+
           .name {
             font-size: 1.4em;
             line-height: 1em;
             font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
 
           .details {
             color: #999;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
 
